@@ -2,6 +2,7 @@
   { "id": "current-role", "kind": "fact", "q": "What is Rishabh's current role?", "include": ["S(r\\.?|enior) AI Researcher", "Simplilearn"], "url": "/experience" },
   { "id": "oa-accuracy", "kind": "fact", "q": "How accurate was his osteoarthritis model?", "include": ["96\\s?%"], "url": "/projects/oa-classification" },
   { "id": "collaterals-impact", "kind": "fact", "q": "What did the Collaterals Agent achieve?", "include": ["(1|one)\\s?day", "7.{0,3}10"], "url": "/projects/collaterals-agent" },
+  { "id": "collaterals-team", "kind": "fact", "q": "How many people did the Collaterals Agent save time for?", "include": ["four|\b4\b|eight|\b8\b"], "exclude": ["teams? of (eight|8)"], "url": "/projects/collaterals-agent" },
   { "id": "award", "kind": "fact", "q": "Which award did he win at Simplilearn?", "include": ["Best Team Award"] },
   { "id": "college", "kind": "fact", "q": "Where did he study?", "include": ["B\\.?\\s?M\\.?\\s?S"], "url": "/experience" },
   { "id": "lcsnet-f1", "kind": "fact", "q": "What F1 score did LCSNet get?", "include": ["71\\.7"], "url": "/publications" },

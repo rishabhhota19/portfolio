@@ -49,6 +49,8 @@ jobs:
         run: python -m evals.run_evals
 
       - name: RAGAS (faithfulness, answer relevancy, context precision)
+        # Weekly / manual only: the judge shares the site's free Gemini quota, so don't spend it on every push.
+        if: github.event_name != 'push'
         run: python -m evals.ragas_eval
         continue-on-error: true # the free judge model can rate-limit
 

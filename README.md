@@ -92,5 +92,5 @@ Google Sheets logging: follow the steps at the top of `integrations/google-sheet
 
 ## CI
 `.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
-FAISS index — committing it if the content changed, which redeploys the site — then runs the evals and RAGAS and
-uploads the results. Needs the `GROQ_API_KEY` and `GOOGLE_GENERATIVE_AI_API_KEY` repository secrets.
+FAISS index — committing it if the content changed, which redeploys the site — then runs the evals and uploads the
+results. RAGAS runs weekly and on manual runs only, because its judge shares the site's free Gemini quota. Needs the `GROQ_API_KEY` and `GOOGLE_GENERATIVE_AI_API_KEY` repository secrets.

@@ -10,7 +10,7 @@ keywords: [collaterals, collateral, n8n, marketing, brochure, emailer, best team
 ---
 
 ## Problem
-Every new course launch needed SD/SL pages, brochures and seven types of emailers. Two teams of four people spent 7–10 days producing them.
+Every new course launch needed SD/SL pages, brochures and seven types of emailers. Two teams of four people (eight in total) spent 7–10 days producing them.
 
 ## What Rishabh built
 - An N8N-based agentic system that drafts all collateral automatically and cuts turnaround to **one day, including reviews and approvals**.
