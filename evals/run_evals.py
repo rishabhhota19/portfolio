@@ -24,6 +24,7 @@ from agent.prompts import KNOWLEDGE
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 4  # Groq's free tier limits tokens per minute, so don't fire questions back to back
+SMART_QUOTES = str.maketrans("‘’“”", "''\"\"")
 
 
 async def ask(question: str) -> dict:
@@ -38,8 +39,9 @@ def check(case: dict, state: dict) -> dict:
     last = state["messages"][-1]
     answer = last.content if last.type == "ai" else ""
     docs = state.get("docs", [])
-    missing = [p for p in case.get("include", []) if not re.search(p, answer, re.I)]
-    forbidden = [p for p in case.get("exclude", []) if re.search(p, answer, re.I)]
+    text = answer.translate(SMART_QUOTES)  # models often write ’ for ' — match patterns against plain quotes
+    missing = [p for p in case.get("include", []) if not re.search(p, text, re.I)]
+    forbidden = [p for p in case.get("exclude", []) if re.search(p, text, re.I)]
     return {
         "id": case["id"],
         "kind": case["kind"],
