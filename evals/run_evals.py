@@ -20,6 +20,7 @@ from pathlib import Path
 from langchain_core.messages import HumanMessage
 
 from agent.graph import agent
+from agent.prompts import KNOWLEDGE
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 4  # Groq's free tier limits tokens per minute, so don't fire questions back to back
@@ -44,7 +45,8 @@ def check(case: dict, state: dict) -> dict:
         "kind": case["kind"],
         "question": case["q"],
         "answer": answer,
-        "contexts": [d["text"] for d in docs],
+        # Everything the model saw: the always-on profile + retrieved chunks (RAGAS checks answers against these).
+        "contexts": [KNOWLEDGE["core"], *[d["text"] for d in docs]] if docs else [],
         "model": state.get("model", ""),
         "passed": bool(answer) and not missing and not forbidden,
         "retrieval_hit": case["url"] in [d["url"] for d in docs] if "url" in case else None,
