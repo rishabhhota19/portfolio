@@ -1,0 +1,26 @@
+[
+  {
+    "q": "What does Rishabh do right now?",
+    "a": "He's a **Sr. AI Researcher at Simplilearn** in Bengaluru (since Mar 2026). He researches new AI tech hands-on and turns it into agentic automation for complex business workflows. Before that he was an AI Researcher at Simplilearn, and an AI Engineer at OsteosConnect, where he led a 96%-accurate osteoarthritis X-ray pipeline on AWS."
+  },
+  {
+    "q": "What's his strongest project?",
+    "a": "Two stand out:\n- **Collaterals Agent (Simplilearn):** an N8N multi-agent system — a Head Agent coordinating a Researcher and an Analyst — that cut course-launch collateral from **7–10 days to 1 day**. It won the Best Team Award.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **96% accuracy** and more than 90% agreement with radiologists, ahead of competitor RBKnee."
+  },
+  {
+    "q": "Tell me about his research",
+    "a": "- **LCSNet** (published, Elsevier *Intelligence-Based Medicine*, Oct 2025): a lightweight network that segments dental caries from smartphone photos (F1 71.7%, IoU 56.8%).\n- **Quantum attention:** QFPViT, a quantum self-attention operator for Vision Transformers (under review at *Quantum*), and a matched-budget study of quantum-inspired attention (under review at Springer QMI).\n- Earlier work includes a Springer chapter on depression identification and COVID-19 decision-support papers."
+  },
+  {
+    "q": "Has he built agentic AI in production?",
+    "a": "Yes. At Simplilearn his N8N-based **Collaterals Agent** runs launch content end to end: a Head Agent, a Researcher (SerpAPI) and an Analyst, a fine-tuned GPT, and Google Docs output. He also built **TurboTrade**, a LangChain + Groq copilot over Zerodha's Kite **MCP** server with OAuth scopes and reversible, logged actions. Agentic orchestration is a core part of his current role."
+  },
+  {
+    "q": "What's his tech stack?",
+    "a": "**Agents and LLMs:** LangChain, LangGraph, Google ADK, CrewAI, MCP/FastMCP, RAG and Graph RAG.\n**Fine-tuning and serving:** Unsloth, LoRA/QLoRA, TRL, vLLM, Ollama, llama.cpp, GGUF/AWQ.\n**ML:** PyTorch, TensorFlow, computer vision, medical imaging.\n**Cloud:** AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Docker.\n**Backend:** Python, FastAPI."
+  },
+  {
+    "q": "How do I contact him?",
+    "a": "Email **rishabhhota19@gmail.com** or message him on [LinkedIn](https://www.linkedin.com/in/rishabh-hota-4138b31b3). Or tap **Share your details** below — he gets an email with your note and will reach out."
+  }
+]

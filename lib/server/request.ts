@@ -1,0 +1,53 @@
+import "server-only";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+
+const devSecret = randomBytes(32).toString("hex");
+
+function secret(name: "CHAT_TOKEN_SECRET" | "IP_HASH_SALT") {
+  const value = process.env[name];
+  if (!value && process.env.VERCEL_ENV === "production") {
+    console.warn(`[request] ${name} is not set — using a per-instance random value.`);
+  }
+  return value || devSecret;
+}
+
+export function clientIp(req: Request) {
+  const forwarded = req.headers.get("x-forwarded-for");
+  return forwarded?.split(",")[0]?.trim() || req.headers.get("x-real-ip") || "unknown";
+}
+
+/** Salted, truncated hash so raw IPs are never stored. */
+export function ipHash(req: Request) {
+  return createHash("sha256").update(`${secret("IP_HASH_SALT")}:${clientIp(req)}`).digest("hex").slice(0, 16);
+}
+
+/**
+ * Token issued by /api/chat (which sits behind bot protection) for a conversation.
+ * /api/chat/end and /api/lead require it before spending an LLM call on a summary.
+ */
+export function issueChatToken(conversationId: string) {
+  return createHmac("sha256", secret("CHAT_TOKEN_SECRET")).update(conversationId).digest("base64url");
+}
+
+export function verifyChatToken(conversationId: string, token: string | null | undefined) {
+  if (!token) return false;
+  const expected = Buffer.from(issueChatToken(conversationId));
+  const given = Buffer.from(token);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
+export function requestMeta(req: Request) {
+  const ua = req.headers.get("user-agent") ?? "";
+  const mobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+  const browser =
+    /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
+  const city = req.headers.get("x-vercel-ip-city");
+  return {
+    country: req.headers.get("x-vercel-ip-country") ?? "",
+    city: city ? decodeURIComponent(city) : "",
+    device: `${mobile ? "Mobile" : "Desktop"} · ${browser}`,
+  };
+}
+
+export const isUuid = (v: unknown): v is string =>
+  typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);

@@ -1,0 +1,263 @@
+@import "tailwindcss";
+
+/* "Journal & Lightbox": printed-journal light theme, X-ray-lightbox dark theme. */
+:root {
+  --paper: #f4f1ea;
+  --surface: #fbf9f4;
+  --ink: #15140f;
+  --muted: #6b665c;
+  --rule: #d9d2c3;
+  --accent: #d9431f;
+  --accent-ink: #ffffff;
+  --glow: transparent;
+  --grain-opacity: 0.35;
+  --band: #15140f;
+  --band-ink: #f4f1ea;
+  --band-accent: #ff6a45;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #0a0e13;
+  --surface: #10171f;
+  --ink: #e6edf2;
+  --muted: #8796a3;
+  --rule: #1e2a36;
+  --accent: #6fe3ec;
+  --accent-ink: #061014;
+  --glow: rgba(111, 227, 236, 0.16);
+  --grain-opacity: 0.18;
+  --band: #0f1922;
+  --band-ink: #e6edf2;
+  --band-accent: #6fe3ec;
+  color-scheme: dark;
+}
+
+/* No-JS fallback: follow the OS until the theme script sets data-theme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --paper: #0a0e13;
+    --surface: #10171f;
+    --ink: #e6edf2;
+    --muted: #8796a3;
+    --rule: #1e2a36;
+    --accent: #6fe3ec;
+    --accent-ink: #061014;
+    --glow: rgba(111, 227, 236, 0.16);
+    --grain-opacity: 0.18;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-band: var(--band);
+  --color-band-ink: var(--band-ink);
+  --color-band-accent: var(--band-accent);
+  --font-serif: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-label);
+}
+
+html {
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, sans-serif;
+  font-feature-settings: "ss01", "kern";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paper grain — inline SVG noise, no extra request. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.42 0 0 0 0 0.36 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+}
+
+:root[data-theme="dark"] body::before {
+  mix-blend-mode: screen;
+}
+
+/* Lightbox glow behind the page in dark mode. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: -20% -10% auto auto;
+  width: 70vw;
+  height: 70vw;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(closest-side, var(--glow), transparent);
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@layer components {
+.label {
+  font-family: var(--font-label), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.link-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 0.35s ease;
+}
+.link-underline:hover {
+  background-size: 100% 1px;
+}
+}
+
+/* Staggered page-load reveal. Set --i on children for the delay step. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.reveal {
+  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+
+/* Attention-map cells fade in along the diagonal. */
+@keyframes cell-in {
+  from {
+    opacity: 0;
+  }
+}
+.cell {
+  animation: cell-in 0.6s ease-out both;
+  animation-delay: calc(var(--d, 0) * 35ms + 200ms);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.pulse-dot {
+  animation: pulse-dot 2.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+.caret {
+  animation: blink 1s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .cell,
+  .pulse-dot,
+  .caret {
+    animation: none;
+  }
+}
+
+/* Long-form content rendered from markdown. */
+@layer components {
+.prose-journal {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: var(--ink);
+}
+.prose-journal h2 {
+  font-family: var(--font-display), serif;
+  font-size: 1.85rem;
+  line-height: 1.15;
+  margin: 2.4rem 0 0.8rem;
+}
+.prose-journal h3 {
+  font-weight: 600;
+  margin: 1.8rem 0 0.5rem;
+}
+.prose-journal p {
+  margin: 0 0 1.1rem;
+}
+.prose-journal ul,
+.prose-journal ol {
+  margin: 0 0 1.2rem;
+  padding-left: 1.2rem;
+}
+.prose-journal ul {
+  list-style: none;
+  padding-left: 0;
+}
+.prose-journal ul > li {
+  position: relative;
+  padding-left: 1.4rem;
+  margin: 0.45rem 0;
+}
+.prose-journal ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0.2rem;
+  top: 0.78em;
+  width: 0.55rem;
+  height: 1px;
+  background: var(--accent);
+}
+.prose-journal ol {
+  list-style: decimal;
+}
+.prose-journal strong {
+  font-weight: 650;
+}
+.prose-journal em {
+  font-family: var(--font-display), serif;
+  font-size: 1.08em;
+}
+.prose-journal a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-journal code {
+  font-family: var(--font-label), monospace;
+  font-size: 0.88em;
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+}
