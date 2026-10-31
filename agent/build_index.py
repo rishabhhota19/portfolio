@@ -29,6 +29,12 @@ def main() -> None:
         for i, piece in enumerate(splitter.split_text(doc["text"]))
     ]
 
+    # Nothing changed since the last build? Skip the embedding API calls.
+    saved = DATA_DIR / "chunks.json"
+    if saved.exists() and (DATA_DIR / "index.faiss").exists() and json.loads(saved.read_text(encoding="utf-8")) == chunks:
+        print(f"Index already up to date ({len(chunks)} chunks).")
+        return
+
     # 2. Embed every chunk and store the vectors in a FAISS inner-product index.
     vectors = normalize(embedder().embed_documents([c["text"] for c in chunks]))
     index = faiss.IndexFlatIP(vectors.shape[1])

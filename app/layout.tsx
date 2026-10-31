@@ -52,6 +52,20 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!==
 
 const beaconToken = process.env.NEXT_PUBLIC_CF_BEACON_TOKEN;
 
+// Tells Google who this site is about (schema.org Person), from the résumé.
+const personJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.name,
+  jobTitle: "Senior AI Researcher",
+  worksFor: { "@type": "Organization", name: "Simplilearn" },
+  alumniOf: { "@type": "CollegeOrUniversity", name: "B.M.S. College of Engineering" },
+  address: { "@type": "PostalAddress", addressLocality: "Bengaluru", addressCountry: "IN" },
+  url: site.url,
+  sameAs: [site.linkedin, site.github].filter(Boolean),
+  knowsAbout: ["Agentic AI", "LangGraph", "Retrieval-augmented generation", "LLM fine-tuning", "Computer vision", "Medical imaging", "Quantum machine learning"],
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -61,6 +75,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }}
+        />
       </head>
       <body className="flex min-h-dvh flex-col">
         <a

@@ -1,0 +1,61 @@
+# Keeps the agent's FAISS index in sync with content/, then evaluates the agent.
+name: Agent index + evals
+
+on:
+  push:
+    branches: [main]
+    paths: ["content/**", "agent/**", "evals/**", "scripts/build-content.ts", "requirements*.txt"]
+  workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * 1" # every Monday, 09:00 IST
+
+permissions:
+  contents: write # to commit a rebuilt index
+
+concurrency:
+  group: agent
+  cancel-in-progress: true
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: npm ci
+      - run: pip install -r requirements-dev.txt
+
+      - name: Rebuild knowledge + FAISS index
+        run: npm run content && python -m agent.build_index
+
+      - name: Commit the index if it changed (Vercel then redeploys)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agent/data
+          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git push)
+
+      - name: Agent evals (retrieval, facts, guardrails)
+        run: python -m evals.run_evals
+
+      - name: RAGAS (faithfulness, answer relevancy, context precision)
+        run: python -m evals.ragas_eval
+        continue-on-error: true # the free judge model can rate-limit
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results
+          path: |
+            evals/results.jsonl
+            evals/ragas_results.csv

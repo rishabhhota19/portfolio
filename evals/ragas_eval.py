@@ -36,7 +36,7 @@ embeddings = OpenAIEmbeddings(client=client, model="gemini-embedding-001")
 
 METRICS = {
     "faithfulness": Faithfulness(llm=judge),
-    "answer_relevancy": AnswerRelevancy(llm=judge, embeddings=embeddings),
+    "answer_relevancy": AnswerRelevancy(llm=judge, embeddings=embeddings, strictness=1),  # 1 call, not 3
     "context_precision": ContextPrecisionWithoutReference(llm=judge),
 }
 
@@ -47,12 +47,16 @@ async def score(row: dict) -> dict:
         args = {"user_input": row["question"], "response": row["answer"]}
         if name != "answer_relevancy":
             args["retrieved_contexts"] = row["contexts"]
-        try:
-            result[name] = round((await metric.ascore(**args)).value, 3)
-        except Exception as err:
-            result[name] = None
-            print(f"  {row['id']} {name}: failed ({type(err).__name__})")
-        await asyncio.sleep(2)  # stay inside the judge's free-tier rate limit
+        result[name] = None
+        for attempt in range(3):  # the free judge rate-limits bursts: wait and retry
+            try:
+                result[name] = round((await metric.ascore(**args)).value, 3)
+                break
+            except Exception as err:
+                print(f"  {row['id']} {name}: {type(err).__name__}, retrying in 30s" if attempt < 2 else f"  {row['id']} {name}: gave up")
+                if attempt < 2:
+                    await asyncio.sleep(30)
+        await asyncio.sleep(2)
     return result
 
 
