@@ -11,6 +11,8 @@
  *
  * One row per conversation, upserted by Conversation ID. Empty incoming values never
  * overwrite existing ones, so a lead's details survive a later end-of-chat summary.
+ * When the site has no Resend key it sends notify: true with a lead, and this script
+ * emails the lead to your own inbox (MailApp, free, from your Google account).
  */
 
 var SHEET_NAME = 'Conversations';
@@ -55,6 +57,7 @@ function doPost(e) {
     } finally {
       lock.releaseLock();
     }
+    if (body.notify) notify_(body.row);
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
@@ -93,6 +96,29 @@ function upsert_(row) {
     return v === '' ? current[i] : v;
   });
   range.setValues([merged]);
+}
+
+// Plain-text lead alert to the sheet owner (you). Reply goes straight to the recruiter.
+function notify_(row) {
+  var body = [
+    'Name: ' + (row.visitorName || ''),
+    'Email: ' + (row.email || ''),
+    'Company: ' + (row.company || '-'),
+    'Hiring for: ' + (row.role || '-'),
+    'Their note: ' + (row.recruiterNote || '-'),
+    '',
+    'Chat summary: ' + (row.summary || '-'),
+    'Suggested follow-up: ' + (row.followUp || '-'),
+    '',
+    'Sheet: ' + SpreadsheetApp.getActiveSpreadsheet().getUrl(),
+  ].join('\n');
+  var mail = {
+    to: Session.getEffectiveUser().getEmail(),
+    subject: 'New recruiter lead: ' + (row.visitorName || 'someone') + (row.company ? ' (' + row.company + ')' : ''),
+    body: body,
+  };
+  if (row.email) mail.replyTo = row.email;
+  MailApp.sendEmail(mail);
 }
 
 function sheet_() {

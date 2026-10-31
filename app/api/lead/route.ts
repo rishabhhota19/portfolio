@@ -11,7 +11,8 @@ export const maxDuration = 60;
 
 const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 1000);
 
-/** "Share your details" form: summary + details to Google Sheets, and an email to Rishabh. */
+/** "Share your details" form: summary + details to Google Sheets, and an email to Rishabh
+ * (via Resend if configured, otherwise the Sheet's Apps Script sends it). */
 export async function POST(req: Request) {
   if (await isBot()) return json({ ok: false, error: "forbidden" }, 403);
 
@@ -61,7 +62,7 @@ export async function POST(req: Request) {
         device: meta.device,
         entryPage: data.page,
         model: s.model,
-      }),
+      }, { notify: !process.env.RESEND_API_KEY }),
       sendLeadEmail({
         lead: data.lead,
         summary: s.summary ?? "",

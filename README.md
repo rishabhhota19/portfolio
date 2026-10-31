@@ -19,6 +19,8 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
 ```
 
 Chat memory lives only in the browser tab. When a chat ends, only an AI summary goes to a Google Sheet (never the transcript).
+When a recruiter shares their details, the same sheet row gets them and you get an email (Resend if `RESEND_API_KEY` is
+set, otherwise the Sheet's Apps Script sends it from your own Google account).
 
 ## Why it's built this way
 - **Hybrid retrieval.** Embeddings understand paraphrases but can miss exact names ("LCSNet", "RBKnee"); BM25 is the
@@ -77,6 +79,7 @@ npm run evals:ragas   # RAGAS scores on those results (Gemini as the judge)
 ## Deploy (Vercel, free)
 Push to `main`; Vercel builds the site and the Python function (`requirements.txt`).
 Set the variables from `.env.example` in Vercel (except `AGENT_URL`).
+Google Sheets logging: follow the steps at the top of `integrations/google-sheets/Code.gs`.
 
 ## Monitoring
 - **Sentry** (`NEXT_PUBLIC_SENTRY_DSN`): errors from the browser, the Next.js gateway and the Python agent in one project,

@@ -43,6 +43,7 @@ portfolio, for Rishabh's private log. Return ONLY a JSON object with these strin
 "intent" — one of "Hiring — specific role", "Hiring — exploring", "Research / collaboration", "Networking",
 "Curious visitor", "Spam / abuse";
 "topics" — up to 6 short topics, comma-separated;
-"summary" — 2–3 factual sentences;
-"followUp" — one suggestion for Rishabh, or "".
+"summary" — 2–3 factual sentences about what the visitor asked and wanted (the agent answered, not Rishabh);
+"followUp" — one concrete next step for Rishabh towards THIS visitor (e.g. who to reply to and what to send),
+or "" if none is needed. Never advise him on his portfolio or résumé.
 Use only what is in the chat."""

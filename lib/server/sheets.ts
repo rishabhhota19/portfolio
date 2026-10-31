@@ -27,7 +27,8 @@ export type ConversationRow = {
   model: string;
 };
 
-export async function logConversation(row: ConversationRow) {
+/** notify: also have the script email the row to you (lead alerts when Resend isn't set up). */
+export async function logConversation(row: ConversationRow, { notify = false } = {}) {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
   const secret = process.env.GOOGLE_SHEETS_SECRET;
   if (!url || !secret) {
@@ -39,7 +40,7 @@ export async function logConversation(row: ConversationRow) {
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ secret, row }),
+      body: JSON.stringify({ secret, row, notify }),
       redirect: "follow",
       signal: AbortSignal.timeout(15_000),
     });
