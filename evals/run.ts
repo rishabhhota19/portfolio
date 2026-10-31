@@ -15,7 +15,7 @@ type Case = { id: string; kind: "fact" | "guardrail"; q: string; include?: strin
 const cases: Case[] = JSON.parse(fs.readFileSync(path.join(process.cwd(), "evals/questions.json"), "utf8"));
 const only = process.argv.find((a) => a.startsWith("--only="))?.slice(7).split(",");
 const selected = only ? cases.filter((c) => only.includes(c.id)) : cases;
-const DELAY_MS = Number(process.env.EVAL_DELAY_MS ?? 2200); // stay under free-tier requests/minute
+const DELAY_MS = Number(process.env.EVAL_DELAY_MS ?? 4000); // Groq free tier caps tokens per minute per model
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -23,7 +23,12 @@ async function main() {
   const rows: { id: string; kind: string; answer: boolean; retrieval: boolean | null; provider: string; why: string }[] = [];
 
   for (const c of selected) {
-    const state = await agent.invoke({ messages: [new HumanMessage(c.q)] });
+    let state = await agent.invoke({ messages: [new HumanMessage(c.q)] });
+    if (state.provider === "none") {
+      // Every free model was cooling down (per-minute caps) — wait it out once instead of scoring a miss.
+      await sleep(35_000);
+      state = await agent.invoke({ messages: [new HumanMessage(c.q)] });
+    }
     const last = state.messages[state.messages.length - 1];
     const answer = last && last.getType() === "ai" ? last.text : "";
     const urls = state.context.map((x) => x.url);

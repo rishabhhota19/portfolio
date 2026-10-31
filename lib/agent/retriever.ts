@@ -20,7 +20,7 @@ export class PortfolioRetriever extends BaseRetriever {
   private index: Index<ChunkMeta> | null;
   private k: number;
 
-  constructor(k = 5) {
+  constructor(k = 4) {
     super();
     this.k = k;
     const url = process.env.UPSTASH_VECTOR_REST_URL;

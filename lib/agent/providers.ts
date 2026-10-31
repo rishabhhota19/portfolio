@@ -55,13 +55,18 @@ function upstream(kind: Upstream, model: string, apiKey: string, maxTokens: numb
 }
 
 function groq(model: string, maxTokens: number) {
-  // gpt-oss models reason before answering; keep that short so answers stay fast and cheap.
-  const extra = model.startsWith("openai/gpt-oss") ? { reasoning_effort: "low" } : undefined;
-  return upstream("groq", model, env("GROQ_API_KEY"), model.startsWith("openai/gpt-oss") ? maxTokens + 400 : maxTokens, extra);
+  // Reasoning models: keep gpt-oss thinking short, and keep Qwen's <think> block out of the answer text.
+  const reasoning = model.startsWith("openai/gpt-oss") || model.startsWith("qwen/");
+  const extra = model.startsWith("openai/gpt-oss")
+    ? { reasoning_effort: "low" }
+    : model.startsWith("qwen/")
+      ? { reasoning_format: "hidden" }
+      : undefined;
+  return upstream("groq", model, env("GROQ_API_KEY"), reasoning ? maxTokens + 250 : maxTokens, extra);
 }
 
 function gemini(maxTokens: number) {
-  return upstream("google-ai-studio", env("GEMINI_MODEL") || "gemini-2.5-flash-lite", env("GOOGLE_GENERATIVE_AI_API_KEY"), maxTokens);
+  return upstream("google-ai-studio", env("GEMINI_MODEL") || "gemini-flash-lite-latest", env("GOOGLE_GENERATIVE_AI_API_KEY"), maxTokens);
 }
 
 function workersAi(maxTokens: number) {
@@ -82,7 +87,8 @@ function vercelGateway(maxTokens: number): ProviderSpec {
 }
 
 const groqPrimary = () => env("GROQ_PRIMARY_MODEL") || "openai/gpt-oss-120b";
-const groqFallbacks = () => list(env("GROQ_FALLBACK_MODELS") || "llama-3.3-70b-versatile,llama-3.1-8b-instant");
+const groqFallbacks = () => list(env("GROQ_FALLBACK_MODELS") || "openai/gpt-oss-20b,qwen/qwen3.8-27b");
+const groqSummaryModel = () => env("GROQ_SUMMARY_MODEL") || "openai/gpt-oss-20b";
 
 function usable(p: ProviderSpec) {
   if (!p.apiKey) return false;
@@ -91,7 +97,7 @@ function usable(p: ProviderSpec) {
 }
 
 /** Best quality first: answers recruiters see. */
-export function chatProviders(maxTokens = 450): ProviderSpec[] {
+export function chatProviders(maxTokens = 350): ProviderSpec[] {
   return [
     groq(groqPrimary(), maxTokens),
     gemini(maxTokens),
@@ -102,11 +108,9 @@ export function chatProviders(maxTokens = 450): ProviderSpec[] {
 }
 
 /** Cheapest first: background summaries for the Google Sheet, saving the best quota for chat. */
-export function summaryProviders(maxTokens = 400): ProviderSpec[] {
-  const fallbacks = groqFallbacks();
-  const small = fallbacks[fallbacks.length - 1];
+export function summaryProviders(maxTokens = 300): ProviderSpec[] {
   return [
-    ...(small ? [groq(small, maxTokens)] : []),
+    groq(groqSummaryModel(), maxTokens),
     gemini(maxTokens),
     workersAi(maxTokens),
     groq(groqPrimary(), maxTokens),
