@@ -392,7 +392,7 @@
   "id": "project:portfolio-agent#0",
   "title": "AI Portfolio Agent (this site)",
   "url": "/projects/portfolio-agent",
-  "text": "AI Portfolio Agent (this site)\nProject: AI Portfolio Agent (this site) (Personal, Oct 2026)\nA Python LangGraph agent with hybrid RAG (FAISS + BM25 + re-ranking) that answers questions about Rishabh — on a ₹0/month stack.\n- Agent: a LangGraph graph in Python (FastAPI on Vercel) with four steps:\n  - route: greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;\n  - retrieve: hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;\n  - rerank: a cross-encoder (bge-reranker-base) keeps the 4 most relevant chunks;\n  - respond: streams the answer from a chain of 7 free LLMs (Groq, Gemini, OpenRouter). If one hits a rate limit, the next answers; if all are busy, it answers straight from the retrieved facts, so the chat never goes offline.",
+  "text": "AI Portfolio Agent (this site)\nProject: AI Portfolio Agent (this site) (Personal, Oct 2026)\nA Python LangGraph agent with hybrid RAG (FAISS + BM25 + re-ranking) that answers questions about Rishabh — on a ₹0/month stack.\n- Agent: a LangGraph graph in Python (FastAPI on Vercel) with four steps:\n  - route: greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;\n  - retrieve: hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;\n  - rerank: a cross-encoder (bge-reranker-base) keeps the 4 most relevant chunks;\n  - respond: streams the answer from 7 free LLMs (Groq, Gemini, OpenRouter). The backend tracks each model's tokens and requests against its free limits, trims long conversations to fit, and switches models invisibly.",
   "keywords": [
    "this site",
    "portfolio",
@@ -605,7 +605,7 @@
   "id": "blog:how-my-portfolio-agent-works#2",
   "title": "How the AI agent on this site works (and why it costs ₹0)",
   "url": "/blog/how-my-portfolio-agent-works",
-  "text": "How the AI agent on this site works (and why it costs ₹0)\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. The agent tries Groq gpt-oss-120b first, then Gemini Flash-Lite, then more Groq and Gemini models, then free models on OpenRouter. A model that fails is skipped for a while and the next one answers. If every model is busy at once, the agent quotes the most relevant fact it retrieved, with a link, so it never goes offline.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.\n\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.",
+  "text": "How the AI agent on this site works (and why it costs ₹0)\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. The agent tries Groq gpt-oss-120b first, then Gemini Flash-Lite, then more Groq and Gemini models, then free models on OpenRouter. The backend tracks every model's requests and tokens against its free limits, skips a model before it runs out, and trims older turns if a long conversation doesn't fit — so the switch is invisible. Only when every free model is used up does the chat pause, until the limits reset.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.",
   "keywords": [
    "blog",
    "this site",
@@ -624,7 +624,7 @@
   "id": "blog:how-my-portfolio-agent-works#3",
   "title": "How the AI agent on this site works (and why it costs ₹0)",
   "url": "/blog/how-my-portfolio-agent-works",
-  "text": "How the AI agent on this site works (and why it costs ₹0)\nMeasuring it\n- An eval suite checks that retrieval finds the right page, that answers contain the right facts, and that guardrails hold: no phone numbers, no leaked prompt, no invented claims.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge.",
+  "text": "How the AI agent on this site works (and why it costs ₹0)\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.\n\nMeasuring it\n- An eval suite checks that retrieval finds the right page, that answers contain the right facts, and that guardrails hold: no phone numbers, no leaked prompt, no invented claims.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge.",
   "keywords": [
    "blog",
    "this site",
