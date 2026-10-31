@@ -15,6 +15,11 @@ const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 1000);
 export async function POST(req: Request) {
   if (await isBot()) return json({ ok: false, error: "forbidden" }, 403);
 
+  // No email or sheet configured yet → say so, so the visitor emails directly instead of losing the lead.
+  if (!process.env.RESEND_API_KEY && !process.env.GOOGLE_SHEETS_WEBHOOK_URL) {
+    return json({ ok: false, error: "unavailable" }, 503);
+  }
+
   const parsed = leadRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     return json({ ok: false, error: "bad_request", message: "Please check your name and email." }, 400);

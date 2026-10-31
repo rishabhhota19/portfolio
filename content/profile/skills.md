@@ -5,7 +5,7 @@ keywords: [skills, stack, tools, languages, frameworks, tech stack, python, pyto
 ---
 
 ## Key skills
-Forward Deployed Engineering, system design, open source, Azure AI Foundry, AWS Bedrock, agent and LLM evaluation, agent and LLM guardrailing and deployment, token optimization, agentic AI and harness engineering, loop engineering, automation engineering, chatbot design, AI and agentic AI orchestration, LLM architecture and fine-tuning, RAG in production, Model Context Protocol (MCP), healthcare automation, research publication, Claude Code and Claude Skills, speech generation, classification, GenAI applications.
+Forward Deployed Engineering, system design, open source, Azure AI Foundry, AWS Bedrock, agent and LLM evaluation, agent and LLM guardrailing and deployment, token optimization, agentic AI and harness engineering, loop engineering, automation engineering, chatbot design, AI and agentic AI orchestration, LLM architecture and fine-tuning, RAG in production, Model Context Protocol (MCP), healthcare automation, research publication, Claude Code, Claude Science and Claude Skills, speech generation, classification, GenAI applications.
 
 ## AI and ML
 Generative AI, agentic AI and agentic RAG, multi-agent systems, retrieval-augmented generation (RAG and Graph RAG), MCP, chatbots, vector databases (Redis, FAISS and others), machine learning, deep learning, computer vision, CNNs, NLP, transformers, segmentation models, X-ray annotation.

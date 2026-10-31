@@ -2,7 +2,7 @@
 title: Ed-Tech Web App
 summary: A cohort-based learning platform with automated cohort and instructor mapping, WhatsApp agent posts and automated payroll.
 org: Personal
-period: 2026
+period: ""
 tags: [Full-stack, Vercel, Supabase, Razorpay, Automation]
 featured: false
 order: 6

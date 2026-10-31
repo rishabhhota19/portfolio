@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
-import { getProject, projects } from "@/lib/content";
+import { getProject, projectMeta, projects } from "@/lib/content";
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
@@ -32,7 +32,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_18rem]">
         <div>
           <p className="label reveal">
-            {project.org} · {project.period}
+            {projectMeta(project)}
           </p>
           <h1 className="reveal mt-3 font-serif text-5xl leading-[1.02] sm:text-6xl" style={{ ["--i" as string]: 1 }}>
             {project.title}

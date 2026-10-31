@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageIntro, Tag } from "@/components/site/bits";
-import { projects } from "@/lib/content";
+import { projectMeta, projects } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Projects",
@@ -37,7 +37,7 @@ export default function ProjectsPage() {
                   ))}
                 </div>
                 <p className="label mt-4">
-                  {p.org} · {p.period}
+                  {projectMeta(p)}
                 </p>
               </Link>
             </li>

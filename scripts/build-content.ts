@@ -158,7 +158,7 @@ const docs = [
     title: p.title,
     url: `/projects/${p.slug}`,
     keywords: [...p.keywords, ...p.tags],
-    text: `Project: ${p.title} (${p.org}, ${p.period})\n${p.summary}\n${p.text}`,
+    text: `Project: ${p.title} (${[p.org, p.period].filter(Boolean).join(", ")})\n${p.summary}\n${p.text}`,
   })),
   ...publications.map((p) => ({
     id: `publication:${p.slug}`,

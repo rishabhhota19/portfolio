@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AttentionGrid } from "@/components/site/AttentionGrid";
 import { SectionHead, StatusChip, Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
-import { experience, featuredProjects, publications, site } from "@/lib/content";
+import { experience, featuredProjects, projectMeta, publications, site } from "@/lib/content";
 
 const stats = [
   { value: "96%", label: "Accuracy, knee X-ray OA grading on AWS" },
@@ -102,7 +102,7 @@ export default function Home() {
                   </div>
                 </div>
                 <span className="label hidden whitespace-nowrap sm:block">
-                  {p.org} · {p.period}
+                  {projectMeta(p)}
                   <span className="ml-3 inline-block transition-transform group-hover:translate-x-1" aria-hidden>
                     →
                   </span>

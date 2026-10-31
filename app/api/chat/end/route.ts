@@ -25,6 +25,7 @@ export async function POST(req: Request) {
   if (!parsed.success) return json({ ok: false }, 400);
   const data = parsed.data;
   if (!data.messages.length) return json({ ok: true, skipped: "empty" }, 202);
+  if (!process.env.GOOGLE_SHEETS_WEBHOOK_URL) return json({ ok: true, skipped: "no sheet configured" }, 202);
 
   const ip = ipHash(req);
   // A valid token proves the conversation went through /api/chat (bot-protected); without one

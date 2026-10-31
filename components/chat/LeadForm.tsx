@@ -48,7 +48,7 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
       </div>
       <textarea name="note" maxLength={600} rows={2} placeholder="Anything he should know? (optional)" className={field} />
       {state === "error" ? (
-        <p className="text-xs text-accent">Couldn&apos;t send that. Please try again, or email rishabhhota19@gmail.com.</p>
+        <p className="text-xs text-accent">Couldn&apos;t send that — please email rishabhhota19@gmail.com directly.</p>
       ) : null}
       <div className="flex items-center justify-end gap-2">
         <button type="button" onClick={onCancel} className="label px-3 py-2 hover:text-ink">

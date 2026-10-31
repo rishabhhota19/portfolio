@@ -43,7 +43,7 @@ export function ChatLauncher() {
             setOpen(true);
           }}
           className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full border border-rule bg-ink py-3 pl-4 pr-5 text-sm text-paper shadow-[0_10px_40px_-12px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5"
-          aria-label="Open chat with Rishabh's AI agent"
+          aria-label="Ask my agent (opens a chat about Rishabh's work)"
         >
           <span className="pulse-dot inline-block size-2.5 rounded-full bg-accent" aria-hidden />
           Ask my agent

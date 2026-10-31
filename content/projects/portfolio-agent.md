@@ -1,10 +1,10 @@
 ---
-title: This site's recruiter agent
+title: AI Portfolio Agent (this site)
 summary: A Python LangGraph agent with hybrid RAG (FAISS + BM25 + re-ranking) that answers questions about Rishabh — on a ₹0/month stack.
 org: Personal
-period: 2026
+period: Oct 2026
 tags: [LangGraph, LangChain, RAG, FAISS, Python, RAGAS]
-featured: false
+featured: true
 order: 11
 keywords: [this site, portfolio, chatbot, agent, how does this chat work, langgraph, langchain, rag, faiss, bm25, rerank, reranking, ragas, fastapi, python, evals]
 ---

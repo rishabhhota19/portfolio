@@ -2,7 +2,7 @@
 title: Claude Personal Health Doctor
 summary: A Claude "Doctor Skill" plus a knowledge-graph second brain built from personal medical records.
 org: Personal
-period: 2026
+period: ""
 tags: [Claude Skills, Knowledge graph, Healthcare, Agents]
 featured: false
 order: 7

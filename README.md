@@ -1,5 +1,7 @@
 # Rishabh Hota — portfolio + recruiter agent
 
+[![Agent evals](https://github.com/rishabhhota19/portfolio/actions/workflows/agent.yml/badge.svg)](https://github.com/rishabhhota19/portfolio/actions/workflows/agent.yml) · **Live: [rishabh-hota.vercel.app](https://rishabh-hota.vercel.app)**
+
 A Next.js portfolio with an AI agent that answers recruiters' questions about Rishabh.
 The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, **re-ranking**, a chain of
 **free LLMs**, and **RAGAS** evals. Runs on free tiers at 10k+ visitors a month.
@@ -16,6 +18,21 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
 ```
 
 Chat memory lives only in the browser tab. When a chat ends, only an AI summary goes to a Google Sheet (never the transcript).
+
+## Why it's built this way
+- **Hybrid retrieval.** Embeddings understand paraphrases but can miss exact names ("LCSNet", "RBKnee"); BM25 is the
+  opposite. Reciprocal Rank Fusion merges the two rankings without having to calibrate their very different scores.
+- **Re-ranking.** First-stage search is fast but shallow. A cross-encoder reads the question and each chunk *together*,
+  so the final 4 chunks the LLM sees are the most relevant ones.
+- **Router before the LLM.** Greetings, contact questions and prompt-injection attempts get instant canned replies —
+  zero tokens, zero hallucination risk.
+- **Fallback chain.** Free tiers rate-limit, so availability beats a single "best" model: when one model fails it is
+  skipped for a while and the next answers.
+- **Security in the gateway, AI in Python.** Bot checks, rate limits and the daily budget sit in front of the agent;
+  the Python service only accepts calls carrying a shared secret, and stays small and testable. A Vercel Firewall rule
+  adds a per-IP limit at the edge.
+- **Grounded answers, measured.** The prompt forbids guessing or embellishing; the evals check facts and guardrails on
+  every content change, and RAGAS scores faithfulness.
 
 ## Code map
 | Path | What it does |
@@ -41,6 +58,7 @@ npm run dev        # site on :3000           (terminal 2)
 Keys live in `.env.local` (template: `.env.example`). Without LLM keys the agent runs in mock mode.
 
 ## After editing content
+Just push — CI rebuilds the FAISS index and redeploys. To rebuild it locally instead:
 ```bash
 npm run agent:index   # rebuilds knowledge.json + the FAISS index in agent/data/ — commit them
 ```
@@ -54,3 +72,8 @@ npm run evals:ragas   # RAGAS scores on those results (Gemini as the judge)
 ## Deploy (Vercel, free)
 Push to `main`; Vercel builds the site and the Python function (`requirements.txt`).
 Set the variables from `.env.example` in Vercel (except `AGENT_URL`).
+
+## CI
+`.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
+FAISS index — committing it if the content changed, which redeploys the site — then runs the evals and RAGAS and
+uploads the results. Needs the `GROQ_API_KEY` and `GOOGLE_GENERATIVE_AI_API_KEY` repository secrets.

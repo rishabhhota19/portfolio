@@ -13,6 +13,7 @@ const getTheme = () => (document.documentElement.dataset.theme === "dark" ? "dar
 export function ThemeToggle() {
   const theme = useSyncExternalStore(subscribe, getTheme, () => "light");
   const next = theme === "dark" ? "light" : "dark";
+  const label = theme === "dark" ? "Journal" : "Lightbox"; // the theme you'd switch to
 
   return (
     <button
@@ -24,10 +25,10 @@ export function ThemeToggle() {
         } catch {}
       }}
       className="label rounded-full border border-rule px-2.5 py-1.5 transition-colors hover:border-accent hover:text-accent"
-      aria-label={`Switch to ${next} mode`}
-      title={next === "dark" ? "Lightbox mode" : "Journal mode"}
+      aria-label={`${label} theme (switch to ${next} mode)`}
+      suppressHydrationWarning
     >
-      <span suppressHydrationWarning>{theme === "dark" ? "Journal" : "Lightbox"}</span>
+      <span suppressHydrationWarning>{label}</span>
     </button>
   );
 }

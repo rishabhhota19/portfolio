@@ -2,7 +2,7 @@
 title: AI Teddy Bear (MVP)
 summary: A storytelling teddy bear for children with its own character voice — guardrailed, open source, hardware- and app-ready.
 org: Personal
-period: 2026
+period: ""
 tags: [Voice AI, Speech generation, Guardrails, Hardware]
 featured: true
 order: 4

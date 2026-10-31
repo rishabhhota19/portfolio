@@ -15,6 +15,11 @@ export const profile = content.profile;
 
 export const featuredProjects = projects.filter((p) => p.featured);
 
+/** "Simplilearn · Jun – Aug 2025", or just "Personal" when the résumé gives no date. */
+export function projectMeta(p: Project) {
+  return [p.org, p.period].filter(Boolean).join(" · ");
+}
+
 export function getProject(slug: string) {
   return projects.find((p) => p.slug === slug);
 }
