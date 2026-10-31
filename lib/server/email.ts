@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import type { Lead } from "@/lib/chat-types";
 
 const escape = (s: string) =>
@@ -62,10 +63,14 @@ export async function sendLeadEmail({ lead, summary, topics, followUp, meta }: L
       }),
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) console.error("[email] Resend error:", res.status, await res.text());
+    if (!res.ok) {
+      console.error("[email] Resend error:", res.status, await res.text());
+      Sentry.captureMessage(`Lead email failed (Resend ${res.status})`, "error");
+    }
     return res.ok;
   } catch (err) {
     console.error("[email] send failed:", err);
+    Sentry.captureException(err);
     return false;
   }
 }

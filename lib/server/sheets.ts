@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 
 // One row per conversation in a Google Sheet, written through a small Apps Script web app
 // (integrations/google-sheets/Code.gs). The script upserts by conversation ID, so a later
@@ -44,10 +45,14 @@ export async function logConversation(row: ConversationRow) {
     });
     const text = await res.text();
     const ok = res.ok && text.includes('"ok":true');
-    if (!ok) console.error("[sheets] logging failed:", res.status, text.slice(0, 300));
+    if (!ok) {
+      console.error("[sheets] logging failed:", res.status, text.slice(0, 300));
+      Sentry.captureMessage(`Google Sheets logging failed (${res.status})`, "warning");
+    }
     return ok;
   } catch (err) {
     console.error("[sheets] logging error:", err);
+    Sentry.captureException(err);
     return false;
   }
 }

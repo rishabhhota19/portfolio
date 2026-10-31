@@ -16,6 +16,7 @@
     "evals:ragas": "python -m evals.ragas_eval"
   },
   "dependencies": {
+    "@sentry/nextjs": "^11.10.0",
     "@upstash/redis": "^1.40.0",
     "botid": "^1.5.12",
     "gray-matter": "^4.0.3",

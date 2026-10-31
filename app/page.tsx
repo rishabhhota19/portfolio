@@ -45,6 +45,8 @@ export default function Home() {
             </AskAgentButton>
             <a
               href={site.resume}
+              data-umami-event="resume_download"
+              data-umami-event-from="home"
               className="rounded-full border border-rule px-5 py-3 transition-colors hover:border-ink"
             >
               Download résumé
@@ -126,7 +128,7 @@ export default function Home() {
                 {p.date ? ` · ${p.date}` : ""}
               </p>
               {p.link ? (
-                <a href={p.link} target="_blank" rel="noreferrer" className="label link-underline mt-3 w-fit text-accent">
+                <a href={p.link} target="_blank" rel="noreferrer" data-umami-event="paper_click" data-umami-event-paper={p.slug} className="label link-underline mt-3 w-fit text-accent">
                   Read paper ↗
                 </a>
               ) : null}

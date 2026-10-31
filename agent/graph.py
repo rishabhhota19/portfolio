@@ -12,6 +12,8 @@ import re
 import time
 from typing import Annotated, TypedDict
 
+import sentry_sdk
+
 from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph, add_messages
 
@@ -112,7 +114,19 @@ async def respond(state: State) -> dict:
             return {"messages": [AIMessage(text)], "model": m.name, "trace": step("respond", started, model=m.name, tried=tried, trimmed_turns=trimmed)}
 
     # Every free model is used up: the API answers 503 and the chat pauses for everyone until limits reset.
+    alert_exhausted()
     return {"model": "none", "trace": step("respond", started, model="none", tried=tried)}
+
+
+_last_alert = 0.0
+
+
+def alert_exhausted() -> None:
+    """Tells Sentry the free models are all used up — at most every 10 minutes per server."""
+    global _last_alert
+    if time.time() - _last_alert > 600:
+        _last_alert = time.time()
+        sentry_sdk.capture_message("All free models are used up — the chat is paused for everyone", level="warning")
 
 
 # ── wiring ──────────────────────────────────────────────────────────────────

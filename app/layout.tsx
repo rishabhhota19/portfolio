@@ -50,7 +50,10 @@ export const viewport: Viewport = {
 // Sets data-theme before first paint so there's no light/dark flash.
 const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}})()`;
 
+// Analytics (both cookieless, each off until its env var is set):
+// Cloudflare Web Analytics for traffic, Umami for custom events (chat opened, lead submitted, …).
 const beaconToken = process.env.NEXT_PUBLIC_CF_BEACON_TOKEN;
+const umamiId = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
 
 // Tells Google who this site is about (schema.org Person), from the résumé.
 const personJsonLd = {
@@ -98,6 +101,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             defer
             src="https://static.cloudflareinsights.com/beacon.min.js"
             data-cf-beacon={JSON.stringify({ token: beaconToken })}
+          />
+        ) : null}
+        {umamiId ? (
+          <script
+            defer
+            src="https://cloud.umami.is/script.js"
+            data-website-id={umamiId}
+            data-domains={new URL(site.url).hostname}
+            data-do-not-track="true"
           />
         ) : null}
       </body>

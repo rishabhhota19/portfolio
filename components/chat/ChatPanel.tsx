@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { track } from "@/lib/analytics";
 import starters from "@/content/starters.json";
 import {
   CHAT_TOKEN_HEADER,
@@ -136,6 +137,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
 
       const history = [...transcript(messagesRef.current), { role: "user" as const, content: text }].slice(-LIMITS.maxHistory);
       append({ role: "user", content: text });
+      track("chat_question", { page: window.location.pathname }); // never the question text
       setInput("");
       setStatus("waiting");
       const replyId = append({ role: "assistant", content: "" });
@@ -154,7 +156,10 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
 
         if (!res.ok || !res.body) {
           const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-          if (data.error === "offline") setStatus("offline");
+          if (data.error === "offline") {
+            setStatus("offline");
+            track("chat_paused");
+          }
           else setStatus("idle");
           setMessages((prev) =>
             prev.map((m) =>
@@ -202,11 +207,13 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   }, [pendingQuestion, open, ask, onPendingHandled]);
 
   const pickStarter = (q: string, a: string) => {
+    track("chat_quick_answer", { question: q }); // our own canned question, not visitor text
     append({ role: "user", content: q, kind: "starter" });
     append({ role: "assistant", content: a, kind: "starter" });
   };
 
   const endChat = () => {
+    track("chat_ended", { messages: messagesRef.current.length });
     abortRef.current?.abort();
     logEnd("closed_chat");
     setMessages([]);
@@ -232,6 +239,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       loggedCount.current = transcript(messagesRef.current).length;
       setLeadSent(true);
       setShowLead(false);
+      track("lead_submitted");
       append({
         role: "assistant",
         kind: "notice",

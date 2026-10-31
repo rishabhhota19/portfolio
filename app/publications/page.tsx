@@ -29,7 +29,7 @@ export default function PublicationsPage() {
                 {p.date ? <span className="block">{p.date}</span> : null}
               </p>
               {p.link ? (
-                <a href={p.link} target="_blank" rel="noreferrer" className="label link-underline text-accent">
+                <a href={p.link} target="_blank" rel="noreferrer" data-umami-event="paper_click" data-umami-event-paper={p.slug} className="label link-underline text-accent">
                   Read paper ↗
                 </a>
               ) : null}

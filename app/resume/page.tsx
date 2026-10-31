@@ -18,6 +18,8 @@ export default function ResumePage() {
         <div className="flex flex-wrap gap-3">
           <a
             href={site.resume}
+            data-umami-event="resume_download"
+            data-umami-event-from="resume page"
             download="Rishabh-Hota-Resume.pdf"
             className="rounded-full bg-ink px-5 py-3 text-paper transition-transform hover:-translate-y-0.5"
           >

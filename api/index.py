@@ -15,6 +15,7 @@ from typing import Literal
 
 sys.path.insert(0, str(Path(__file__).parent.parent))  # makes the `agent` package importable on Vercel
 
+import sentry_sdk
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
@@ -23,6 +24,16 @@ from pydantic import BaseModel, Field
 from agent.config import env
 from agent.graph import agent
 from agent.summarize import summarize
+
+if env("NEXT_PUBLIC_SENTRY_DSN"):
+    # Errors from the Python agent go to the same Sentry project. Request bodies (chat text) are never sent.
+    sentry_sdk.init(
+        dsn=env("NEXT_PUBLIC_SENTRY_DSN"),
+        environment=env("VERCEL_ENV", "development"),
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+        max_request_body_size="never",
+    )
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 

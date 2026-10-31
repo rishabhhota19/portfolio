@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withBotId } from "botid/next/config";
+import { withSentryConfig } from "@sentry/nextjs/config";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -21,4 +22,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withBotId(nextConfig);
+// Sentry uploads source maps (readable stack traces) only when SENTRY_AUTH_TOKEN/ORG/PROJECT are set.
+export default withSentryConfig(withBotId(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  telemetry: false,
+});

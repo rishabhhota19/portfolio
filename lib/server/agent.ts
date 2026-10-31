@@ -1,4 +1,5 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import type { ChatMessage, Lead } from "@/lib/chat-types";
 
 // Client for the Python agent (api/index.py). Locally AGENT_URL=http://127.0.0.1:8000;
@@ -28,6 +29,7 @@ export async function askAgent(req: Request, conversationId: string, messages: C
     return res.ok && res.body ? res.body : null;
   } catch (err) {
     console.error("[agent] chat call failed:", err);
+    Sentry.captureException(err);
     return null;
   }
 }
@@ -60,8 +62,10 @@ export async function summarizeChat(req: Request, messages: ChatMessage[], lead?
     });
     if (res.ok) return (await res.json()) as ChatSummary;
     console.error("[agent] summarize failed:", res.status);
+    Sentry.captureMessage(`Agent summarize failed (${res.status})`, "warning");
   } catch (err) {
     console.error("[agent] summarize call failed:", err);
+    Sentry.captureException(err);
   }
   return plainSummary(messages);
 }

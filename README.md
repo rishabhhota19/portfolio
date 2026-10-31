@@ -78,6 +78,15 @@ npm run evals:ragas   # RAGAS scores on those results (Gemini as the judge)
 Push to `main`; Vercel builds the site and the Python function (`requirements.txt`).
 Set the variables from `.env.example` in Vercel (except `AGENT_URL`).
 
+## Monitoring
+- **Sentry** (`NEXT_PUBLIC_SENTRY_DSN`): errors from the browser, the Next.js gateway and the Python agent in one project,
+  plus warnings for failed lead emails / Sheets logging and an alert when every free model is used up. No chat text is
+  sent (no request bodies, no personal data, no session replay).
+- **Umami** (`NEXT_PUBLIC_UMAMI_WEBSITE_ID`): page views plus events — `chat_open`, `chat_question`, `chat_quick_answer`,
+  `chat_paused`, `chat_ended`, `lead_submitted`, `resume_download`, `linkedin_click`, `github_click`, `email_click`,
+  `paper_click`. Never the visitor's words.
+- **Cloudflare Web Analytics** (`NEXT_PUBLIC_CF_BEACON_TOKEN`): cookieless traffic overview.
+
 ## CI
 `.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
 FAISS index — committing it if the content changed, which redeploys the site — then runs the evals and RAGAS and

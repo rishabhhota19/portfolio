@@ -15,18 +15,18 @@ export function Footer() {
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <span className="label mb-1">Contact</span>
-          <a className="link-underline w-fit" href={`mailto:${site.email}`}>
+          <a className="link-underline w-fit" href={`mailto:${site.email}`} data-umami-event="email_click">
             {site.email}
           </a>
-          <a className="link-underline w-fit" href={site.linkedin} target="_blank" rel="noreferrer">
+          <a className="link-underline w-fit" href={site.linkedin} target="_blank" rel="noreferrer" data-umami-event="linkedin_click">
             LinkedIn ↗
           </a>
           {site.github ? (
-            <a className="link-underline w-fit" href={site.github} target="_blank" rel="noreferrer">
+            <a className="link-underline w-fit" href={site.github} target="_blank" rel="noreferrer" data-umami-event="github_click">
               GitHub ↗
             </a>
           ) : null}
-          <a className="link-underline w-fit" href={site.resume}>
+          <a className="link-underline w-fit" href={site.resume} data-umami-event="resume_download" data-umami-event-from="footer">
             Résumé (PDF)
           </a>
         </div>

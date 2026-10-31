@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { track } from "@/lib/analytics";
 import { useEffect, useState } from "react";
 import { OPEN_AGENT_EVENT, type OpenAgentDetail } from "./events";
 
@@ -19,6 +20,7 @@ export function ChatLauncher() {
       const { question } = (e as CustomEvent<OpenAgentDetail>).detail ?? {};
       setLoaded(true);
       setOpen(true);
+      track("chat_open", { source: question ? "suggested question" : "ask button" });
       if (question) setPending({ text: question, id: Date.now() });
     };
     window.addEventListener(OPEN_AGENT_EVENT, onOpen);
@@ -41,6 +43,7 @@ export function ChatLauncher() {
           onClick={() => {
             setLoaded(true);
             setOpen(true);
+            track("chat_open", { source: "floating button" });
           }}
           className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full border border-rule bg-ink py-3 pl-4 pr-5 text-sm text-paper shadow-[0_10px_40px_-12px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5"
           aria-label="Ask my agent (opens a chat about Rishabh's work)"
