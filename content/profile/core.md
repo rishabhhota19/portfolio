@@ -19,7 +19,7 @@ summary: Always-on context for the recruiter agent. Keep this short; details liv
 - His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).
 - Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.
 
-**Core strengths:** agentic AI and multi-agent orchestration, MCP, RAG (incl. Graph RAG) in production, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.
+**Core strengths:** agentic AI and multi-agent orchestration, MCP, RAG in production, Graph RAG, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.
 
 **Roles he fits:** AI Engineer, GenAI / LLM Engineer, Agentic AI Engineer, Forward Deployed Engineer, Applied / Research Engineer (ML, medical imaging, efficient attention).
 
