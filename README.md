@@ -14,7 +14,8 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
              route ─► retrieve ─► rerank ─► respond            route    canned replies, no LLM (greeting/contact/injection)
                                                                retrieve FAISS (meaning) + BM25 (keywords) → RRF
                                                                rerank   bge-reranker cross-encoder → top 4
-                                                               respond  Groq gpt-oss → Gemini → … (fallback chain)
+                                                               respond  Groq → Gemini → OpenRouter (7 free models),
+                                                                        then a facts-only answer — never goes offline
 ```
 
 Chat memory lives only in the browser tab. When a chat ends, only an AI summary goes to a Google Sheet (never the transcript).
@@ -26,8 +27,9 @@ Chat memory lives only in the browser tab. When a chat ends, only an AI summary 
   so the final 4 chunks the LLM sees are the most relevant ones.
 - **Router before the LLM.** Greetings, contact questions and prompt-injection attempts get instant canned replies —
   zero tokens, zero hallucination risk.
-- **Fallback chain.** Free tiers rate-limit, so availability beats a single "best" model: when one model fails it is
-  skipped for a while and the next answers.
+- **Fallback chain, then facts.** Free tiers rate-limit, so availability beats a single "best" model: when one of the
+  7 models (Groq, Gemini, OpenRouter) fails it is skipped for a while and the next answers. If all are busy, the agent
+  quotes the most relevant retrieved chunk with a link — the chat never goes offline.
 - **Security in the gateway, AI in Python.** Bot checks, rate limits and the daily budget sit in front of the agent;
   the Python service only accepts calls carrying a shared secret, and stays small and testable. A Vercel Firewall rule
   adds a per-IP limit at the edge.
@@ -55,7 +57,7 @@ py -3.13 -m venv .venv && .venv\Scripts\activate && pip install -r requirements-
 npm run agent      # Python agent on :8000   (terminal 1, venv active)
 npm run dev        # site on :3000           (terminal 2)
 ```
-Keys live in `.env.local` (template: `.env.example`). Without LLM keys the agent runs in mock mode.
+Keys live in `.env.local` (template: `.env.example`). Without LLM keys the agent answers from the retrieved facts only.
 
 ## After editing content
 Just push — CI rebuilds the FAISS index and redeploys. To rebuild it locally instead:

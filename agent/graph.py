@@ -15,7 +15,6 @@ from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph, add_messages
 
 from . import llm
-from .config import env
 from .prompts import SITE, system_prompt
 from .rag import rerank, search
 
@@ -26,6 +25,7 @@ class State(TypedDict, total=False):
     docs: list[dict]  # retrieved chunks
     model: str  # which LLM answered
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
+    facts_only: bool  # skip the LLMs (daily budget used up) and answer from the facts
 
 
 def step(name: str, started: float, **details) -> list[dict]:
@@ -88,15 +88,19 @@ async def rerank_docs(state: State) -> dict:
 
 # ── 4. respond ──────────────────────────────────────────────────────────────
 
+def from_facts(docs: list[dict]) -> str:
+    """Last resort when every model is busy: quote the most relevant retrieved chunk. No LLM needed."""
+    top = docs[0]
+    lines = [line.strip(" -•") for line in top["text"].splitlines()[1:] if len(line.strip()) > 25][:3]
+    bullets = "\n".join(f"- {line}" for line in lines)
+    return f"My AI models are busy right now, so here's the most relevant part of Rishabh's portfolio:\n{bullets}\n\nMore on [{top['title']}]({top['url']})."
+
+
 async def respond(state: State) -> dict:
     started = time.perf_counter()
     prompt = [SystemMessage(system_prompt(state["docs"])), *state["messages"][-12:]]
 
-    models = llm.available(llm.CHAT_MODELS)
-    if not models and not env("VERCEL"):
-        top = state["docs"][0] if state["docs"] else {"title": "nothing", "url": "/"}
-        models = llm.fake_model(f"**Mock mode** (no API keys set). Top match: [{top['title']}]({top['url']}).")
-
+    models = [] if state.get("facts_only") else llm.available(llm.CHAT_MODELS)
     for name, model in models:
         text = ""
         try:
@@ -109,6 +113,8 @@ async def respond(state: State) -> dict:
                 return {"messages": [AIMessage(text)], "model": name, "trace": step("respond", started, model=name, partial=True)}
             llm.cool_down(name, err)  # failed before answering: try the next model
 
+    if state["docs"]:  # every model is busy (or no keys set): answer from the facts — the chat never stops
+        return {"messages": [AIMessage(from_facts(state["docs"]))], "model": "facts-only", "trace": step("respond", started, model="facts-only")}
     return {"model": "none", "trace": step("respond", started, model="none")}
 
 

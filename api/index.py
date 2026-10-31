@@ -35,6 +35,7 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     conversation_id: str = ""
     messages: list[Message] = Field(min_length=1, max_length=12)
+    facts_only: bool = False  # set by the gateway when today's LLM budget is used up
 
 
 class SummaryRequest(BaseModel):
@@ -59,17 +60,21 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
     result: dict = {"trace": []}
 
     async def tokens():
-        async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"]):
+        inputs = {"messages": history, "facts_only": req.facts_only}
+        async for mode, data in agent.astream(inputs, stream_mode=["messages", "updates"]):
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
+                    result["streamed"] = True
                     yield chunk.text
             else:  # "updates": what each node returned
                 for node, update in data.items():
                     update = update or {}
                     result["trace"] += update.get("trace", [])
                     result.update({k: update[k] for k in ("intent", "model") if k in update})
-                    if node == "route" and update.get("messages"):  # canned reply from the router
+                    # Replies that weren't streamed token by token: the router's canned answer,
+                    # or the facts-only fallback when every model is busy.
+                    if update.get("messages") and (node == "route" or not result.get("streamed")):
                         yield update["messages"][-1].content
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
         print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}))
