@@ -1,0 +1,5 @@
+# Local development, index building and evals (not deployed)
+-r requirements.txt
+uvicorn[standard]
+langchain-text-splitters
+ragas

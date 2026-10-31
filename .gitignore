@@ -49,3 +49,10 @@ next-env.d.ts
 
 # Vercel CLI
 .vercel
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+evals/results.jsonl
+evals/ragas_results.csv

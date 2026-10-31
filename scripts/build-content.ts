@@ -1,6 +1,6 @@
 // Compiles content/**/*.md into two bundles:
 //   lib/generated/content.json   — rendered HTML + metadata for the static pages
-//   lib/generated/knowledge.json — plain text for the agent (core profile + RAG documents)
+//   agent/data/knowledge.json    — plain text for the Python agent (core profile + RAG documents)
 // Runs automatically before `next dev` and `next build`.
 import fs from "node:fs";
 import path from "node:path";
@@ -10,6 +10,7 @@ import { marked } from "marked";
 const root = process.cwd();
 const contentDir = path.join(root, "content");
 const outDir = path.join(root, "lib", "generated");
+const agentDataDir = path.join(root, "agent", "data");
 
 type Front = Record<string, unknown>;
 type Entry = { slug: string; data: Front; html: string; text: string };
@@ -197,7 +198,8 @@ const knowledge = { site, core: core.text, docs };
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.writeFileSync(path.join(outDir, "content.json"), JSON.stringify(content, null, 2));
-fs.writeFileSync(path.join(outDir, "knowledge.json"), JSON.stringify(knowledge, null, 2));
+fs.mkdirSync(agentDataDir, { recursive: true });
+fs.writeFileSync(path.join(agentDataDir, "knowledge.json"), JSON.stringify(knowledge, null, 2) + "\n");
 
 const coreTokens = Math.round(core.text.length / 4);
 console.log(

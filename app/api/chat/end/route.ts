@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { plainSummary, summarizeChat } from "@/lib/agent/summarize";
+import { plainSummary, summarizeChat } from "@/lib/server/agent";
 import { ipHash, requestMeta, verifyChatToken } from "@/lib/server/request";
 import { logConversation } from "@/lib/server/sheets";
 import { allow, firstTime, spendDailyBudget } from "@/lib/server/store";
@@ -41,21 +41,21 @@ export async function POST(req: Request) {
   const meta = requestMeta(req);
   after(async () => {
     const useLlm = verified && (await spendDailyBudget(DAILY_BUDGET));
-    const s = useLlm ? await summarizeChat(data.messages) : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
+    const s = useLlm ? await summarizeChat(req, data.messages) : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
     await logConversation({
       conversationId: data.conversationId,
       startedAt: data.startedAt,
       endedAt: data.endedAt,
       endReason: REASON_LABEL[data.reason],
       messages: data.messages.length,
-      visitorName: s.visitorName,
-      email: s.email,
-      company: s.company,
-      role: s.role,
-      intent: s.intent,
-      topics: s.topics,
-      summary: s.summary,
-      followUp: s.followUp,
+      visitorName: s.visitorName ?? "",
+      email: s.email ?? "",
+      company: s.company ?? "",
+      role: s.role ?? "",
+      intent: s.intent ?? "",
+      topics: s.topics ?? "",
+      summary: s.summary ?? "",
+      followUp: s.followUp ?? "",
       leadShared: "",
       recruiterNote: "",
       country: meta.country,

@@ -1,0 +1,556 @@
+{
+  "site": {
+    "name": "Rishabh Hota",
+    "role": "AI/ML Researcher & Engineer",
+    "tagline": "I turn new AI research into working systems — agents, LLM pipelines and medical-imaging models that ship.",
+    "location": "Bengaluru, India",
+    "email": "rishabhhota19@gmail.com",
+    "linkedin": "https://www.linkedin.com/in/rishabh-hota-4138b31b3",
+    "github": "https://github.com/rishabhhota19",
+    "resume": "/resume.pdf",
+    "url": "https://rishabh-hota.vercel.app"
+  },
+  "core": "Rishabh Hota — AI/ML Researcher & Engineer (Bengaluru, India)\n\nNow: Sr. AI Researcher at Simplilearn (on-site, Bengaluru), since Mar 2026. Works on automating complex workflows, agentic orchestration, open source, and hands-on research into new AI tech. Before that, AI Researcher at Simplilearn (Mar 2025 – Mar 2026).\n\nExperience: 3+ years turning AI research into production prototypes and AWS-hosted pipelines.\n- Simplilearn — Sr. AI Researcher (Mar 2026 – present), AI Researcher (Mar 2025 – Mar 2026).\n- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.\n- Smartknower (Bangalore) — Data Science & ML Intern (Nov 2020 – Jan 2021).\n\nEducation: B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).\n\nHeadline wins:\n- Built an N8N-based multi-agent \"Collaterals Agent\" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).\n- His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).\n- Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.\n\nCore strengths: agentic AI and multi-agent orchestration, MCP, RAG (incl. Graph RAG) in production, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.\n\nRoles he fits: AI Engineer, GenAI / LLM Engineer, Agentic AI Engineer, Forward Deployed Engineer, Applied / Research Engineer (ML, medical imaging, efficient attention).\n\nInterests: AI research, competitive football, poetry.\n\nContact policy\n- Share: email rishabhhota19@gmail.com, LinkedIn https://www.linkedin.com/in/rishabh-hota-4138b31b3, and the resume at /resume.pdf.\n- Never share a phone number, home address or anything not written in this knowledge base.\n- Recruiters can leave their details with the \"Share your details\" button in the chat; Rishabh gets them by email.\n\nFAQ (answer only what is filled in)\n\n- Notice period: not shared publicly — best discussed directly.\n- Open to relocation / remote: not shared publicly — best discussed directly.\n- Work authorization outside India: not shared publicly — best discussed directly.\n- Salary expectations: happy to discuss directly with the recruiter.\n- Availability for interviews: suggest sharing details via the button or emailing him.",
+  "docs": [
+    {
+      "id": "experience:01-simplilearn-sr-ai-researcher",
+      "kind": "experience",
+      "title": "Sr. AI Researcher at Simplilearn (Mar 2026 – Present)",
+      "url": "/experience",
+      "keywords": [
+        "simplilearn",
+        "current role",
+        "current job",
+        "senior",
+        "sr ai researcher",
+        "agentic orchestration",
+        "open source",
+        "automation"
+      ],
+      "text": "Sr. AI Researcher — Simplilearn, On-site, Bengaluru, Karnataka, Mar 2026 – Present\nRishabh's current role. He leads hands-on research into new AI technology and turns it into automation for the business.\n\n- Automating complex, multi-step business workflows with AI agents.\n- Agentic orchestration: designing how multiple agents, tools and human reviewers work together.\n- Open-source work.\n- Hands-on research on new technology as it emerges, turned into working prototypes."
+    },
+    {
+      "id": "experience:02-simplilearn-ai-researcher",
+      "kind": "experience",
+      "title": "AI Researcher at Simplilearn (Mar 2025 – Mar 2026)",
+      "url": "/experience",
+      "keywords": [
+        "simplilearn",
+        "ai researcher",
+        "mcp",
+        "prototypes",
+        "learning hub",
+        "genai applications"
+      ],
+      "text": "AI Researcher — Simplilearn, On-site, Bengaluru, Karnataka, Mar 2025 – Mar 2026\n- Tracked and dissected emerging AI breakthroughs (MCP, agentic AI, LLMs, Gemini) and turned them into hands-on prototypes.\n- Built, validated and documented research demos; curated a code-backed learning hub.\n- Designed bite-sized, code-driven learning modules and influenced the roadmap for next-generation AI features.\n- Built scalable GenAI applications around the research.\n- Projects in this role include the Collaterals Agent (Best Team Award), TurboTrade (Zerodha MCP copilot), a scalable sales-training chatbot, and Gemma 3n on-device research."
+    },
+    {
+      "id": "experience:03-osteosconnect-ai-engineer",
+      "kind": "experience",
+      "title": "AI Engineer at OsteosConnect Inc (Feb 2024 – Mar 2025)",
+      "url": "/experience",
+      "keywords": [
+        "osteosconnect",
+        "osteoarthritis",
+        "oa",
+        "x-ray",
+        "medical imaging",
+        "healthcare",
+        "aws",
+        "radiologists",
+        "rbknee",
+        "srm trichy"
+      ],
+      "text": "AI Engineer — OsteosConnect Inc, Remote, California, Feb 2024 – Mar 2025\n- Led a team of clinicians and engineers to deliver a 96%-accurate osteoarthritis classification pipeline: X-ray → S3 → Lambda → EC2 → prediction → Lambda → EMR.\n- Surpassed competitor RBKnee and achieved more than 90% concordance with radiologists in SRM Trichy trials.\n- Implemented a continuous feedback loop that retrains the model on doctor-validated ground truth."
+    },
+    {
+      "id": "experience:04-osteosconnect-intern",
+      "kind": "experience",
+      "title": "AI/ML Intern at OsteosConnect Inc (Jul 2023 – Jan 2024)",
+      "url": "/experience",
+      "keywords": [
+        "osteosconnect",
+        "intern",
+        "internship",
+        "dicom",
+        "eda",
+        "baseline",
+        "random forest"
+      ],
+      "text": "AI/ML Intern — OsteosConnect Inc, Remote, California, Jul 2023 – Jan 2024\n- Hypothesized and prototyped ML approaches for automated osteoarthritis grading.\n- Ran exploratory data analysis on DICOM imagery and set up baseline classifiers (logistic regression, random forest)."
+    },
+    {
+      "id": "experience:05-smartknower-intern",
+      "kind": "experience",
+      "title": "Data Science & ML Intern at Smartknower Pvt Ltd (Nov 2020 – Jan 2021)",
+      "url": "/experience",
+      "keywords": [
+        "smartknower",
+        "intern",
+        "internship",
+        "etl",
+        "power bi",
+        "forecasting",
+        "data science"
+      ],
+      "text": "Data Science & ML Intern — Smartknower Pvt Ltd, Bangalore, Nov 2020 – Jan 2021\n- Built a full ETL pipeline, feature engineering and predictive models.\n- Developed Power BI dashboards for sales forecasting and presented actionable insights."
+    },
+    {
+      "id": "project:collaterals-agent",
+      "kind": "project",
+      "title": "Collaterals Agent",
+      "url": "/projects/collaterals-agent",
+      "keywords": [
+        "collaterals",
+        "collateral",
+        "n8n",
+        "marketing",
+        "brochure",
+        "emailer",
+        "best team award",
+        "head agent",
+        "researcher agent",
+        "analyst agent",
+        "serpapi",
+        "google docs",
+        "multi-agent",
+        "Agentic AI",
+        "Multi-agent",
+        "N8N",
+        "Fine-tuned GPT",
+        "Google Docs"
+      ],
+      "text": "Project: Collaterals Agent (Simplilearn, Jun – Aug 2025)\nAn N8N-based multi-agent system that cut course-launch marketing collateral from 7–10 days to 1 day.\nProblem\nEvery new course launch needed SD/SL pages, brochures and seven types of emailers. Two teams of four people spent 7–10 days producing them.\n\nWhat Rishabh built\n- An N8N-based agentic system that drafts all collateral automatically and cuts turnaround to one day, including reviews and approvals.\n- A fine-tuned GPT model with deep course knowledge drafts accurate, relevant marketing content.\n- Architecture: one Head Agent coordinates two sub-agents:\n  - a Researcher, which gathers and validates course information through SerpAPI;\n  - an Analyst, which checks content structure and data accuracy and extracts the table of contents.\n- Integrated with Google Docs for automatic document creation and real-time updates throughout the workflow.\n\nOutcome\n- Launch collateral time fell from 7–10 days to 1 day.\n- The team won Simplilearn's Best Team Award (Q3)."
+    },
+    {
+      "id": "project:oa-classification",
+      "kind": "project",
+      "title": "AI-Powered Osteoarthritis Classification & Reporting",
+      "url": "/projects/oa-classification",
+      "keywords": [
+        "osteoarthritis",
+        "oa",
+        "knee",
+        "x-ray",
+        "medical imaging",
+        "sagemaker",
+        "s3",
+        "lambda",
+        "ec2",
+        "emr",
+        "radiologist",
+        "rbknee",
+        "srm trichy",
+        "healthcare",
+        "classification",
+        "Computer Vision",
+        "Medical Imaging",
+        "AWS",
+        "SageMaker",
+        "Feedback loop"
+      ],
+      "text": "Project: AI-Powered Osteoarthritis Classification & Reporting (OsteosConnect, Jan 2024 – Sep 2024)\nEnd-to-end knee X-ray grading on AWS — 96% accuracy, more than 90% concordance with radiologists, ahead of competitor RBKnee.\nWhat it does\nDoctors capture a knee X-ray on a React web app or an Android app. The system grades osteoarthritis automatically and produces a web-based report.\n\nHow it works\n- Flow: capture on React/Android → encrypted upload to S3 → Lambda trigger → SageMaker/EC2 inference → prediction → Lambda → report written to the EMR.\n- A closed feedback loop retrains the model on doctor-validated labels, so it keeps improving with real clinical use.\n- Earlier, as an intern, Rishabh ran EDA on DICOM images and built baseline classifiers (logistic regression, random forest) before moving to deep learning.\n\nResults\n- 96% classification accuracy.\n- More than 90% concordance with radiologists in trials at SRM Trichy.\n- Outperformed competitor RBKnee.\n- Rishabh led the clinicians and engineers who delivered it.\n- Follow-on research, \"OA Classification and Reporting using Agentic AI and Deep Neural Networks\", is ongoing with OsteosConnect."
+    },
+    {
+      "id": "project:turbotrade",
+      "kind": "project",
+      "title": "TurboTrade — Zerodha MCP trading copilot",
+      "url": "/projects/turbotrade",
+      "keywords": [
+        "turbotrade",
+        "turbotrader",
+        "zerodha",
+        "kite",
+        "mcp",
+        "trading",
+        "stocks",
+        "groq",
+        "langchain",
+        "fintech",
+        "oauth",
+        "MCP",
+        "LangChain",
+        "Groq",
+        "RAG",
+        "Fintech"
+      ],
+      "text": "Project: TurboTrade — Zerodha MCP trading copilot (Simplilearn (on-site project), Apr – May 2025)\nA chat copilot that researches, plans and trades Indian markets using LangChain, Groq and Zerodha's Kite MCP.\nWhat it does\nTurboTrade puts research, planning and trading on Indian markets into one chat.\n\nA user can ask: \"Show my live P&L, scan for bullish breakouts, then sell half my HDFC Bank.\"\n\nHow it works\n- LangChain handles orchestration, Groq provides fast reasoning, and the Zerodha Kite MCP server streams secure, real-time account data.\n- The agent fetches positions through MCP, blends fresh news using LangChain RAG, and streams insights.\n- One-tap options let the user buy, sell, set stops or queue deeper research.\n\nSafety design\n- MCP keeps API keys out of prompts, and OAuth scopes guard capital.\n- Every step is logged and reversible.\n- Models and brokers can be swapped, and custom research feeds plugged in, without rewrites.\n- Built to stay compliant with Indian rules."
+    },
+    {
+      "id": "project:ai-teddy-bear",
+      "kind": "project",
+      "title": "AI Teddy Bear (MVP)",
+      "url": "/projects/ai-teddy-bear",
+      "keywords": [
+        "teddy",
+        "teddy bear",
+        "children",
+        "kids",
+        "storytelling",
+        "stories",
+        "voice",
+        "speech",
+        "guardrails",
+        "hardware",
+        "toy",
+        "Voice AI",
+        "Speech generation",
+        "Guardrails",
+        "Hardware"
+      ],
+      "text": "Project: AI Teddy Bear (MVP) (Personal, 2026)\nA storytelling teddy bear for children with its own character voice — guardrailed, open source, hardware- and app-ready.\nWhat it does\nAn MVP AI teddy bear that tells children stories in a unique character voice and style. The stories are personalized so children feel comfortable.\n\nNotes\n- Open source, and ready for both hardware and a companion app.\n- Guardrailed and secure for children's use.\n- Many details are confidential. If a recruiter asks for specifics beyond this, the agent should say Rishabh can share more directly."
+    },
+    {
+      "id": "project:sales-training-chatbot",
+      "kind": "project",
+      "title": "Scalable Sales Training Chatbot",
+      "url": "/projects/sales-training-chatbot",
+      "keywords": [
+        "sales",
+        "sales training",
+        "chatbot",
+        "faiss",
+        "gemini",
+        "google adk",
+        "adk",
+        "streamlit",
+        "rag",
+        "scalable",
+        "RAG",
+        "FAISS",
+        "Gemini",
+        "Google ADK",
+        "Streamlit"
+      ],
+      "text": "Project: Scalable Sales Training Chatbot (Simplilearn (on-site project), Apr – May 2025)\nA high-throughput sales-enablement chatbot using FAISS retrieval, Gemini and Google ADK, with a Streamlit training UI.\n- Designed a high-throughput sales-enablement chatbot: the knowledge base is vector-indexed with FAISS, and Gemini is orchestrated through Google ADK.\n- Built a Streamlit interface for interactive training scenarios with real-time feedback.\n- Engineered for horizontal scalability."
+    },
+    {
+      "id": "project:edtech-platform",
+      "kind": "project",
+      "title": "Ed-Tech Web App",
+      "url": "/projects/edtech-platform",
+      "keywords": [
+        "edtech",
+        "ed-tech",
+        "ed tech",
+        "platform",
+        "cohort",
+        "instructor",
+        "payroll",
+        "whatsapp",
+        "vercel",
+        "supabase",
+        "razorpay",
+        "sentry",
+        "umami",
+        "admin dashboard",
+        "Full-stack",
+        "Vercel",
+        "Supabase",
+        "Razorpay",
+        "Automation"
+      ],
+      "text": "Project: Ed-Tech Web App (Personal, 2026)\nA cohort-based learning platform with automated cohort and instructor mapping, WhatsApp agent posts and automated payroll.\n- An ed-tech platform where learners explore courses and join cohorts.\n- Automated:\n  - cohort and instructor mapping;\n  - communication channels, with an agent that posts to WhatsApp;\n  - payroll.\n- Stack: Vercel (frontend and middleware), Sentry (error tracking), Umami (web analytics), Supabase (database), Razorpay (payments), plus in-house revenue analytics.\n- Admin dashboard: all analytics, cohort creation, instructor pool, payroll and live error tracking."
+    },
+    {
+      "id": "project:claude-health-doctor",
+      "kind": "project",
+      "title": "Claude Personal Health Doctor",
+      "url": "/projects/claude-health-doctor",
+      "keywords": [
+        "health",
+        "doctor",
+        "medical",
+        "claude",
+        "skill",
+        "claude skills",
+        "graphify",
+        "knowledge graph",
+        "second brain",
+        "Claude Skills",
+        "Knowledge graph",
+        "Healthcare",
+        "Agents"
+      ],
+      "text": "Project: Claude Personal Health Doctor (Personal, 2026)\nA Claude \"Doctor Skill\" plus a knowledge-graph second brain built from personal medical records.\n- Built a Doctor Skill for Claude. It contains:\n  - medical resources and links the agent can visit for any query;\n  - guidance on how a doctor should behave and reason;\n  - a strict workflow for investigating evidence against current information.\n- Organized personal medical documents into dated folders, then used Graphify to turn them into a knowledge-graph \"second brain\" for Claude, with documents processed into nodes and communities.\n- Result: a private, queryable health assistant grounded in his own records."
+    },
+    {
+      "id": "project:gemma-3n-on-device",
+      "kind": "project",
+      "title": "Gemma 3n on Android — Google AI Edge Gallery",
+      "url": "/projects/gemma-3n-on-device",
+      "keywords": [
+        "gemma",
+        "gemma 3n",
+        "android",
+        "on-device",
+        "edge",
+        "offline",
+        "ai edge gallery",
+        "mobile",
+        "android studio",
+        "On-device AI",
+        "Gemma",
+        "Android",
+        "Edge"
+      ],
+      "text": "Project: Gemma 3n on Android — Google AI Edge Gallery (Simplilearn (on-site research), May – Jun 2025)\nRan an Android-compatible Gemma 3n model inside a custom offline chatbot app.\n- Tested Google's AI Edge Gallery in Android Studio and worked through its project structure.\n- Hosted an Android-compatible Gemma 3n model in a custom chatbot app, exploring what fully offline intelligence makes possible on a phone."
+    },
+    {
+      "id": "project:covid-decision-support",
+      "kind": "project",
+      "title": "COVID-19 Decision Support System",
+      "url": "/projects/covid-decision-support",
+      "keywords": [
+        "covid",
+        "covid-19",
+        "decision support",
+        "iot",
+        "chest x-ray",
+        "ct",
+        "vitals",
+        "symptoms",
+        "final year project",
+        "bmsce",
+        "Deep Learning",
+        "IoT",
+        "Medical Imaging",
+        "Rule engine"
+      ],
+      "text": "Project: COVID-19 Decision Support System (BMSCE, team of four, Oct 2022 – Apr 2023)\nAn IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays — 6th place college-wide.\n- An IoT-enabled home-assessment system that combines sensor data, symptom checklists, and X-ray/CT analysis using deep learning and rule-based logic.\n- Stage one gives a preliminary assessment from vitals and symptoms. Stage two adds chest X-ray analysis for a deeper diagnosis.\n- A guided UI:\n  - Phase 1 asks screening questions.\n  - Phase 2, if needed, asks for a chest X-ray upload.\n  - A final rule-based engine combines all inputs into a report with recommended next steps.\n- Awarded 6th place college-wide. Related papers are listed under Publications."
+    },
+    {
+      "id": "project:news-research-tool",
+      "kind": "project",
+      "title": "News Search & Research Tool",
+      "url": "/projects/news-research-tool",
+      "keywords": [
+        "news",
+        "research tool",
+        "scraping",
+        "web scraping",
+        "rag",
+        "nlp",
+        "search",
+        "RAG",
+        "NLP",
+        "Web scraping"
+      ],
+      "text": "Project: News Search & Research Tool (Personal, Jan – Feb 2024)\nA GenAI pipeline that turns a question into a scraped, RAG-backed research answer.\n- Pipeline: NLP-driven query parsing → web scraping → corpus assembly → RAG → prompt-based Q&A interface."
+    },
+    {
+      "id": "project:portfolio-agent",
+      "kind": "project",
+      "title": "This site's recruiter agent",
+      "url": "/projects/portfolio-agent",
+      "keywords": [
+        "this site",
+        "portfolio",
+        "chatbot",
+        "agent",
+        "how does this chat work",
+        "langgraph",
+        "langchain",
+        "rag",
+        "faiss",
+        "bm25",
+        "rerank",
+        "reranking",
+        "ragas",
+        "fastapi",
+        "python",
+        "evals",
+        "LangGraph",
+        "LangChain",
+        "RAG",
+        "FAISS",
+        "Python",
+        "RAGAS"
+      ],
+      "text": "Project: This site's recruiter agent (Personal, 2026)\nA Python LangGraph agent with hybrid RAG (FAISS + BM25 + re-ranking) that answers questions about Rishabh — on a ₹0/month stack.\n- Agent: a LangGraph graph in Python (FastAPI on Vercel) with four steps:\n  - route: greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;\n  - retrieve: hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;\n  - rerank: a cross-encoder (bge-reranker-base) keeps the 4 most relevant chunks;\n  - respond: streams the answer from a chain of free LLMs (Groq gpt-oss, then Gemini). If one hits a rate limit, the next answers.\n- Security: a Next.js gateway in front of the agent checks for bots, validates input, rate-limits per visitor and enforces a daily budget.\n- Memory: lives only in the visitor's open tab. When the chat or the site is closed, it's gone, and only a short AI summary is logged to a Google Sheet.\n- Evals: a Python suite checks retrieval, facts and guardrails, and RAGAS scores faithfulness, answer relevancy and context precision."
+    },
+    {
+      "id": "publication:lcsnet",
+      "kind": "publication",
+      "title": "LCSNet: Lightweight Caries Segmentation Network for dental caries segmentation from smartphone photographs",
+      "url": "/publications",
+      "keywords": [
+        "lcsnet",
+        "caries",
+        "dental",
+        "teeth",
+        "segmentation",
+        "smartphone",
+        "elsevier",
+        "intelligence-based medicine",
+        "lightweight",
+        "published paper"
+      ],
+      "text": "Publication: LCSNet: Lightweight Caries Segmentation Network for dental caries segmentation from smartphone photographs\nVenue: Intelligence-Based Medicine (Elsevier, Impact Factor 2.3). Status: Published. Date: Oct 2025. Link: https://www.sciencedirect.com/science/article/pii/S2666521225001085\n- Built a dataset of smartphone photos of teeth with varying resolution and lighting.\n- Proposed LCSNet, a new lightweight segmentation architecture for dental caries. It reached an F1-score of 71.7% and IoU of 56.8% with significantly fewer parameters and FLOPs than heavier baselines.\n- Results were validated by expert dentists.\n- Published October 9, 2025."
+    },
+    {
+      "id": "publication:qfpvit",
+      "kind": "publication",
+      "title": "QFPViT: A Fidelity-Phase Quantum Self-Attention Operator for Vision Transformers — Design and Evaluation on MedMNIST",
+      "url": "/publications",
+      "keywords": [
+        "qfpvit",
+        "quantum",
+        "quantum attention",
+        "self-attention",
+        "vision transformer",
+        "vit",
+        "medmnist",
+        "fidelity",
+        "phase",
+        "quantum machine learning",
+        "qml"
+      ],
+      "text": "Publication: QFPViT: A Fidelity-Phase Quantum Self-Attention Operator for Vision Transformers — Design and Evaluation on MedMNIST\nVenue: Quantum (journal). Status: Under review.\n- Designs a fidelity-phase quantum self-attention operator for Vision Transformers and evaluates it on MedMNIST medical-imaging benchmarks.\n- Rishabh started with no quantum-computing background, with the goal of building a better attention mechanism using quantum algorithms. QFPViT is the result.\n- Communicated to the journal Quantum."
+    },
+    {
+      "id": "publication:quantum-feature-maps",
+      "kind": "publication",
+      "title": "Do Quantum-Inspired Feature Maps Help Vision Transformer Attention? A Matched-Budget Dequantization Study",
+      "url": "/publications",
+      "keywords": [
+        "quantum-inspired",
+        "feature maps",
+        "dequantization",
+        "matched budget",
+        "vision transformer",
+        "attention",
+        "linear attention",
+        "efficient attention",
+        "qmi",
+        "springer"
+      ],
+      "text": "Publication: Do Quantum-Inspired Feature Maps Help Vision Transformer Attention? A Matched-Budget Dequantization Study\nVenue: Quantum Machine Intelligence (Springer). Status: Under review.\n- Tests whether quantum-inspired feature maps actually improve Vision Transformer attention when compared at a matched compute and parameter budget. This dequantization study separates real gains from the effect of simply using more resources.\n- Communicated to Quantum Machine Intelligence (Springer)."
+    },
+    {
+      "id": "publication:didss",
+      "kind": "publication",
+      "title": "Depression Identification Decision Support System (DIDSS)",
+      "url": "/publications",
+      "keywords": [
+        "depression",
+        "didss",
+        "mental health",
+        "decision support",
+        "springer",
+        "book chapter"
+      ],
+      "text": "Publication: Depression Identification Decision Support System (DIDSS)\nVenue: Springer — Advanced Machine Learning for Real World Applications (book chapter). Status: Published. Link: https://link.springer.com/chapter/10.1007/978-981-97-1900-6_4\n- A decision support system for identifying depression, published as a chapter in Springer's Advanced Machine Learning for Real World Applications.\n- Authors: Hota R.K. and Verma N."
+    },
+    {
+      "id": "publication:covid-ct",
+      "kind": "publication",
+      "title": "COVID-19 Classification with Chest CT",
+      "url": "/publications",
+      "keywords": [
+        "covid",
+        "covid-19",
+        "chest ct",
+        "ct scan",
+        "classification",
+        "inderscience",
+        "ieee"
+      ],
+      "text": "Publication: COVID-19 Classification with Chest CT\nVenue: International Journal of Computing Science & Mathematics (Inderscience; Scopus & ESCI). Status: Submitted. Link: https://ieeexplore.ieee.org/document/10957133\n- Deep-learning classification of COVID-19 from chest CT scans.\n- Authors: Hota R.K. and Akhilesh S."
+    },
+    {
+      "id": "publication:covid-multimodal",
+      "kind": "publication",
+      "title": "Multi-Modal Decision Support for COVID-19 Prediction",
+      "url": "/publications",
+      "keywords": [
+        "covid",
+        "covid-19",
+        "multi-modal",
+        "multimodal",
+        "decision support",
+        "prediction",
+        "inderscience",
+        "iot"
+      ],
+      "text": "Publication: Multi-Modal Decision Support for COVID-19 Prediction\nVenue: Inderscience. Status: Under review.\n- A multi-modal decision support approach that combines vitals, symptoms and imaging to predict COVID-19, building on his COVID-19 Decision Support System project.\n- Communicated to Inderscience."
+    },
+    {
+      "id": "publication:oa-agentic",
+      "kind": "publication",
+      "title": "OA Classification and Reporting using Agentic AI and Deep Neural Networks",
+      "url": "/publications",
+      "keywords": [
+        "osteoarthritis",
+        "oa",
+        "agentic ai",
+        "reporting",
+        "deep neural networks",
+        "osteosconnect",
+        "knee x-ray"
+      ],
+      "text": "Publication: OA Classification and Reporting using Agentic AI and Deep Neural Networks\nVenue: With OsteosConnect. Status: In progress.\n- Ongoing research with OsteosConnect. It extends his osteoarthritis X-ray classification work with agentic AI that generates clinical reports."
+    },
+    {
+      "id": "blog:how-my-portfolio-agent-works",
+      "kind": "blog",
+      "title": "How the AI agent on this site works (and why it costs ₹0)",
+      "url": "/blog/how-my-portfolio-agent-works",
+      "keywords": [
+        "blog",
+        "this site",
+        "how it works",
+        "langgraph",
+        "rag",
+        "faiss",
+        "bm25",
+        "reranking",
+        "ragas",
+        "architecture",
+        "free stack"
+      ],
+      "text": "Blog post: How the AI agent on this site works (and why it costs ₹0) (31 Oct 2026)\nA Python LangGraph agent, hybrid RAG with FAISS + BM25 and re-ranking, free LLMs with fallbacks, and RAGAS evals.\nRecruiters rarely have time to read a whole portfolio, so I put an agent on this site that answers questions about my work. Here's how it's built.\n\nThe graph\nThe agent is a small LangGraph graph written in Python:\n\n1. route: simple messages (hi, \"how do I contact him?\", prompt-injection attempts) get an instant reply without calling an LLM. That saves the free quota for real questions.\n2. retrieve: hybrid search over this site's own content.\n   - FAISS finds chunks with similar meaning, using Gemini embeddings.\n   - BM25 finds exact keywords.\n   - Reciprocal Rank Fusion merges the two rankings.\n3. rerank: a cross-encoder (bge-reranker-base) reads the question and each chunk together, and keeps the best 4.\n4. respond: an LLM answers from those chunks only, and streams the reply token by token.\n\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. The agent tries Groq gpt-oss-120b first, then Gemini Flash-Lite, then smaller Groq models. A model that fails is skipped for a while and the next one answers.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.\n\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.\n\nMeasuring it\n- An eval suite checks that retrieval finds the right page, that answers contain the right facts, and that guardrails hold: no phone numbers, no leaked prompt, no invented claims.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge."
+    },
+    {
+      "id": "profile:skills",
+      "kind": "profile",
+      "title": "Skills and tools",
+      "url": "/experience",
+      "keywords": [
+        "skills",
+        "stack",
+        "tools",
+        "languages",
+        "frameworks",
+        "tech stack",
+        "python",
+        "pytorch",
+        "langchain",
+        "aws"
+      ],
+      "text": "Key skills\nForward Deployed Engineering, system design, open source, Azure AI Foundry, AWS Bedrock, agent and LLM evaluation, agent and LLM guardrailing and deployment, token optimization, agentic AI and harness engineering, loop engineering, automation engineering, chatbot design, AI and agentic AI orchestration, LLM architecture and fine-tuning, RAG in production, Model Context Protocol (MCP), healthcare automation, research publication, Claude Code and Claude Skills, speech generation, classification, GenAI applications.\n\nAI and ML\nGenerative AI, agentic AI and agentic RAG, multi-agent systems, retrieval-augmented generation (RAG and Graph RAG), MCP, chatbots, vector databases (Redis, FAISS and others), machine learning, deep learning, computer vision, CNNs, NLP, transformers, segmentation models, X-ray annotation.\n\nLanguages and frameworks\nPython, scikit-learn, TensorFlow, PyTorch, PyTorch Lightning, LangChain, LangGraph, Google ADK, Google Gemini APIs, OpenAI SDK, CrewAI, Pandas, NumPy, asyncio, FastAPI, Flask, FastMCP, gRPC, Pydantic, PyDICOM.\n\nLLM fine-tuning and small models\nUnsloth, LoRA and QLoRA (PEFT), supervised fine-tuning (SFT), Hugging Face Transformers and TRL, 4-bit and 8-bit quantized fine-tuning, fine-tuning small models such as Gemma, Llama and Phi.\n\nLLM inference and serving\nvLLM, Ollama, llama.cpp, model quantization (GGUF, AWQ), KV-cache optimization, batching and streaming inference, OpenAI-compatible API serving.\n\nCloud and DevOps\nAWS (S3, Lambda, SageMaker, EC2, Bedrock), Docker, Azure AI.\n\nData and analytics\nData science, predictive modeling, EDA, ETL, DICOM processing, Power BI.\n\nComputer science foundations\nAlgorithms, data structures, OOP, DBMS, computer networks, system design for AI.\n\nSoft skills\nTeam management and leadership, teamwork, problem solving, communication, curiosity."
+    },
+    {
+      "id": "profile:education",
+      "kind": "profile",
+      "title": "Education, certifications and achievements",
+      "url": "/experience",
+      "keywords": [
+        "education",
+        "degree",
+        "college",
+        "university",
+        "bmsce",
+        "certification",
+        "certifications",
+        "award",
+        "awards",
+        "achievements",
+        "gpa",
+        "football",
+        "poetry"
+      ],
+      "text": "Education\n- B.E., Electronics & Communication — B.M.S. College of Engineering, Bangalore (Aug 2019 – Aug 2023). GPA 7.65/10.\n- Intermediate (PCM) — Shiv Jyoti Convent School, Kota (2017–2018). 80%.\n- Matriculation — Sri Chaitanya Techno School, Vizag (2015–2016). CGPA 10.\n\nCertifications and training\n- LLM Fine-tuning — DeepLearning.AI\n- Fundamentals of Generative AI — Databricks (2024)\n- NVIDIA Deep Learning Institute: Vision & Multi-Modal (2020)\n- Python 3 Programming Specialization — University of Michigan (Coursera)\n- Practical Deep Learning — Intel (Coursera)\n- Data Science for All — E&ICT, NIT Warangal\n- AI & Deep Learning — E&ICT, IIITDM\n- ML Foundations: A Case Study Approach — University of Washington (Coursera)\n- Machine Learning for All — University of London (Coursera)\n\nAchievements\n- Started with zero quantum-computing knowledge and built QFPViT, a quantum self-attention operator for Vision Transformers; paper communicated to Quantum Journal.\n- Best Team Award at Simplilearn (Q3) for automating collateral creation for new program launches, cutting turnaround from 7–10 days to 1 day.\n- Published the novel LCSNet architecture in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3).\n- Built a scalable sales-training system at Simplilearn.\n- Led MVP development with doctors and researchers at OsteosConnect; his osteoarthritis classification and reporting solution outperformed competitor RBKnee.\n- 6th prize, final-year major project showcase at BMSCE.\n- Published in Springer and Inderscience venues.\n- 2nd prize, Coca-Cola Cup district-level football.\n- Poetry published in the Hindi daily Amar Ujala."
+    }
+  ]
+}

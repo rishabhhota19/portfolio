@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { plainSummary, summarizeChat } from "@/lib/agent/summarize";
+import { plainSummary, summarizeChat } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import { sendLeadEmail } from "@/lib/server/email";
 import { ipHash, requestMeta } from "@/lib/server/request";
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   after(async () => {
     const s =
       data.messages.length && (await spendDailyBudget(DAILY_BUDGET))
-        ? await summarizeChat(data.messages, data.lead)
+        ? await summarizeChat(req, data.messages, data.lead)
         : plainSummary(data.messages);
     await Promise.all([
       logConversation({
@@ -43,12 +43,12 @@ export async function POST(req: Request) {
         messages: data.messages.length,
         visitorName: data.lead.name,
         email: data.lead.email,
-        company: data.lead.company || s.company,
-        role: data.lead.role || s.role,
+        company: data.lead.company || s.company || "",
+        role: data.lead.role || s.role || "",
         intent: s.intent || "Hiring — exploring",
-        topics: s.topics,
-        summary: s.summary,
-        followUp: s.followUp,
+        topics: s.topics ?? "",
+        summary: s.summary ?? "",
+        followUp: s.followUp ?? "",
         leadShared: "Yes",
         recruiterNote: data.lead.note,
         country: meta.country,
@@ -59,9 +59,9 @@ export async function POST(req: Request) {
       }),
       sendLeadEmail({
         lead: data.lead,
-        summary: s.summary,
-        topics: s.topics,
-        followUp: s.followUp,
+        summary: s.summary ?? "",
+        topics: s.topics ?? "",
+        followUp: s.followUp ?? "",
         meta: { ...meta, page: data.page },
       }),
     ]);

@@ -1,17 +1,19 @@
 ---
 title: This site's recruiter agent
-summary: A LangGraph RAG agent that answers questions about Rishabh — built on a ₹0/month stack across Vercel, Cloudflare and Upstash.
+summary: A Python LangGraph agent with hybrid RAG (FAISS + BM25 + re-ranking) that answers questions about Rishabh — on a ₹0/month stack.
 org: Personal
 period: 2026
-tags: [LangGraph, RAG, Upstash Vector, Cloudflare AI Gateway, Next.js]
+tags: [LangGraph, LangChain, RAG, FAISS, Python, RAGAS]
 featured: false
 order: 11
-keywords: [this site, portfolio, chatbot, agent, how does this chat work, langgraph, rag, upstash, cloudflare, vercel, fallback, google sheets]
+keywords: [this site, portfolio, chatbot, agent, how does this chat work, langgraph, langchain, rag, faiss, bm25, rerank, reranking, ragas, fastapi, python, evals]
 ---
 
-- A LangGraph agent with two steps:
-  - **retrieve:** RAG over this site's own content in Upstash Vector;
-  - **respond:** streamed answers through a fallback chain of free LLMs — Groq, then Gemini, then Cloudflare Workers AI, routed via Cloudflare AI Gateway.
-- Chat memory lives only in the visitor's open tab. When the chat or the site is closed, the history is gone.
-- Only a short AI summary of each chat is logged, to a Google Sheet.
-- Rate limits, bot protection and a daily budget keep it free at 10k+ visitors a month.
+- **Agent:** a LangGraph graph in Python (FastAPI on Vercel) with four steps:
+  - **route:** greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;
+  - **retrieve:** hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;
+  - **rerank:** a cross-encoder (bge-reranker-base) keeps the 4 most relevant chunks;
+  - **respond:** streams the answer from a chain of free LLMs (Groq gpt-oss, then Gemini). If one hits a rate limit, the next answers.
+- **Security:** a Next.js gateway in front of the agent checks for bots, validates input, rate-limits per visitor and enforces a daily budget.
+- **Memory:** lives only in the visitor's open tab. When the chat or the site is closed, it's gone, and only a short AI summary is logged to a Google Sheet.
+- **Evals:** a Python suite checks retrieval, facts and guardrails, and RAGAS scores faithfulness, answer relevancy and context precision.
