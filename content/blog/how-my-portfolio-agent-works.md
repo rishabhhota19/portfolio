@@ -19,7 +19,7 @@ The agent is a small **LangGraph** graph written in Python:
 4. **respond:** an LLM answers from those chunks only, and streams the reply token by token.
 
 ## Free models, with fallbacks
-Free LLM tiers have rate limits, so one provider is never enough. The agent tries **Groq gpt-oss-120b** first, then **Gemini Flash-Lite**, then more Groq and Gemini models, then free models on **OpenRouter**. A model that fails is skipped for a while and the next one answers. If every model is busy at once, the agent quotes the most relevant fact it retrieved, with a link, so it never goes offline.
+Free LLM tiers have rate limits, so one provider is never enough. The agent tries **Groq gpt-oss-120b** first, then **Gemini Flash-Lite**, then more Groq and Gemini models, then free models on **OpenRouter**. The backend tracks every model's requests and tokens against its free limits, skips a model before it runs out, and trims older turns if a long conversation doesn't fit — so the switch is invisible. Only when every free model is used up does the chat pause, until the limits reset.
 
 ## Security in front, AI behind
 - The browser never talks to the Python agent directly.

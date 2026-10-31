@@ -35,7 +35,6 @@ class Message(BaseModel):
 class ChatRequest(BaseModel):
     conversation_id: str = ""
     messages: list[Message] = Field(min_length=1, max_length=12)
-    facts_only: bool = False  # set by the gateway when today's LLM budget is used up
 
 
 class SummaryRequest(BaseModel):
@@ -60,8 +59,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
     result: dict = {"trace": []}
 
     async def tokens():
-        inputs = {"messages": history, "facts_only": req.facts_only}
-        async for mode, data in agent.astream(inputs, stream_mode=["messages", "updates"]):
+        async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"]):
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
@@ -99,7 +97,16 @@ async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Heade
 
 
 @app.get("/api/agent/health")
-async def health():
-    from agent import llm
+async def health(x_agent_secret: str | None = Header(None)):
+    """Public: just "ok". With the secret: each free model's token tracking for today."""
+    expected = env("AGENT_SHARED_SECRET")
+    if not (expected and hmac.compare_digest(x_agent_secret or "", expected)):
+        return {"ok": True}
+    from agent import llm, usage
 
-    return {"ok": True, "models": [name for name, _ in llm.available(llm.CHAT_MODELS)]}
+    models = []
+    for m in llm.CHAT_MODELS:
+        u = await usage.get(m.name)
+        models.append({"model": m.name, "key_set": bool(env(llm.PROVIDERS[m.provider][1])), "paused": bool(u["paused"]),
+                       "requests_today": f"{u['req_day']}/{m.rpd}", "tokens_this_minute": u["tok_min"]})
+    return {"ok": True, "models": models}

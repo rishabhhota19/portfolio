@@ -17,12 +17,12 @@ function agentHeaders(req: Request) {
 }
 
 /** Streams the agent's answer, or returns null if the agent is unavailable. */
-export async function askAgent(req: Request, conversationId: string, messages: ChatMessage[], factsOnly = false) {
+export async function askAgent(req: Request, conversationId: string, messages: ChatMessage[]) {
   try {
     const res = await fetch(agentUrl(req, "chat"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ conversation_id: conversationId, messages, facts_only: factsOnly }),
+      body: JSON.stringify({ conversation_id: conversationId, messages }),
       signal: req.signal,
     });
     return res.ok && res.body ? res.body : null;

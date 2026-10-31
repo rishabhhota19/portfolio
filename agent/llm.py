@@ -1,14 +1,20 @@
-"""Free LLMs in priority order. If one fails (rate limit, outage), the next one answers.
+"""Free LLMs only, in priority order — orchestrated so the visitor never notices a switch.
 
-All of them speak the OpenAI chat format, so one LangChain class (ChatOpenAI) talks to every provider.
-Each model has its own free quota, so a longer list = more capacity. If every model is busy, the graph
-still answers from the retrieved facts (see `respond` in graph.py) — the chat never stops.
+For every answer the backend walks the list below and uses the first model that
+  1. has its API key set,
+  2. still has free-tier budget left (requests + tokens, per minute and per day — see usage.py), and
+  3. can fit the conversation into that budget ("context shifting": the oldest turns are dropped if needed).
+If a model errors (rate limit, outage) it is paused and the next one answers, with the same conversation.
+When every model is used up, the chat pauses for everyone until the limits reset.
+
+All providers speak the OpenAI chat format, so one LangChain class (ChatOpenAI) talks to all of them.
 """
 
-import time
+from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
 
+from . import usage
 from .config import env
 
 PROVIDERS = {
@@ -17,56 +23,110 @@ PROVIDERS = {
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
 }
 
-# (provider, model) — best first. Models without a key set are skipped automatically.
+# Some free tiers are shared across a provider's models: OpenRouter allows 50 free requests a day in total.
+PROVIDER_DAILY_REQUESTS = {"openrouter": 50}
+
+
+@dataclass(frozen=True)
+class FreeModel:
+    provider: str
+    model: str
+    rpm: int  # free-tier requests per minute
+    rpd: int  # requests per day
+    tpm: int  # tokens per minute (0 = no limit we know of)
+    tpd: int  # tokens per day   (0 = no limit we know of)
+    context: int = 32_000  # most tokens we'll send in one request
+    extra_tokens: int = 0  # headroom for hidden reasoning tokens
+
+    @property
+    def name(self) -> str:
+        return f"{self.provider}/{self.model}"
+
+    def client(self, max_tokens: int = 350) -> ChatOpenAI:
+        base_url, key_name = PROVIDERS[self.provider]
+        extra = None
+        if self.model.startswith("openai/gpt-oss") or self.model == "gemini-flash-latest":
+            extra = {"reasoning_effort": "low"}  # think briefly, answer fast
+        elif self.model.startswith("qwen/"):
+            extra = {"reasoning_format": "hidden"}  # keep <think> text out of the answer
+        elif self.provider == "openrouter":
+            extra = {"reasoning": {"enabled": False}}  # answer directly: faster, and never an empty reply
+        return ChatOpenAI(
+            model=self.model,
+            api_key=env(key_name),
+            base_url=base_url,
+            max_tokens=max_tokens + self.extra_tokens,
+            temperature=0.3,
+            timeout=15,  # a slow provider shouldn't stall the chat — move on
+            max_retries=0,  # no retries: switching to the next model is faster
+            stream_usage=False,
+            extra_body=extra,
+        )
+
+
+# Best first. Limits are the providers' published free tiers, rounded down to stay safe.
 CHAT_MODELS = [
-    ("groq", "openai/gpt-oss-120b"),
-    ("gemini", "gemini-flash-lite-latest"),
-    ("groq", "openai/gpt-oss-20b"),
-    ("gemini", "gemini-flash-latest"),
-    ("groq", "qwen/qwen3.8-27b"),
-    ("openrouter", "google/gemma-4-31b-it:free"),
-    ("openrouter", "nvidia/nemotron-3.5-lightning:free"),
+    FreeModel("groq", "openai/gpt-oss-120b", rpm=30, rpd=1000, tpm=8_000, tpd=200_000, extra_tokens=250),
+    FreeModel("gemini", "gemini-flash-lite-latest", rpm=15, rpd=1000, tpm=250_000, tpd=0),
+    FreeModel("groq", "openai/gpt-oss-20b", rpm=30, rpd=1000, tpm=8_000, tpd=200_000, extra_tokens=250),
+    FreeModel("gemini", "gemini-flash-latest", rpm=10, rpd=250, tpm=250_000, tpd=0, extra_tokens=250),
+    FreeModel("groq", "qwen/qwen3.8-27b", rpm=30, rpd=1000, tpm=6_000, tpd=200_000, extra_tokens=250),
+    FreeModel("openrouter", "google/gemma-4-31b-it:free", rpm=20, rpd=50, tpm=0, tpd=0),
+    FreeModel("openrouter", "nvidia/nemotron-3.5-lightning:free", rpm=20, rpd=50, tpm=0, tpd=0),
 ]
-SUMMARY_MODELS = [("groq", "openai/gpt-oss-20b"), ("gemini", "gemini-flash-lite-latest"), ("openrouter", "google/gemma-4-31b-it:free")]
-
-# A model that just failed is skipped until this time (per server instance).
-_cooldown_until: dict[str, float] = {}
+SUMMARY_MODELS = [CHAT_MODELS[2], CHAT_MODELS[1], CHAT_MODELS[4]]  # smaller models first: save the best for chat
 
 
-def make_model(provider: str, model: str, max_tokens: int = 350) -> ChatOpenAI:
-    base_url, key_name = PROVIDERS[provider]
-    extra = {}
-    if model.startswith("openai/gpt-oss") or model == "gemini-flash-latest":
-        extra = {"reasoning_effort": "low"}  # reasoning models: think briefly, answer fast
-        max_tokens += 250  # reasoning tokens count towards the limit
-    elif model.startswith("qwen/"):
-        extra = {"reasoning_format": "hidden"}  # keep <think> text out of the answer
-        max_tokens += 250
-    return ChatOpenAI(
-        model=model,
-        api_key=env(key_name),
-        base_url=base_url,
-        max_tokens=max_tokens,
-        temperature=0.3,
-        timeout=15,  # a slow provider shouldn't stall the chat — move on
-        max_retries=0,  # don't retry — falling over to the next model is faster
-        stream_usage=False,
-        extra_body=extra or None,
-    )
+def estimate_tokens(messages: list) -> int:
+    """Rough token count (~4 characters per token) — good enough to stay inside free limits."""
+    return sum(len(str(m.content)) for m in messages) // 4 + 4 * len(messages)
 
 
-def available(models: list[tuple[str, str]]) -> list[tuple[str, ChatOpenAI]]:
-    """Models whose key is set and that aren't cooling down, in priority order."""
-    now = time.time()
-    return [
-        (f"{provider}/{model}", make_model(provider, model))
-        for provider, model in models
-        if env(PROVIDERS[provider][1]) and _cooldown_until.get(model, 0) < now
-    ]
+async def fit(m: FreeModel, prompt: list, max_tokens: int = 350):
+    """Returns the prompt trimmed to fit this model's remaining free budget, or None if it can't be used now.
+
+    prompt = [system message, ...conversation]. Context shifting: drop the oldest turns until it fits.
+    """
+    if not env(PROVIDERS[m.provider][1]):
+        return None
+    u = await usage.get(m.name)
+    if u["paused"] or u["req_min"] >= m.rpm or u["req_day"] >= m.rpd:
+        return None
+    if m.provider in PROVIDER_DAILY_REQUESTS:
+        if (await usage.get(m.provider))["req_day"] >= PROVIDER_DAILY_REQUESTS[m.provider]:
+            return None
+
+    reserve = max_tokens + m.extra_tokens  # providers count the reply allowance against the limit too
+    budget = m.context
+    if m.tpm:
+        budget = min(budget, m.tpm - u["tok_min"])
+    if m.tpd:
+        budget = min(budget, m.tpd - u["tok_day"])
+    budget -= reserve
+
+    system, history = prompt[0], list(prompt[1:])
+    while history:
+        if estimate_tokens([system, *history]) <= budget:
+            return [system, *history]
+        history = history[1:]  # drop the oldest turn …
+        while history and history[0].type != "human":
+            history = history[1:]  # … and keep the conversation starting with a visitor message
+    return None
 
 
-def cool_down(name: str, err: Exception) -> None:
+async def record(m: FreeModel, sent: list, max_tokens: int = 350) -> None:
+    """Token tracking: count this call (prompt + reply allowance) against the model's free budget."""
+    tokens = estimate_tokens(sent) + max_tokens + m.extra_tokens
+    await usage.record(m.name, tokens)
+    if m.provider in PROVIDER_DAILY_REQUESTS:
+        await usage.record(m.provider, tokens)
+
+
+async def on_error(m: FreeModel, err: Exception) -> None:
+    """Pauses a failing model: an hour if its daily quota is gone, a minute for anything else."""
+    message = str(err).lower()
     status = getattr(err, "status_code", None)
-    seconds = {429: 60, 401: 3600, 403: 3600, 404: 3600}.get(status, 30)  # rate limit / bad key or model / other
-    _cooldown_until[name.split("/", 1)[1]] = time.time() + seconds
-    print(f"[llm] {name} failed ({status or type(err).__name__}) — skipping it for {seconds}s")
+    daily = status == 429 and ("day" in message or "daily" in message)
+    seconds = 3600 if daily or status in (401, 403, 404) else 60
+    await usage.pause(m.name, seconds)
+    print(f"[llm] {m.name} failed ({status or type(err).__name__}) — paused {seconds}s")

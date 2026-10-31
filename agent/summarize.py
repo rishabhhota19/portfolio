@@ -14,16 +14,21 @@ async def summarize(messages: list[dict], lead: dict | None = None) -> dict:
     if lead:
         transcript += f"\n(Visitor shared their details: {json.dumps(lead)})"
 
-    for name, model in llm.available(llm.SUMMARY_MODELS):
-        try:
-            reply = await model.ainvoke([SystemMessage(SUMMARY_PROMPT), HumanMessage(transcript)])
-        except Exception as err:
-            llm.cool_down(name, err)
+    prompt = [SystemMessage(SUMMARY_PROMPT), HumanMessage(transcript)]
+    for m in llm.SUMMARY_MODELS:
+        sent = await llm.fit(m, prompt, max_tokens=300)  # same budgets as chat, so summaries can't starve it
+        if sent is None:
             continue
+        try:
+            reply = await m.client(max_tokens=300).ainvoke(sent)
+        except Exception as err:
+            await llm.on_error(m, err)
+            continue
+        await llm.record(m, sent, max_tokens=300)
         match = re.search(r"\{.*\}", reply.text, re.S)
         if match:
             try:
-                return {**json.loads(match.group()), "model": name}
+                return {**json.loads(match.group()), "model": m.name}
             except json.JSONDecodeError:
                 pass  # malformed JSON: try the next model
 

@@ -4,6 +4,7 @@
                └──(greeting / contact / off-topic / prompt injection)──► canned reply ─► END
 
 The router answers simple messages without calling an LLM, which saves the free-tier quota.
+The respond step walks the free models (see llm.py); the visitor never sees which one answered.
 """
 
 import operator
@@ -25,7 +26,6 @@ class State(TypedDict, total=False):
     docs: list[dict]  # retrieved chunks
     model: str  # which LLM answered
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
-    facts_only: bool  # skip the LLMs (daily budget used up) and answer from the facts
 
 
 def step(name: str, started: float, **details) -> list[dict]:
@@ -88,34 +88,31 @@ async def rerank_docs(state: State) -> dict:
 
 # ── 4. respond ──────────────────────────────────────────────────────────────
 
-def from_facts(docs: list[dict]) -> str:
-    """Last resort when every model is busy: quote the most relevant retrieved chunk. No LLM needed."""
-    top = docs[0]
-    lines = [line.strip(" -•") for line in top["text"].splitlines()[1:] if len(line.strip()) > 25][:3]
-    bullets = "\n".join(f"- {line}" for line in lines)
-    return f"My AI models are busy right now, so here's the most relevant part of Rishabh's portfolio:\n{bullets}\n\nMore on [{top['title']}]({top['url']})."
-
-
 async def respond(state: State) -> dict:
     started = time.perf_counter()
     prompt = [SystemMessage(system_prompt(state["docs"])), *state["messages"][-12:]]
+    tried = []
 
-    models = [] if state.get("facts_only") else llm.available(llm.CHAT_MODELS)
-    for name, model in models:
+    for m in llm.CHAT_MODELS:
+        sent = await llm.fit(m, prompt)  # None = no budget left (or no key); else the prompt, trimmed to fit
+        if sent is None:
+            continue
+        tried.append(m.name)
         text = ""
         try:
-            async for chunk in model.astream(prompt):  # tokens stream to the browser as they arrive
+            async for chunk in m.client().astream(sent):  # tokens stream to the browser as they arrive
                 text += chunk.text
-            if text.strip():
-                return {"messages": [AIMessage(text)], "model": name, "trace": step("respond", started, model=name)}
         except Exception as err:
-            if text:  # failed mid-answer: keep what we have
-                return {"messages": [AIMessage(text)], "model": name, "trace": step("respond", started, model=name, partial=True)}
-            llm.cool_down(name, err)  # failed before answering: try the next model
+            if not text:  # failed before answering: pause it and silently try the next model
+                await llm.on_error(m, err)
+                continue
+        await llm.record(m, sent)  # token tracking (an empty reply still used quota)
+        if text.strip():
+            trimmed = len(prompt) - len(sent)
+            return {"messages": [AIMessage(text)], "model": m.name, "trace": step("respond", started, model=m.name, tried=tried, trimmed_turns=trimmed)}
 
-    if state["docs"]:  # every model is busy (or no keys set): answer from the facts — the chat never stops
-        return {"messages": [AIMessage(from_facts(state["docs"]))], "model": "facts-only", "trace": step("respond", started, model="facts-only")}
-    return {"model": "none", "trace": step("respond", started, model="none")}
+    # Every free model is used up: the API answers 503 and the chat pauses for everyone until limits reset.
+    return {"model": "none", "trace": step("respond", started, model="none", tried=tried)}
 
 
 # ── wiring ──────────────────────────────────────────────────────────────────

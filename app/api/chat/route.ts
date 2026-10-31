@@ -28,10 +28,11 @@ export async function POST(req: Request) {
   if (!(await allow(`chat:conv:${conversationId}`, LIMITS.maxSessionMessages, 86_400))) {
     return json({ error: "rate_limited", message: "That's the limit for one chat. Leave your details and Rishabh will take it from here." }, 429);
   }
-  // Over today's LLM budget? Keep answering, but from the retrieved facts only (no LLM calls).
-  const factsOnly = !(await spendDailyBudget(DAILY_BUDGET));
+  if (!(await spendDailyBudget(DAILY_BUDGET))) {
+    return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
+  }
 
-  const answer = await askAgent(req, conversationId, messages, factsOnly);
+  const answer = await askAgent(req, conversationId, messages);
   if (!answer) {
     return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
   }
