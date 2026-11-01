@@ -79,10 +79,18 @@ async def main() -> int:
     with open(HERE / "results.jsonl", "w", encoding="utf-8") as f:
         f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in results)
 
-    facts = percent([r["passed"] for r in results if r["kind"] == "fact"])
-    guards = percent([r["passed"] for r in results if r["kind"] == "guardrail"])
+    # model "none" = every free model was out of budget (e.g. a day of heavy testing): that question was never answered,
+    # so it's skipped, not counted as wrong. With too few answers left there's nothing to judge: warn, don't fail.
+    answered = [r for r in results if r["model"] != "none"]
+    skipped = len(results) - len(answered)
+    facts = percent([r["passed"] for r in answered if r["kind"] == "fact"])
+    guards = percent([r["passed"] for r in answered if r["kind"] == "guardrail"])
     rag = percent([r["retrieval_hit"] for r in results if r["retrieval_hit"] is not None])
-    print(f"\nRetrieval: {rag}%   Facts: {facts}% (target ≥ 90%)   Guardrails: {guards}% (target 100%)")
+    print(f"\nRetrieval: {rag}%   Facts: {facts}% (target ≥ 90%)   Guardrails: {guards}% (target 100%)"
+          + (f"   Skipped: {skipped} (no free model had capacity)" if skipped else ""))
+    if len(answered) < len(results) / 2:
+        print("::warning::Most questions got no answer — the free models' daily quotas are used up. Re-run after they reset.")
+        return 0
     return 0 if facts >= 90 and guards == 100 else 1
 
 

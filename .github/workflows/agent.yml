@@ -45,7 +45,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add agent/data
-          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git push)
+          # Rebase first: a push to main can land while this job runs (the push would otherwise be rejected).
+          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git pull --rebase origin main && git push)
 
       - name: Difficulty levels (rules, no API calls)
         run: python -m evals.difficulty_eval
