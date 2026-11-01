@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { sessionUsage } from "@/lib/server/agent";
+import * as events from "@/lib/server/events";
 import { ipHash } from "@/lib/server/request";
 import { logSession } from "@/lib/server/sheets";
 import { allow } from "@/lib/server/store";
@@ -12,7 +13,8 @@ const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|cur
 
 /**
  * The visit beacon: the browser reports pages and clicks when the tab is hidden or closed.
- * Every real visit gets one row in the Sessions sheet (updated in place), whether or not they chat.
+ * Every real visit goes to the admin dashboard (lib/server/events.ts) and, in parallel, gets one row in the
+ * Sessions sheet (updated in place), whether or not they chat.
  * It arrives via sendBeacon, which BotID can't sign, so: known bots are skipped, input is validated,
  * and it's rate-limited. It only writes analytics (no LLM spend, no email).
  */
@@ -22,7 +24,6 @@ export async function POST(req: Request) {
   const parsed = visitRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ ok: false }, 400);
   const v = parsed.data;
-  if (!process.env.GOOGLE_SHEETS_WEBHOOK_URL) return json({ ok: true, skipped: "no sheet configured" }, 202);
 
   if (!(await allow(`visit:ip:${ipHash(req)}`, 120, 3600)) || !(await allow(`visit:s:${v.sessionId}`, 40, 3600))) {
     return json({ ok: false, error: "rate_limited" }, 429);
@@ -36,7 +37,20 @@ export async function POST(req: Request) {
       chatted ? sessionUsage(req, v.sessionId) : {},
     ]);
     const where = whereAndDevice(req);
-    await logSession({
+    const source = sourceOf(v.referrer, v.utm);
+    await Promise.all([
+      events.visit({
+        sessionId: v.sessionId,
+        activeSeconds: v.activeSeconds,
+        entry: v.pages[0] ?? "",
+        source,
+        city: where.city,
+        country: where.country,
+        device: where.device,
+        network,
+        returning: isReturning === "Yes",
+      }),
+      logSession({
       sessionId: v.sessionId,
       startedAt: v.startedAt,
       lastSeen: new Date().toISOString(),
@@ -45,7 +59,7 @@ export async function POST(req: Request) {
       pages: v.pages.join(" → "),
       entryPage: v.pages[0] ?? "",
       exitPage: v.pages[v.pages.length - 1] ?? "",
-      source: sourceOf(v.referrer, v.utm),
+      source,
       referrer: v.referrer,
       utm: v.utm,
       returning: isReturning,
@@ -56,7 +70,8 @@ export async function POST(req: Request) {
       screen: v.screen,
       language: v.language,
       ...usage,
-    });
+      }),
+    ]);
   });
 
   return json({ ok: true }, 202);

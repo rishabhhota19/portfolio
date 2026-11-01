@@ -85,6 +85,18 @@ export function setVisible(visible: boolean) {
   }
 }
 
+let pinged = false;
+
+/** Presence for the admin dashboard ("on the site now"): on each page change and every 30 s, only while visible. */
+export function ping() {
+  const v = currentVisit();
+  const page = v.pages[v.pages.length - 1];
+  if (!page || document.visibilityState !== "visible") return;
+  const body = JSON.stringify({ sessionId: v.sessionId, page, first: !pinged, referrer: v.referrer, utm: v.utm });
+  pinged = true;
+  fetch("/api/visit/live", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+}
+
 /** Reports the visit (called when the tab is hidden or closed). Skipped if nothing much changed. */
 export function sendVisit() {
   const { activeMs, ...rest } = currentVisit();

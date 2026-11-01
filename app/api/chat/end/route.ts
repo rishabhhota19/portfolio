@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
+import * as events from "@/lib/server/events";
 import { ipHash, verifyChatToken } from "@/lib/server/request";
 import { addChat } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
@@ -20,14 +21,13 @@ const REASON_LABEL = {
 
 /**
  * Called by the widget (fetch keepalive) when a chat is closed or the visitor leaves.
- * The transcript is summarised and only the summary goes into the visit's row in Google Sheets.
+ * The transcript is summarised; only the summary is kept: in the admin dashboard and the visit's Sheet row.
  */
 export async function POST(req: Request) {
   const parsed = endRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ ok: false }, 400);
   const data = parsed.data;
   if (!data.messages.length) return json({ ok: true, skipped: "empty" }, 202);
-  if (!process.env.GOOGLE_SHEETS_WEBHOOK_URL) return json({ ok: true, skipped: "no sheet configured" }, 202);
 
   const ip = ipHash(req);
   // A valid token proves the conversation went through /api/chat (bot-protected); without one
@@ -47,23 +47,31 @@ export async function POST(req: Request) {
     const s = useLlm
       ? await summarizeChat(req, sessionId, data.messages)
       : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
-    const [chat, usage] = await Promise.all([
+    const [chat, usage, firstEnd] = await Promise.all([
       addChat(sessionId, data.conversationId, data.messages.length, s),
       sessionUsage(req, sessionId),
+      firstTime(`chat1:${data.conversationId}`, 86_400), // a chat can end twice (tab switch, then close): count it once
     ]);
-    await logSession({
-      sessionId,
-      startedAt: data.startedAt,
-      lastSeen: data.endedAt,
-      ...whereAndDevice(req),
-      ...chat,
-      ...usage,
-      chatEndReason: REASON_LABEL[data.reason],
-      visitorName: s.visitorName,
-      email: s.email,
-      company: s.company,
-      role: s.role,
-    });
+    await Promise.all([
+      events.record(
+        { type: "chat", sid: sessionId, messages: data.messages.length, intent: s.intent ?? "", topics: s.topics ?? "",
+          summary: (s.summary ?? "").slice(0, 400), followUp: (s.followUp ?? "").slice(0, 200), reason: REASON_LABEL[data.reason] },
+        { chats: firstEnd ? 1 : 0 },
+      ),
+      logSession({
+        sessionId,
+        startedAt: data.startedAt,
+        lastSeen: data.endedAt,
+        ...whereAndDevice(req),
+        ...chat,
+        ...usage,
+        chatEndReason: REASON_LABEL[data.reason],
+        visitorName: s.visitorName,
+        email: s.email,
+        company: s.company,
+        role: s.role,
+      }),
+    ]);
   });
 
   return json({ ok: true }, 202);

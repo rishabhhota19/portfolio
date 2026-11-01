@@ -46,6 +46,12 @@ export default function PrivacyPage() {
 
         <h2>Analytics and errors</h2>
         <p>
+          The same visit details, chat summaries and shared details also go to Rishabh&apos;s private dashboard on this
+          site (signed in, not public), kept in Upstash Redis: daily counts for 40 days, the activity feed until newer
+          events replace it, and shared details for up to 90 days. While a tab is open the site sends a small
+          &ldquo;still here&rdquo; signal every 30 seconds so the dashboard can show who is on the site right now.
+        </p>
+        <p>
           Cookieless page statistics come from Cloudflare Web Analytics and Umami; your browser&apos;s “Do Not Track”
           setting is respected by Umami. Errors are reported to Sentry without chat text or personal details. Hosting is
           on Vercel; rate limits and token counts are kept briefly in Upstash Redis.

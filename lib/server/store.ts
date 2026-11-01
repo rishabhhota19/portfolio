@@ -83,18 +83,20 @@ class MemoryStore implements Store {
   }
 }
 
-function createStore(): Store {
+function createRedis() {
   const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-  if (url && token) return new RedisStore(new Redis({ url, token }));
+  if (url && token) return new Redis({ url, token });
   if (process.env.VERCEL_ENV === "production") {
     console.warn("[store] Upstash Redis is not configured — rate limits are per-instance only.");
   }
-  return new MemoryStore();
+  return null;
 }
 
-const globalForStore = globalThis as unknown as { __portfolioStore?: Store };
-export const store: Store = (globalForStore.__portfolioStore ??= createStore());
+const globalForStore = globalThis as unknown as { __portfolioRedis?: Redis | null; __portfolioStore?: Store };
+/** The shared Upstash client, or null locally (then everything falls back to process memory). */
+export const redis: Redis | null = (globalForStore.__portfolioRedis ??= createRedis());
+export const store: Store = (globalForStore.__portfolioStore ??= redis ? new RedisStore(redis) : new MemoryStore());
 
 /** Fixed-window counter. Returns true while `key` is under `max` hits per `windowSeconds`. */
 export async function allow(key: string, max: number, windowSeconds: number) {

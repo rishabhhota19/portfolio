@@ -1,6 +1,8 @@
+import { after } from "next/server";
 import { CHAT_TOKEN_HEADER, LIMITS } from "@/lib/chat-types";
-import { askAgent } from "@/lib/server/agent";
+import { askAgent, splitMeta } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
+import * as events from "@/lib/server/events";
 import { ipHash, issueChatToken } from "@/lib/server/request";
 import { allow, spendDailyBudget } from "@/lib/server/store";
 import { chatRequest, json } from "@/lib/server/validate";
@@ -13,7 +15,8 @@ const offline = (message: string) => json({ error: "offline", message }, 503);
 
 /**
  * Security gateway for the chat. Checks bots, input, rate limits and the daily budget,
- * then streams the answer from the Python agent (api/index.py) straight through.
+ * then streams the answer from the Python agent (api/index.py) straight through — minus its admin-only "meta"
+ * line, which goes to the admin dashboard once the answer is done.
  */
 export async function POST(req: Request) {
   if (await isBot()) return json({ error: "forbidden", message: "Automated traffic isn't allowed." }, 403);
@@ -39,7 +42,13 @@ export async function POST(req: Request) {
     return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
   }
 
-  return new Response(answer, {
+  const { stream, meta } = splitMeta(answer, req.signal);
+  after(async () => {
+    const m = await meta;
+    if (m) await events.turn({ ...m, sessionId, page: parsed.data.page });
+  });
+
+  return new Response(stream, {
     headers: {
       "content-type": "application/x-ndjson; charset=utf-8", // agent events, one JSON object per line
       "cache-control": "no-store",

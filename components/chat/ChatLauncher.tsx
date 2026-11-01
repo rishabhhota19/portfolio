@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { useEffect, useState } from "react";
 import { OPEN_AGENT_EVENT, type OpenAgentDetail } from "./events";
@@ -11,6 +12,7 @@ const ChatPanel = dynamic(() => import("./ChatPanel").then((m) => m.ChatPanel), 
 export type PendingQuestion = { text: string; id: number };
 
 export function ChatLauncher() {
+  const pathname = usePathname();
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState<PendingQuestion | null>(null);
@@ -26,6 +28,8 @@ export function ChatLauncher() {
     window.addEventListener(OPEN_AGENT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_AGENT_EVENT, onOpen);
   }, []);
+
+  if (pathname.startsWith("/admin")) return null; // the private dashboard has no visitor chat
 
   return (
     <>

@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import { sendLeadEmail } from "@/lib/server/email";
+import * as events from "@/lib/server/events";
 import { ipHash, requestMeta } from "@/lib/server/request";
 import { addChat } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
@@ -49,6 +50,11 @@ export async function POST(req: Request) {
       networkOf(req),
     ]);
     await Promise.all([
+      events.record(
+        { type: "lead", sid: sessionId, name: data.lead.name, email: data.lead.email, company: data.lead.company || s.company || "",
+          role: data.lead.role || s.role || "", note: (data.lead.note ?? "").slice(0, 300), page: data.page },
+        { leads: 1 },
+      ),
       logSession(
         {
           sessionId,

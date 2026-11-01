@@ -8,6 +8,7 @@
   "github": "https://github.com/rishabhhota19",
   "resume": "/resume.pdf",
   "url": "https://rishabh-hota.vercel.app",
+  "private": ["/admin"],
   "sections": [
     { "path": "/", "label": "Home", "words": ["home", "homepage", "main page", "landing page"] },
     { "path": "/projects", "label": "Projects", "nav": true, "kind": "project", "words": ["projects", "project", "things he built", "things he made", "case study", "case studies"] },

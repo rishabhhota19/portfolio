@@ -56,5 +56,13 @@ export const visitRequest = z.object({
   timezone: short(60),
 });
 
+export const liveRequest = z.object({
+  sessionId: z.uuid(),
+  page: z.string().max(200).regex(/^\//),
+  first: z.boolean().optional(),
+  referrer: short(300),
+  utm: short(200),
+});
+
 export const json = (data: unknown, status = 200, headers?: HeadersInit) =>
   Response.json(data, { status, headers: { "cache-control": "no-store", ...headers } });

@@ -35,6 +35,52 @@ export async function askAgent(req: Request, conversationId: string, sessionId: 
   }
 }
 
+/** The model web's budgets today and the embedding lineup (admin dashboard). Costs ~70 Redis commands: on demand only. */
+export async function agentHealth(req: Request): Promise<Record<string, unknown> | null> {
+  try {
+    const res = await fetch(agentUrl(req, "health"), { headers: agentHeaders(req), signal: AbortSignal.timeout(10_000) });
+    return res.ok ? ((await res.json()) as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+export type AgentMeta = { intent: string; why: string; level: string; model: string; tokens_in: number; tokens_out: number; ms: number };
+
+/** Takes the agent's "meta" line (which model answered, the level: admin-only) out of the answer stream and hands
+ * it over when the stream ends — or when the visitor cancels. Every other line passes through as it arrives. */
+export function splitMeta(body: ReadableStream<Uint8Array>, signal: AbortSignal) {
+  let pending = "";
+  let meta: AgentMeta | null = null;
+  let finish!: () => void;
+  const ended = new Promise<AgentMeta | null>((resolve) => (finish = () => resolve(meta)));
+  signal.addEventListener("abort", () => finish());
+  const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  const keep = (line: string) => {
+    if (!/"type":\s*"meta"/.test(line)) return true;
+    try {
+      meta = JSON.parse(line) as AgentMeta;
+    } catch {}
+    return false;
+  };
+  const stream = body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        const lines = (pending + decoder.decode(chunk, { stream: true })).split("\n");
+        pending = lines.pop() ?? "";
+        const out = lines.filter(keep).map((l) => `${l}\n`).join("");
+        if (out) controller.enqueue(encoder.encode(out));
+      },
+      flush(controller) {
+        if (pending && keep(pending)) controller.enqueue(encoder.encode(pending));
+        finish();
+      },
+    }),
+  );
+  return { stream, meta: ended };
+}
+
 export type ChatSummary = {
   visitorName?: string;
   company?: string;

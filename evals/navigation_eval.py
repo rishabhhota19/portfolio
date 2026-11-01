@@ -14,6 +14,7 @@ import re
 import sys
 from pathlib import Path
 
+from agent.config import SITE
 from agent.pages import KIND_OF_SECTION, PAGES, SECTIONS, navigation
 
 ROOT = Path(__file__).parent.parent
@@ -31,6 +32,8 @@ def coverage() -> list[str]:
                 problems.append(f"{base}/[…] has pages but no section with a \"kind\" in content/site.json")
             continue
         path = "/" + "/".join(parts)
+        if path in SITE.get("private", []):
+            continue  # e.g. /admin: deliberately not a section, so the agent never takes anyone there
         if path not in SECTIONS:
             problems.append(f"route {path} is missing from content/site.json \"sections\" (the agent can't take anyone there)")
     for p in PAGES:

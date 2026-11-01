@@ -74,6 +74,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
         {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
         {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
         {"type": "usage", "tokens": 123}                   tokens this turn used (the chat shows the running total)
+        {"type": "meta", "model": …, "level": …, …}        for the admin dashboard; the gateway strips it
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
     history = [HumanMessage(m.content) if m.role == "user" else AIMessage(m.content) for m in req.messages]
@@ -113,6 +114,10 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
             yield line(action)
         used = result.get("usage") or {}  # this turn's real tokens (0 when no model was needed): the chat shows a total
         yield line({"type": "usage", "tokens": used.get("tokens_in", 0) + used.get("tokens_out", 0)})
+        # For the admin dashboard only: the gateway records this line and strips it, so visitors never see models.
+        yield line({"type": "meta", "intent": result.get("intent", ""), "why": result.get("why", ""), "level": result.get("level", ""),
+                    "model": result.get("model", ""), "tokens_in": used.get("tokens_in", 0), "tokens_out": used.get("tokens_out", 0),
+                    "ms": round((time.perf_counter() - started) * 1000)})
 
         counts = dict(result.get("usage") or {})  # real token counts from the provider
         if result.get("intent") == "refused":

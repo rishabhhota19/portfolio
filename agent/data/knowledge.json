@@ -9,6 +9,9 @@
     "github": "https://github.com/rishabhhota19",
     "resume": "/resume.pdf",
     "url": "https://rishabh-hota.vercel.app",
+    "private": [
+      "/admin"
+    ],
     "sections": [
       {
         "path": "/",
