@@ -84,7 +84,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
                 for node, update in data.items():
                     update = update or {}
                     result["trace"] += update.get("trace", [])
-                    result.update({k: update[k] for k in ("intent", "model", "usage") if k in update})
+                    result.update({k: update[k] for k in ("intent", "level", "model", "usage") if k in update})
                     # Replies that weren't streamed token by token: the router's canned answer,
                     # or the facts-only fallback when every model is busy.
                     if update.get("messages") and (node == "route" or not result.get("streamed")):
@@ -121,12 +121,14 @@ async def session_usage(session_id: str, x_agent_secret: str | None = Header(Non
         raise HTTPException(400, "bad session id")
     totals, per_model = await usage.session(session_id)
     calls, tokens_in, tokens_out = totals.get("calls", 0), totals.get("tokens_in", 0), totals.get("tokens_out", 0)
+    models = ", ".join(f"{name.split('/')[-1]} ×{n}" for name, n in sorted(per_model.items(), key=lambda kv: -kv[1]))
+    levels = " · ".join(f"{lv} ×{totals[f'level_{lv}']}" for lv in ("L1", "L2", "L3") if totals.get(f"level_{lv}"))
     return {
         "tokensIn": tokens_in,
         "tokensOut": tokens_out,
         "tokensTotal": tokens_in + tokens_out,
         "llmCalls": calls,
-        "models": ", ".join(f"{name.split('/')[-1]} ×{n}" for name, n in sorted(per_model.items(), key=lambda kv: -kv[1])),
+        "models": f"{models} ({levels})" if levels else models,  # e.g. "gpt-oss-120b ×2, gpt-oss-20b ×1 (L1 ×1 · L2 ×2)"
         "switches": totals.get("switches", 0),
         "avgLatency": round(totals.get("latency_ms", 0) / calls) if calls else 0,
         "summaryTokens": totals.get("summary_tokens", 0),
@@ -135,15 +137,17 @@ async def session_usage(session_id: str, x_agent_secret: str | None = Header(Non
 
 @app.get("/api/agent/health")
 async def health(x_agent_secret: str | None = Header(None)):
-    """Public: just "ok". With the secret: each free model's token tracking for today."""
+    """Public: just "ok". With the secret: the model web — each level's pool and every model's budget today."""
     expected = env("AGENT_SHARED_SECRET")
     if not (expected and hmac.compare_digest(x_agent_secret or "", expected)):
         return {"ok": True}
-    from agent import llm, usage
+    from agent import llm
 
-    models = []
-    for m in llm.CHAT_MODELS:
+    models = {}
+    for key, m in llm.M.items():
         u = await usage.get(m.name)
-        models.append({"model": m.name, "key_set": bool(env(llm.PROVIDERS[m.provider][1])), "paused": bool(u["paused"]),
-                       "requests_today": f"{u['req_day']}/{m.rpd}", "tokens_this_minute": u["tok_min"]})
-    return {"ok": True, "models": models}
+        models[key] = {"model": m.name, "available": m.available, "paused": bool(u["paused"]),
+                       "requests_today": f"{u['req_day']}/{m.rpd or '∞'}",
+                       "tokens_today": f"{u['tok_day']}/{m.tpd or '∞'}", "tokens_this_minute": u["tok_min"]}
+    return {"ok": True, "levels": {lv: t.pool for lv, t in llm.TIERS.items()}, "summaries": llm.SUMMARY_POOL,
+            "shared_pools_today": await usage.pools(), "models": models}

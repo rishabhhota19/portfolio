@@ -1,117 +1,146 @@
-"""Free LLMs only, in priority order — orchestrated so the visitor never notices a switch.
+"""The model layer: a web of free LLMs, grouped by how hard a question is — the visitor never sees which one answers.
 
-For every answer the backend walks the list below and uses the first model that
-  1. has its API key set,
-  2. still has free-tier budget left (requests + tokens, per minute and per day — see usage.py), and
-  3. can fit the conversation into that budget ("context shifting": the oldest turns are dropped if needed).
-If a model errors (rate limit, outage) it is paused and the next one answers, with the same conversation.
-When every model is used up, the chat pauses for everyone until the limits reset.
+Every question gets a difficulty level (difficulty.py). Each level has a pool of free models, best first; if a whole
+pool is busy the router spills over to the neighbouring levels. Before calling a model the router *reserves* its
+budget in one atomic step (usage.py), so many visitors at once never pile onto the same model. The chat only
+pauses when every free model in every pool has used up its daily quota.
 
 All providers speak the OpenAI chat format, so one LangChain class (ChatOpenAI) talks to all of them.
+Limits are the providers' published free tiers (Groq's are confirmed by its response headers), rounded down.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from langchain_openai import ChatOpenAI
 
-from . import usage
 from .config import env
 
-PROVIDERS = {
+PROVIDERS = {  # base URL, API key variable
     "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
     "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "GOOGLE_GENERATIVE_AI_API_KEY"),
+    "cloudflare": ("https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1", "CF_WORKERS_AI_TOKEN"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
+    "sambanova": ("https://api.sambanova.ai/v1", "SAMBANOVA_API_KEY"),  # optional: models switch on when the key is set
 }
 
-# Some free tiers are shared across a provider's models: OpenRouter allows 50 free requests a day in total.
-PROVIDER_DAILY_REQUESTS = {"openrouter": 50}
+# Free budgets shared by all of a provider's models.
+PROVIDER_LIMITS = {
+    "openrouter": {"rpd": 50},  # 50 free requests a day across every :free model
+    "cloudflare": {"neurons_day": 10_000},  # Workers AI: one pool of 10,000 neurons a day per account (00:00 UTC)
+}
+
+PACE = 3  # a model may use at most 3x its hourly share of a daily quota, so the best ones aren't used up by noon
 
 
 @dataclass(frozen=True)
 class FreeModel:
     provider: str
     model: str
-    rpm: int  # free-tier requests per minute
-    rpd: int  # requests per day
-    tpm: int  # tokens per minute (0 = no limit we know of)
-    tpd: int  # tokens per day   (0 = no limit we know of)
+    rpm: int = 0  # free-tier limits; 0 = none we know of
+    rpd: int = 0
+    tpm: int = 0
+    tpd: int = 0
     context: int = 32_000  # most tokens we'll send in one request
-    extra_tokens: int = 0  # headroom for hidden reasoning tokens
+    neurons: tuple[float, float] = (0, 0)  # Cloudflare cost per million input / output tokens
+    reasoning: bool = False  # gpt-oss: reasoning_effort low, or medium for hard questions
+    extra: dict = field(default_factory=dict, hash=False, compare=False)  # provider-specific request options
 
     @property
     def name(self) -> str:
         return f"{self.provider}/{self.model}"
 
-    def client(self, max_tokens: int = 350) -> ChatOpenAI:
+    @property
+    def available(self) -> bool:
+        return bool(env(PROVIDERS[self.provider][1]))
+
+    def client(self, max_tokens: int, effort: str = "low", timeout: float = 15) -> ChatOpenAI:
         base_url, key_name = PROVIDERS[self.provider]
-        extra = None
-        if self.model.startswith("openai/gpt-oss") or self.model == "gemini-flash-latest":
-            extra = {"reasoning_effort": "low"}  # think briefly, answer fast
-        elif self.model.startswith("qwen/"):
-            extra = {"reasoning_format": "hidden"}  # keep <think> text out of the answer
-        elif self.provider == "openrouter":
-            extra = {"reasoning": {"enabled": False}}  # answer directly: faster, and never an empty reply
+        extra = dict(self.extra)
+        if self.reasoning:
+            extra["reasoning_effort"] = effort
         return ChatOpenAI(
             model=self.model,
             api_key=env(key_name),
-            base_url=base_url,
-            max_tokens=max_tokens + self.extra_tokens,
+            base_url=base_url.format(CF_ACCOUNT_ID=env("CF_ACCOUNT_ID")),
+            max_tokens=max_tokens + (250 if self.reasoning else 0),  # headroom for hidden reasoning tokens
             temperature=0.3,
-            timeout=15,  # a slow provider shouldn't stall the chat — move on
+            timeout=timeout,  # a slow provider shouldn't stall the chat — move on
             max_retries=0,  # no retries: switching to the next model is faster
-            stream_usage=True,  # the provider reports the real token counts at the end of the stream
-            extra_body=extra,
+            stream_usage=True,  # real token counts arrive at the end of the stream
+            include_response_headers=True,  # Groq sends its exact remaining quota
+            extra_body=extra or None,
         )
 
+    def neurons_for(self, tokens_in: int, tokens_out: int) -> int:
+        return round((tokens_in * self.neurons[0] + tokens_out * self.neurons[1]) / 1e6)
 
-# Best first. Limits are the providers' published free tiers, rounded down to stay safe.
-CHAT_MODELS = [
-    FreeModel("groq", "openai/gpt-oss-120b", rpm=30, rpd=1000, tpm=8_000, tpd=200_000, extra_tokens=250),
-    FreeModel("gemini", "gemini-flash-lite-latest", rpm=15, rpd=1000, tpm=250_000, tpd=0),
-    FreeModel("groq", "openai/gpt-oss-20b", rpm=30, rpd=1000, tpm=8_000, tpd=200_000, extra_tokens=250),
-    FreeModel("gemini", "gemini-flash-latest", rpm=10, rpd=250, tpm=250_000, tpd=0, extra_tokens=250),
-    FreeModel("groq", "qwen/qwen3.8-27b", rpm=30, rpd=1000, tpm=6_000, tpd=200_000, extra_tokens=250),
-    FreeModel("openrouter", "google/gemma-4-31b-it:free", rpm=20, rpd=50, tpm=0, tpd=0),
-    FreeModel("openrouter", "nvidia/nemotron-3.5-lightning:free", rpm=20, rpd=50, tpm=0, tpd=0),
-]
-SUMMARY_MODELS = [CHAT_MODELS[2], CHAT_MODELS[1], CHAT_MODELS[4]]  # smaller models first: save the best for chat
+
+NO_THINKING = {"chat_template_kwargs": {"enable_thinking": False}}  # Cloudflare's reasoning models answer directly
+OR_DIRECT = {"reasoning": {"enabled": False}}
+
+# Every free model, by provider. Each was benchmarked on this site's real RAG prompt (Nov 2026).
+M = {
+    # Groq: fastest (~2s). Free: 30 req/min, 1,000 req/day, 8,000 tokens/min, 200,000 tokens/day per model.
+    "groq-120b": FreeModel("groq", "openai/gpt-oss-120b", 30, 1000, 8000, 200_000, reasoning=True),
+    "groq-20b": FreeModel("groq", "openai/gpt-oss-20b", 30, 1000, 8000, 200_000, reasoning=True),
+    "groq-qwen": FreeModel("groq", "qwen/qwen3.8-27b", 30, 1000, 8000, 200_000, extra={"reasoning_format": "hidden"}),
+    # Gemini: big daily quotas (Google no longer publishes free limits; ~500/day measured by others).
+    "gemini-lite-3.5": FreeModel("gemini", "gemini-3.5-flash-lite", 15, 500, 250_000),
+    "gemini-lite-3.1": FreeModel("gemini", "gemini-3.1-flash-lite", 15, 500, 250_000),
+    # Cloudflare Workers AI: 300 req/min per model, all models share 10,000 neurons/day.
+    "cf-20b": FreeModel("cloudflare", "@cf/openai/gpt-oss-20b", 300, neurons=(18_182, 27_273), reasoning=True),
+    "cf-glm": FreeModel("cloudflare", "@cf/zai-org/glm-4.7-flash", 300, neurons=(5_500, 36_400), extra=NO_THINKING),
+    "cf-gemma": FreeModel("cloudflare", "@cf/google/gemma-4-26b-a4b-it", 300, neurons=(9_091, 27_273), extra=NO_THINKING),
+    "cf-llama70b": FreeModel("cloudflare", "@cf/meta/llama-3.3-70b-instruct-fp8-fast", 300, neurons=(26_668, 204_805)),
+    "cf-scout": FreeModel("cloudflare", "@cf/meta/llama-4-scout-17b-16e-instruct", 300, neurons=(24_545, 77_273)),
+    "cf-120b": FreeModel("cloudflare", "@cf/openai/gpt-oss-120b", 300, neurons=(31_818, 68_182), reasoning=True),
+    "cf-mistral": FreeModel("cloudflare", "@cf/mistralai/mistral-small-3.1-24b-instruct", 300, neurons=(31_876, 50_488)),
+    "cf-nemotron": FreeModel("cloudflare", "@cf/nvidia/nemotron-3-120b-a12b", 300, neurons=(45_455, 136_364)),
+    # OpenRouter: 20 req/min, 50 free requests/day shared — the last line of defence.
+    "or-lightning": FreeModel("openrouter", "nvidia/nemotron-3.5-lightning:free", 20, extra=OR_DIRECT),
+    "or-ultra": FreeModel("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free", 20, extra=OR_DIRECT),
+    # SambaNova (optional): 20 req/min, 20 req/day, 200,000 tokens/day per model.
+    "sn-120b": FreeModel("sambanova", "gpt-oss-120b", 20, 20, 0, 200_000, reasoning=True),
+    "sn-deepseek": FreeModel("sambanova", "DeepSeek-V3.1", 20, 20, 0, 200_000),
+}
+
+
+@dataclass(frozen=True)
+class Tier:
+    chunks: int  # retrieved chunks in the prompt
+    history: int  # past messages kept
+    max_tokens: int  # longest answer
+    effort: str  # reasoning effort for gpt-oss models
+    timeout: float
+    pool: list[str]  # models, best first
+
+
+TIERS = {
+    # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
+    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "gemini-lite-3.1", "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout"]),
+    # L2 — the usual question ("What did he build at X, and what was the impact?").
+    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-gemma", "cf-llama70b",
+                                      "gemini-lite-3.1", "cf-mistral", "or-lightning"]),
+    # L3 — reasoning (role fit, comparisons, "why"): the strongest models, more context, longer answers.
+    "L3": Tier(6, 12, 600, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
+                                          "sn-120b", "or-ultra", "gemini-lite-3.5"]),
+}
+
+# If a level's whole pool is busy, try the neighbours: easy questions move up, hard ones move down.
+SPILL = {"L1": ["L1", "L2", "L3"], "L2": ["L2", "L3", "L1"], "L3": ["L3", "L2", "L1"]}
+
+SUMMARY_POOL = ["gemini-lite-3.1", "cf-glm", "gemini-lite-3.5", "cf-20b", "cf-gemma"]  # high-quota, cheap; never Groq
+
+
+def candidates(level: str) -> list[FreeModel]:
+    """Every usable model for a question of this level, in the order to try them (no duplicates)."""
+    names = dict.fromkeys(name for tier in SPILL[level] for name in TIERS[tier].pool)
+    return [M[n] for n in names if M[n].available]
 
 
 def estimate_tokens(messages: list) -> int:
-    """Rough token count (~4 characters per token) — good enough to stay inside free limits."""
+    """Token count estimate (~4 characters per token — within 1% of the providers' counts on our prompts)."""
     return sum(len(str(m.content)) for m in messages) // 4 + 4 * len(messages)
-
-
-async def fit(m: FreeModel, prompt: list, max_tokens: int = 350):
-    """Returns the prompt trimmed to fit this model's remaining free budget, or None if it can't be used now.
-
-    prompt = [system message, ...conversation]. Context shifting: drop the oldest turns until it fits.
-    """
-    if not env(PROVIDERS[m.provider][1]):
-        return None
-    u = await usage.get(m.name)
-    if u["paused"] or u["req_min"] >= m.rpm or u["req_day"] >= m.rpd:
-        return None
-    if m.provider in PROVIDER_DAILY_REQUESTS:
-        if (await usage.get(m.provider))["req_day"] >= PROVIDER_DAILY_REQUESTS[m.provider]:
-            return None
-
-    reserve = max_tokens + m.extra_tokens  # providers count the reply allowance against the limit too
-    budget = m.context
-    if m.tpm:
-        budget = min(budget, m.tpm - u["tok_min"])
-    if m.tpd:
-        budget = min(budget, m.tpd - u["tok_day"])
-    budget -= reserve
-
-    system, history = prompt[0], list(prompt[1:])
-    while history:
-        if estimate_tokens([system, *history]) <= budget:
-            return [system, *history]
-        history = history[1:]  # drop the oldest turn …
-        while history and history[0].type != "human":
-            history = history[1:]  # … and keep the conversation starting with a visitor message
-    return None
 
 
 def tokens_used(reply) -> tuple[int, int]:
@@ -120,20 +149,7 @@ def tokens_used(reply) -> tuple[int, int]:
     return u.get("input_tokens", 0), u.get("output_tokens", 0)
 
 
-async def record(m: FreeModel, sent: list, max_tokens: int = 350, used: int = 0) -> None:
-    """Token tracking: count this call against the model's free budget — the provider's real count when it
-    gave one, otherwise an estimate (prompt + the full reply allowance, to stay on the safe side)."""
-    tokens = used or estimate_tokens(sent) + max_tokens + m.extra_tokens
-    await usage.record(m.name, tokens)
-    if m.provider in PROVIDER_DAILY_REQUESTS:
-        await usage.record(m.provider, tokens)
-
-
-async def on_error(m: FreeModel, err: Exception) -> None:
-    """Pauses a failing model: an hour if its daily quota is gone, a minute for anything else."""
-    message = str(err).lower()
-    status = getattr(err, "status_code", None)
-    daily = status == 429 and ("day" in message or "daily" in message)
-    seconds = 3600 if daily or status in (401, 403, 404) else 60
-    await usage.pause(m.name, seconds)
-    print(f"[llm] {m.name} failed ({status or type(err).__name__}) — paused {seconds}s")
+def fits(m: FreeModel, prompt_tokens: int, max_tokens: int) -> bool:
+    """Can one request this big go to this model at all (context window and per-minute token cap)?"""
+    limit = min(m.context, m.tpm or m.context)
+    return prompt_tokens + max_tokens + (250 if m.reasoning else 0) <= limit

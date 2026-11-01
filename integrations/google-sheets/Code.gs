@@ -83,18 +83,22 @@ function doPost(e) {
     var body = JSON.parse(e.postData.contents);
     var expected = PropertiesService.getScriptProperties().getProperty('SHARED_SECRET');
     if (!expected || body.secret !== expected) return json_({ ok: false, error: 'unauthorized' });
-    if (!body.row || !body.row.sessionId) return json_({ ok: false, error: 'missing row' });
+    // A batch of { row, notify } items (the site queues writes that failed while the sheet was busy).
+    var items = (body.items || [{ row: body.row, notify: body.notify }]).filter(function (it) {
+      return it && it.row && it.row.sessionId;
+    });
+    if (!items.length) return json_({ ok: false, error: 'missing row' });
 
     var lock = LockService.getScriptLock();
     lock.waitLock(20000);
     try {
-      upsert_(body.row);
+      items.forEach(function (it) { upsert_(it.row); });
       blankOldIpsDaily_();
     } finally {
       lock.releaseLock();
     }
-    if (body.notify) notify_(body.row);
-    return json_({ ok: true });
+    items.forEach(function (it) { if (it.notify) notify_(it.row); });
+    return json_({ ok: true, rows: items.length });
   } catch (err) {
     return json_({ ok: false, error: String(err) });
   }

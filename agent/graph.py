@@ -1,10 +1,11 @@
 """The agent, as a LangGraph graph.
 
-    START ─► route ─(question)─► retrieve ─► rerank ─► respond ─► END
-               └──(greeting / contact / off-topic / prompt injection)──► canned reply ─► END
+    START ─► route ─(question: L1/L2/L3)─► retrieve ─► rerank ─► respond ─► END
+               └──(L0: greeting / contact / off-topic / injection / repeated question)──► instant reply ─► END
 
-The router answers simple messages without calling an LLM, which saves the free-tier quota.
-The respond step walks the free models (see llm.py); the visitor never sees which one answered.
+The router answers simple messages and repeated questions without calling an LLM (L0), and gives every other
+question a difficulty level. The respond step runs the free-model web for that level (llm.py, router.py);
+the visitor never sees which model answered.
 """
 
 import operator
@@ -17,7 +18,8 @@ import sentry_sdk
 from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph, add_messages
 
-from . import llm
+from . import cache, llm, router
+from .difficulty import difficulty
 from .prompts import SITE, system_prompt
 from .rag import rerank, search
 
@@ -25,6 +27,7 @@ from .rag import rerank, search
 class State(TypedDict, total=False):
     messages: Annotated[list, add_messages]  # the conversation (the browser sends it each turn)
     intent: str
+    level: str  # L1 / L2 / L3 — how hard the question is (difficulty.py)
     docs: list[dict]  # retrieved chunks
     model: str  # which LLM answered
     usage: dict  # real tokens in/out, latency, switches — added to the visit's totals
@@ -67,12 +70,17 @@ def classify(text: str) -> str:
     return "question"
 
 
-def route(state: State) -> dict:
+async def route(state: State) -> dict:
     started = time.perf_counter()
-    intent = classify(last_question(state))
+    question = last_question(state)
+    intent = classify(question)
     if intent in CANNED:
         return {"intent": intent, "model": "router", "messages": [AIMessage(CANNED[intent])], "trace": step("route", started, intent=intent)}
-    return {"intent": intent, "trace": step("route", started, intent=intent)}
+    first_question = len(state["messages"]) == 1
+    if first_question and (hit := await cache.get(question)):
+        return {"intent": "cached", "model": "cache", "messages": [AIMessage(hit)], "trace": step("route", started, intent="cached")}
+    level = difficulty(question, len(state["messages"]) - 1)
+    return {"intent": intent, "level": level, "trace": step("route", started, intent=intent, level=level)}
 
 
 # ── 2. retrieve + 3. rerank ─────────────────────────────────────────────────
@@ -85,7 +93,7 @@ async def retrieve(state: State) -> dict:
 
 async def rerank_docs(state: State) -> dict:
     started = time.perf_counter()
-    docs, method = await rerank(last_question(state, turns=2), state["docs"])
+    docs, method = await rerank(last_question(state, turns=2), state["docs"], top_n=6)  # each level uses 2, 4 or 6
     return {"docs": docs, "trace": step("rerank", started, method=method, kept=[d["id"] for d in docs])}
 
 
@@ -93,36 +101,36 @@ async def rerank_docs(state: State) -> dict:
 
 async def respond(state: State) -> dict:
     started = time.perf_counter()
-    prompt = [SystemMessage(system_prompt(state["docs"])), *state["messages"][-12:]]
-    tried = []
+    level = state["level"]
+    tier = llm.TIERS[level]
+    history = state["messages"][-tier.history:]
 
-    for m in llm.CHAT_MODELS:
-        sent = await llm.fit(m, prompt)  # None = no budget left (or no key); else the prompt, trimmed to fit
-        if sent is None:
-            continue
-        tried.append(m.name)
-        reply = None  # chunks added up: the text, plus the token counts in the last chunk
-        try:
-            async for chunk in m.client().astream(sent):  # tokens stream to the browser as they arrive
-                reply = chunk if reply is None else reply + chunk
-        except Exception as err:
-            if reply is None or not reply.text:  # failed before answering: pause it and silently try the next model
-                await llm.on_error(m, err)
-                continue
-        tokens_in, tokens_out = llm.tokens_used(reply)
-        await llm.record(m, sent, used=tokens_in + tokens_out)  # token tracking (an empty reply still used quota)
-        if reply.text.strip():
-            trimmed = len(prompt) - len(sent)
-            ms = round((time.perf_counter() - started) * 1000)
-            used = {"calls": 1, "tokens_in": tokens_in, "tokens_out": tokens_out, "latency_ms": ms,
-                    "switches": llm.CHAT_MODELS.index(m),  # how far down the list the answer came from (0 = first choice)
-                    "trims": int(trimmed > 0)}
-            return {"messages": [AIMessage(reply.text)], "model": m.name, "usage": used,
-                    "trace": step("respond", started, model=m.name, tried=tried, trimmed_turns=trimmed)}
+    def prompt_for(m: llm.FreeModel):
+        """Context shifting: the level's chunks and turns, trimmed (older turns first, then chunks) until it fits m."""
+        for chunks in sorted({tier.chunks, min(tier.chunks, 4), 2}, reverse=True):
+            system, turns = SystemMessage(system_prompt(state["docs"][:chunks])), list(history)
+            while turns:
+                prompt = [system, *turns]
+                if llm.fits(m, llm.estimate_tokens(prompt), tier.max_tokens):
+                    return prompt, chunks < tier.chunks or len(turns) < len(history)
+                turns = turns[1:]  # drop the oldest turn …
+                while turns and turns[0].type != "human":
+                    turns = turns[1:]  # … and keep the conversation starting with a visitor message
+        return None
 
-    # Every free model is used up: the API answers 503 and the chat pauses for everyone until limits reset.
-    alert_exhausted()
-    return {"model": "none", "trace": step("respond", started, model="none", tried=tried)}
+    answer = await router.run(llm.candidates(level), tier, prompt_for)
+    if answer is None:
+        # Every free model is out of budget: the API answers 503 and the chat pauses until the limits reset.
+        alert_exhausted()
+        return {"model": "none", "trace": step("respond", started, level=level, model="none")}
+
+    if len(state["messages"]) == 1:
+        await cache.put(last_question(state), answer.text)  # the next visitor asking this gets it instantly
+    ms = round((time.perf_counter() - started) * 1000)
+    used = {"calls": 1, "tokens_in": answer.tokens_in, "tokens_out": answer.tokens_out, "latency_ms": ms,
+            "switches": answer.depth, "trims": int(answer.trimmed), f"level_{level}": 1}
+    return {"messages": [AIMessage(answer.text)], "model": answer.model, "usage": used,
+            "trace": step("respond", started, level=level, model=answer.model, tried=answer.tried, depth=answer.depth)}
 
 
 _last_alert = 0.0

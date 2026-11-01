@@ -23,13 +23,26 @@ export function whereAndDevice(req: Request) {
   };
 }
 
+// Small per-instance memory in front of Redis: a visitor's later beacons hit the same warm server, so most
+// lookups cost no Redis command at all (Upstash's free plan counts every command).
+const local = new Map<string, { value: string; expires: number }>();
+const remembered = (key: string) => {
+  const hit = local.get(key);
+  return hit && hit.expires > Date.now() ? hit.value : null;
+};
+const remember = (key: string, value: string) => {
+  if (local.size > 2000) local.clear();
+  local.set(key, { value, expires: Date.now() + 3_600_000 });
+  return value;
+};
+
 /** The organisation that owns the visitor's IP: a company network ("Microsoft Corporation") or an ISP. */
 export async function networkOf(req: Request) {
   const ip = clientIp(req);
   if (ip === "unknown" || /^(127\.|10\.|192\.168\.|::1|::ffff:127\.)/.test(ip)) return "";
   const key = `net:${ipHash(req)}`; // cached a day per visitor, so IPinfo's free tier is plenty
-  const cached = await store.get(key);
-  if (cached !== null) return cached;
+  const cached = remembered(key) ?? (await store.get(key));
+  if (cached !== null) return remember(key, cached);
   try {
     const token = process.env.IPINFO_TOKEN; // optional: without it IPinfo allows ~1,000 lookups a day
     const res = await fetch(`https://ipinfo.io/${encodeURIComponent(ip)}/json${token ? `?token=${token}` : ""}`, {
@@ -39,7 +52,7 @@ export async function networkOf(req: Request) {
     const { org = "" } = (await res.json()) as { org?: string };
     const name = org.replace(/^AS\d+\s+/, ""); // "AS8075 Microsoft Corporation" → "Microsoft Corporation"
     await store.set(key, name, 86_400);
-    return name;
+    return remember(key, name);
   } catch {
     return "";
   }
@@ -48,11 +61,13 @@ export async function networkOf(req: Request) {
 /** "Yes" if the same network address was seen on an earlier visit in the last 90 days. */
 export async function returning(req: Request, sessionId: string) {
   const key = `seen:${ipHash(req)}`;
-  const firstVisit = await store.get(key);
+  const firstVisit = remembered(key) ?? (await store.get(key));
   if (firstVisit === null) {
     await store.set(key, sessionId, 90 * 86_400);
+    remember(key, sessionId);
     return "No";
   }
+  remember(key, firstVisit);
   return firstVisit === sessionId ? "No" : "Yes";
 }
 

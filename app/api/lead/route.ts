@@ -11,7 +11,7 @@ import { networkOf, whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
-const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 1000);
+const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 3000);
 
 /** "Share your details" form: details + chat summary into the visit's row in Google Sheets, and an email
  * to Rishabh (via Resend if configured, otherwise the Sheet's Apps Script sends it). */

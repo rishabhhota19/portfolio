@@ -8,6 +8,8 @@ interface Store {
   incr(key: string, ttlSeconds: number): Promise<number>;
   get(key: string): Promise<string | null>;
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
+  push(key: string, value: string, ttlSeconds: number): Promise<void>; // append to a list
+  popMany(key: string, count: number): Promise<string[]>; // take up to `count` from the front of a list
 }
 
 class RedisStore implements Store {
@@ -26,6 +28,16 @@ class RedisStore implements Store {
 
   async set(key: string, value: string, ttlSeconds: number) {
     await this.redis.set(key, value, { ex: Math.max(1, Math.ceil(ttlSeconds)) });
+  }
+
+  async push(key: string, value: string, ttlSeconds: number) {
+    await this.redis.rpush(key, value);
+    await this.redis.expire(key, ttlSeconds);
+  }
+
+  async popMany(key: string, count: number) {
+    const items = await this.redis.lpop<string[]>(key, count);
+    return (items ?? []).map((x) => (typeof x === "string" ? x : JSON.stringify(x)));
   }
 }
 
@@ -54,6 +66,18 @@ class MemoryStore implements Store {
 
   async set(key: string, value: string, ttlSeconds: number) {
     this.data.set(key, { value, expires: Date.now() + ttlSeconds * 1000 });
+  }
+
+  private lists = new Map<string, string[]>();
+
+  async push(key: string, value: string) {
+    this.lists.set(key, [...(this.lists.get(key) ?? []), value]);
+  }
+
+  async popMany(key: string, count: number) {
+    const items = this.lists.get(key) ?? [];
+    this.lists.set(key, items.slice(count));
+    return items.slice(0, count);
   }
 }
 

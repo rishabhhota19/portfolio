@@ -3,19 +3,20 @@
 [![Agent evals](https://github.com/rishabhhota19/portfolio/actions/workflows/agent.yml/badge.svg)](https://github.com/rishabhhota19/portfolio/actions/workflows/agent.yml) · **Live: [rishabh-hota.vercel.app](https://rishabh-hota.vercel.app)**
 
 A Next.js portfolio with an AI agent that answers recruiters' questions about Rishabh.
-The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, **re-ranking**, a chain of
-**free LLMs**, and **RAGAS** evals. Runs on free tiers at 10k+ visitors a month.
+The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, a **4-level routing web of
+15 free LLMs** across Groq, Gemini, Cloudflare Workers AI and OpenRouter, and **RAGAS** evals. ₹0/month.
 
 ```
 Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot check, input validation,
              │                                               rate limits, daily budget
              ▼  shared secret
            Python agent  (api/index.py → agent/graph.py)     LangGraph:
-             route ─► retrieve ─► rerank ─► respond            route    canned replies, no LLM (greeting/contact/injection)
+             route ─► retrieve ─► rerank ─► respond            route    L0: canned replies + answer cache (no LLM);
+                                                                        else difficulty L1 / L2 / L3 (rules, 0 tokens)
                                                                retrieve FAISS (meaning) + BM25 (keywords) → RRF
-                                                               rerank   top 4 (RRF order; optional cross-encoder)
-                                                               respond  7 free models (Groq → Gemini → OpenRouter),
-                                                                        token-tracked; switches are invisible
+                                                               rerank   top 2/4/6 by level (RRF order)
+                                                               respond  the level's pool of free models; atomic
+                                                                        budget reservation; switches are invisible
 ```
 
 **Visit analytics.** Every visit (one browser tab) gets one row in the Google Sheet's *Sessions* tab: pages, active time,
@@ -33,11 +34,20 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
   the RRF order; `RERANKER=bge` (plus the Cloudflare keys) turns the re-ranker back on. Re-check with `npm run evals:rerank`.
 - **Router before the LLM.** Greetings, contact questions and prompt-injection attempts get instant canned replies —
   zero tokens, zero hallucination risk.
-- **Free-model orchestration.** Only free models (Groq, Gemini, OpenRouter `:free`). Each has known free-tier limits;
-  the backend tracks requests and tokens per model, per minute and per day (shared in Redis), skips a model *before* it
-  runs out, trims the oldest turns if a conversation doesn't fit a model's remaining budget, and pauses a model that
-  errors. The visitor never sees a switch. When every free model is used up, the chat pauses for everyone until the
-  limits reset.
+- **A routing web of free models, by difficulty.** Questions get a level from plain rules (0 tokens): **L0**
+  greetings/contact/repeats (no LLM), **L1** one fact (small fast models, 2 chunks), **L2** the usual question
+  (4 chunks), **L3** reasoning such as role fit (strongest models, 6 chunks, longer answers). Each level has a pool of
+  free models across 4 providers; if a pool is busy the router spills to the neighbouring level.
+- **Reserve, then call — safe under concurrency.** Before calling a model, one atomic Redis (Lua) script checks every
+  limit that applies — requests/tokens per minute, per hour and per day, plus shared pools like Cloudflare's 10,000
+  neurons/day — and books the call only if all have room. A load simulator (`npm run evals:load`) with the real free
+  limits shows it: at 50 simultaneous chatters, 0 rate-limit errors (vs 194 for check-then-count) and a 3.9 s median.
+  Then the booking is corrected to the provider's real token count (Groq's own remaining quota is read from its
+  headers). Pacing (≤3× a model's hourly share) only orders the models; 429s pause a model for the provider's
+  retry-after; three outages in a minute trip a breaker for that provider. When every free model is out for the
+  **day**, the chat pauses until the limits reset — never before.
+- **Context shifting per model.** Each level's prompt is trimmed to fit the chosen model: older turns first, then
+  fewer chunks — the profile always stays.
 - **Security in the gateway, AI in Python.** Bot checks, rate limits and the daily budget sit in front of the agent;
   the Python service only accepts calls carrying a shared secret, and stays small and testable. A Vercel Firewall rule
   adds a per-IP limit at the edge.
@@ -49,8 +59,11 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 |---|---|
 | `agent/graph.py` | The LangGraph agent: the 4 nodes and how they connect |
 | `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, optional cross-encoder re-ranking |
-| `agent/llm.py` | The free models + their limits; picks one that fits (context shifting), pauses failures |
-| `agent/usage.py` | Token and request tracking per model, per minute and per day (Redis, shared by all servers) |
+| `agent/llm.py` | The model web: every free model, its limits, and the pool for each difficulty level |
+| `agent/difficulty.py` | L1 / L2 / L3 from plain rules (tested by `evals/difficulty.json`) |
+| `agent/router.py` | Pick → reserve → call → settle; spill-over, pauses, breaker, the wait for per-minute limits |
+| `agent/usage.py` | Atomic budget reservations (Redis Lua), pacing, per-visit token totals |
+| `agent/cache.py` | Answers to repeated first questions, for a day (L0) |
 | `agent/prompts.py` | System prompt (grounding + guardrail rules) and summary prompt |
 | `agent/build_index.py` | Chunks the content, embeds it (Gemini), saves the FAISS index |
 | `api/index.py` | FastAPI: `/api/agent/chat` (streams), `/api/agent/summarize`, `/api/agent/health` |
@@ -82,6 +95,8 @@ npm run agent:index   # rebuilds knowledge.json + the FAISS index in agent/data/
 npm run evals         # checks; writes evals/results.jsonl
 npm run evals:ragas   # RAGAS scores on those results (Gemini as the judge)
 npm run evals:rerank  # does the re-ranker beat RRF? (needs the Cloudflare keys)
+npm run evals:difficulty  # the L1/L2/L3 rules vs hand-labelled questions (no API calls)
+npm run evals:load    # concurrency: old vs new router at 5–100 simultaneous chatters (fake providers, real limits)
 ```
 
 ## Deploy (Vercel, free)

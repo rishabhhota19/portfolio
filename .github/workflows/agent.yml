@@ -45,6 +45,9 @@ jobs:
           git add agent/data
           git diff --cached --quiet || (git commit -m "Rebuild agent index" && git push)
 
+      - name: Difficulty levels (rules, no API calls)
+        run: python -m evals.difficulty_eval
+
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
 

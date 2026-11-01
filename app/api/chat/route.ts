@@ -7,7 +7,7 @@ import { chatRequest, json } from "@/lib/server/validate";
 
 export const maxDuration = 60;
 
-const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 1000);
+const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 3000);
 
 const offline = (message: string) => json({ error: "offline", message }, 503);
 
@@ -23,7 +23,8 @@ export async function POST(req: Request) {
   const { conversationId, messages } = parsed.data;
   const sessionId = parsed.data.sessionId ?? conversationId; // older tabs don't send a visit id yet
 
-  if (!(await allow(`chat:ip:${ipHash(req)}`, 20, 600))) {
+  // Per visitor first; the per-network limit is looser because colleagues in one office share an IP.
+  if (!(await allow(`chat:visit:${sessionId}`, 20, 600)) || !(await allow(`chat:ip:${ipHash(req)}`, 60, 600))) {
     return json({ error: "rate_limited", message: "You're sending messages quickly — give it a minute and try again." }, 429);
   }
   if (!(await allow(`chat:conv:${conversationId}`, LIMITS.maxSessionMessages, 86_400))) {

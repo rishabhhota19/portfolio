@@ -9,7 +9,7 @@ import { whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
-const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 1000);
+const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 3000);
 
 const REASON_LABEL = {
   closed_chat: "Closed chat",

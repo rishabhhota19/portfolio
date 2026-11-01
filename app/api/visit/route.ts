@@ -29,10 +29,11 @@ export async function POST(req: Request) {
   }
 
   after(async () => {
+    const chatted = v.actions.includes("chat_question"); // only then is there token usage to read
     const [network, isReturning, usage] = await Promise.all([
       networkOf(req),
       returning(req, v.sessionId),
-      sessionUsage(req, v.sessionId),
+      chatted ? sessionUsage(req, v.sessionId) : {},
     ]);
     const where = whereAndDevice(req);
     await logSession({
