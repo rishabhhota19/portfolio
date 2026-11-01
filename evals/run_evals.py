@@ -91,6 +91,9 @@ async def main() -> int:
     if len(answered) < len(results) / 2:
         print("::warning::Most questions got no answer — the free models' daily quotas are used up. Re-run after they reset.")
         return 0
+    if unanswered := sum(r["model"] == "none" for r in results):
+        print(f"INCONCLUSIVE: {unanswered} questions got no answer — every free model available here was out of quota, "
+              "so these questions tested nothing. Re-run after the providers' daily reset.")
     return 0 if facts >= 90 and guards == 100 else 1
 
 
