@@ -81,10 +81,13 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
                 minute_limited |= why == "minute"
                 continue
             tried.append(m.name)
-            reply = None  # chunks added up: the text, the token counts and the response headers
+            reply = None  # chunks added up: the text and the response headers
+            tokens_in = tokens_out = 0  # largest count seen: providers repeat or accumulate usage across chunks
             try:
                 async for chunk in m.client(tier.max_tokens, tier.effort, tier.timeout).astream(prompt):
                     reply = chunk if reply is None else reply + chunk
+                    chunk_in, chunk_out = llm.tokens_used(chunk)
+                    tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
             except Exception as err:
                 if reply is None or not reply.text.strip():  # failed before answering: give the budget back, move on
                     await usage.refund(reservation)
@@ -93,7 +96,6 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             if reply is None:  # the stream ended without a single chunk
                 await usage.refund(reservation)
                 continue
-            tokens_in, tokens_out = llm.tokens_used(reply)
             used = tokens_in + tokens_out or booked
             await usage.settle(reservation, used, m.neurons_for(tokens_in or prompt_tokens, tokens_out))
             if m.provider == "groq":

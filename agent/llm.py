@@ -144,7 +144,9 @@ def estimate_tokens(messages: list) -> int:
 
 
 def tokens_used(reply) -> tuple[int, int]:
-    """(input, output) tokens the provider reported for a reply, or (0, 0) if it didn't say."""
+    """(input, output) tokens the provider reported on a reply or stream chunk, or (0, 0) if it didn't say.
+    When streaming, take the largest value across chunks — never the sum: Groq repeats its totals, Gemini sends a
+    running total in every chunk, and Cloudflare sends per-token deltas plus a final total."""
     u = getattr(reply, "usage_metadata", None) or {}
     return u.get("input_tokens", 0), u.get("output_tokens", 0)
 
