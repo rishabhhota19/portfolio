@@ -30,9 +30,12 @@ export default function PrivacyPage() {
 
         <h2>If you chat with the agent (Dumbledore)</h2>
         <p>
-          Your messages are sent to the AI model that answers them (free tiers of Groq, Google Gemini or OpenRouter) and
-          are not stored by this site. When the chat ends, only a short AI-written summary of what you asked is added
-          to the visit&apos;s row, along with how many tokens the chat used.
+          Your messages go to the free AI services that power the agent: Cloudflare Workers AI turns each question into
+          numbers to find the relevant parts of this site, and one model on Groq, Google Gemini, Cloudflare Workers AI or
+          OpenRouter writes the answer. They are not stored by this site. Answers to common first questions are cached
+          for a day, keyed by a one-way hash of the question, never the question itself. When the chat ends, only a
+          short AI-written summary of what you asked is added to the visit&apos;s row, along with how many tokens the
+          chat used.
         </p>
 
         <h2>If you share your details</h2>

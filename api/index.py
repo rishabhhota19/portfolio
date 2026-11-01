@@ -73,6 +73,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
         {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
         {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
         {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
+        {"type": "usage", "tokens": 123}                   tokens this turn used (the chat shows the running total)
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
     history = [HumanMessage(m.content) if m.role == "user" else AIMessage(m.content) for m in req.messages]
@@ -110,6 +111,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
             yield line({"type": "replace" if output.sent else "text", "text": final})
         for action in result.get("actions", []):
             yield line(action)
+        used = result.get("usage") or {}  # this turn's real tokens (0 when no model was needed): the chat shows a total
+        yield line({"type": "usage", "tokens": used.get("tokens_in", 0) + used.get("tokens_out", 0)})
 
         counts = dict(result.get("usage") or {})  # real token counts from the provider
         if result.get("intent") == "refused":

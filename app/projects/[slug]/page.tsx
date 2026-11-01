@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Tag } from "@/components/site/bits";
+import { Suspense } from "react";
+import { ArticleSkeleton, Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
 import { getProject, projectMeta, projects } from "@/lib/content";
 
@@ -12,11 +13,26 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/projects/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const project = getProject(slug);
-  if (!project) return {};
+  if (!project) notFound(); // unknown slugs get a real 404 (the page body itself streams inside Suspense)
   return { title: project.title, description: project.summary };
 }
 
-export default async function ProjectPage({ params }: PageProps<"/projects/[slug]">) {
+// The shell (the back link) is the same for every project, so links prefetch it and it shows at once — also when
+// Dumbledore navigates here. The project itself depends on the URL, so it streams in behind Suspense.
+export default function ProjectPage({ params }: PageProps<"/projects/[slug]">) {
+  return (
+    <article className="mx-auto max-w-6xl px-5 pt-12 sm:px-8 sm:pt-16">
+      <Link href="/projects" className="label link-underline hover:text-ink">
+        ← All projects
+      </Link>
+      <Suspense fallback={<ArticleSkeleton />}>
+        <Project params={params} />
+      </Suspense>
+    </article>
+  );
+}
+
+async function Project({ params }: Pick<PageProps<"/projects/[slug]">, "params">) {
   const { slug } = await params;
   const project = getProject(slug);
   if (!project) notFound();
@@ -25,10 +41,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
   const next = projects[(index + 1) % projects.length];
 
   return (
-    <article className="mx-auto max-w-6xl px-5 pt-12 sm:px-8 sm:pt-16">
-      <Link href="/projects" className="label link-underline hover:text-ink">
-        ← All projects
-      </Link>
+    <>
       <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_18rem]">
         <div>
           <p className="label reveal">
@@ -70,6 +83,6 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
           {next.title} <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
         </Link>
       </div>
-    </article>
+    </>
   );
 }

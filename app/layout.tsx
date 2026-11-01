@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
@@ -98,16 +99,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Footer />
         <ChatLauncher />
         <VisitTracker />
+        {/* Analytics load when the browser is idle, so they never compete with the page itself. */}
         {beaconToken ? (
-          <script
-            defer
+          <Script
+            strategy="lazyOnload"
             src="https://static.cloudflareinsights.com/beacon.min.js"
             data-cf-beacon={JSON.stringify({ token: beaconToken })}
           />
         ) : null}
         {umamiId ? (
-          <script
-            defer
+          <Script
+            strategy="lazyOnload"
             src="https://cloud.umami.is/script.js"
             data-website-id={umamiId}
             data-domains={new URL(site.url).hostname}

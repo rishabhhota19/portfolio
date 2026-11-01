@@ -26,7 +26,8 @@ type Status = "idle" | "waiting" | "streaming" | "offline";
 type AgentEvent =
   | { type: "text" | "replace"; text: string }
   | { type: "navigate"; path: string; label: string; focus?: boolean }
-  | { type: "links"; links: PageLink[] };
+  | { type: "links"; links: PageLink[] }
+  | { type: "usage"; tokens: number };
 
 // Only this site's own pages: the agent can't send anyone elsewhere, and router.push never sees a javascript: URL.
 const SITE_PATH = /^\/(?!\/)[a-z0-9\-/]*(#[a-z0-9\-]+)?$/i;
@@ -49,6 +50,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const [input, setInput] = useState("");
   const [showLead, setShowLead] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
+  const [tokens, setTokens] = useState(0); // real tokens this chat has used, as the AI providers count them
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
@@ -213,6 +215,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
           if (event.type === "text") full += event.text;
           else if (event.type === "replace") full = event.text; // the output guard changed what was shown
           else if (event.type === "links") updateMessage(replyId, { links: event.links.filter((l) => SITE_PATH.test(l.path)) });
+          else if (event.type === "usage") setTokens((t) => t + (Number(event.tokens) || 0));
           else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
             updateMessage(replyId, { opened: event.label });
             goTo(event.path, "agent", event.focus);
@@ -267,6 +270,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
     setShowLead(false);
     setLeadSent(false);
     setInput("");
+    setTokens(0);
     token.current = null;
     loggedCount.current = 0;
     conversation.current = null;
@@ -408,15 +412,22 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
 
       {/* Composer */}
       <div className="border-t border-rule px-3 pb-3 pt-2.5">
-        {!leadSent && !showLead ? (
-          <button
-            type="button"
-            onClick={() => setShowLead(true)}
-            className="label mb-2 rounded-full border border-rule px-2.5 py-1 !text-[0.64rem] transition-colors hover:border-accent hover:text-accent"
-          >
-            ✉ Share your details
-          </button>
-        ) : null}
+        <div className="mb-2 flex items-center justify-between gap-2 empty:hidden">
+          {!leadSent && !showLead ? (
+            <button
+              type="button"
+              onClick={() => setShowLead(true)}
+              className="label rounded-full border border-rule px-2.5 py-1 !text-[0.64rem] transition-colors hover:border-accent hover:text-accent"
+            >
+              ✉ Share your details
+            </button>
+          ) : null}
+          {tokens > 0 ? (
+            <span className="label ml-auto !text-[0.62rem]" title="Tokens the AI models used for this chat (free tiers)">
+              This chat · {tokens.toLocaleString("en-IN")} tokens
+            </span>
+          ) : null}
+        </div>
         <form onSubmit={onSubmit} className="flex items-end gap-2">
           <label htmlFor="agent-input" className="sr-only">
             Ask Dumbledore about Rishabh

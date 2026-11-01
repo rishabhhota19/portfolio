@@ -48,6 +48,18 @@ export function StatusChip({ status }: { status: string }) {
   );
 }
 
+// Placeholder while a project or post streams in (only seen on a slow connection).
+export function ArticleSkeleton() {
+  return (
+    <div className="mt-10 max-w-2xl animate-pulse motion-reduce:animate-none" aria-hidden>
+      <div className="h-3 w-40 rounded bg-rule" />
+      <div className="mt-4 h-12 w-3/4 rounded bg-rule" />
+      <div className="mt-5 h-5 w-full rounded bg-rule/70" />
+      <div className="mt-2 h-5 w-5/6 rounded bg-rule/70" />
+    </div>
+  );
+}
+
 export function PageIntro({ label, title, children }: { label: string; title: ReactNode; children?: ReactNode }) {
   return (
     <div className="mx-auto max-w-6xl px-5 pb-10 pt-14 sm:px-8 sm:pt-20">
