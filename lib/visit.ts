@@ -92,11 +92,10 @@ export function sendVisit() {
   const changed = `${rest.pages.length}:${rest.actions.length}:${Math.floor(activeSeconds / 30)}`;
   if (changed === lastSent || rest.pages.length === 0) return;
   lastSent = changed;
-  const body: VisitRequest = { ...rest, activeSeconds };
-  fetch("/api/visit", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-    keepalive: true, // lets it finish while the page unloads
-  }).catch(() => {});
+  const body = JSON.stringify({ ...rest, activeSeconds } satisfies VisitRequest);
+  // sendBeacon is built for this: the browser delivers it even while the page is closing.
+  const sent = navigator.sendBeacon?.("/api/visit", new Blob([body], { type: "application/json" }));
+  if (!sent) {
+    fetch("/api/visit", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+  }
 }

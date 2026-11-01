@@ -1,6 +1,5 @@
 import { after } from "next/server";
 import { sessionUsage } from "@/lib/server/agent";
-import { isBot } from "@/lib/server/bot";
 import { ipHash } from "@/lib/server/request";
 import { logSession } from "@/lib/server/sheets";
 import { allow } from "@/lib/server/store";
@@ -9,12 +8,16 @@ import { countActions, networkOf, returning, sourceOf, whereAndDevice } from "@/
 
 export const maxDuration = 30;
 
+const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|curl|wget|python-requests/i;
+
 /**
  * The visit beacon: the browser reports pages and clicks when the tab is hidden or closed.
  * Every real visit gets one row in the Sessions sheet (updated in place), whether or not they chat.
+ * It arrives via sendBeacon, which BotID can't sign, so: known bots are skipped, input is validated,
+ * and it's rate-limited. It only writes analytics (no LLM spend, no email).
  */
 export async function POST(req: Request) {
-  if (await isBot({ strict: true })) return json({ ok: true, skipped: "bot" }, 202);
+  if (BOT_UA.test(req.headers.get("user-agent") ?? "")) return json({ ok: true, skipped: "bot" }, 202);
 
   const parsed = visitRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ ok: false }, 400);
