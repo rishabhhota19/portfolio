@@ -5,8 +5,14 @@ The key idea: *reserve, then call*. Before calling a model, one atomic Redis scr
 have room — counts the call. Ten visitors asking in the same second therefore each get a model that really has
 room, instead of all hitting the same one and getting rate-limited. After the call, the reservation is corrected
 to the real token count the provider reported (or refunded if the call failed).
+
+No single visitor can switch a model off for everyone:
+  - each network (a hash of its IP, sent by the gateway) may use at most FAIR_SHARE of any daily limit;
+  - a model or provider is paused only when Groq/Gemini/… say the account is limited (429) or its key is wrong, or when
+    failures come from several different networks within a minute (a real outage), never because of one request.
 """
 
+import contextvars
 import math
 import time
 from dataclasses import dataclass
@@ -15,6 +21,8 @@ from .config import env
 from .llm import PACE, PROVIDER_LIMITS, FreeModel
 
 DAY_TTL, HOUR_TTL, MINUTE_TTL, SESSION_TTL = 2 * 86400, 7200, 120, 2 * 86400
+FAIR_SHARE = 0.1  # of each daily limit, per network per day: one visitor can never use up a model for everyone
+CALLER: contextvars.ContextVar[str] = contextvars.ContextVar("caller", default="")  # set per request in api/index.py
 
 # Reserve: KEYS[1] model pause flag, KEYS[2] provider pause flag, KEYS[3..] counters; ARGV = amount, limit, ttl per counter.
 # Returns 1 = reserved, 0 = paused, n >= 3 = the counter (1-based key index) that had no room.
@@ -109,7 +117,8 @@ def _counters(m: FreeModel, tokens: int, neurons: int, paced: bool = True) -> tu
     now = time.time()
     minute, hour, day = int(now // 60), int(now // 3600), time.strftime("%Y-%m-%d", time.gmtime(now))
     hourly = lambda daily: math.ceil(daily / 24 * PACE) if daily and paced else 0  # noqa: E731 — pacing
-    n = m.name
+    share = lambda daily: max(1, int(daily * FAIR_SHARE))  # noqa: E731 — this network's part of a daily limit
+    n, who = m.name, CALLER.get()
     c = [
         (f"use:{n}:req:{minute}", 1, m.rpm, MINUTE_TTL, "minute"),
         (f"use:{n}:tok:{minute}", tokens, m.tpm, MINUTE_TTL, "minute"),
@@ -118,21 +127,28 @@ def _counters(m: FreeModel, tokens: int, neurons: int, paced: bool = True) -> tu
         (f"use:{n}:req:{day}", 1, m.rpd, DAY_TTL, "day"),
         (f"use:{n}:tok:{day}", tokens, m.tpd, DAY_TTL, "day"),
     ]
+    if who:  # fair share (only for real visitors: the gateway always says who; evals and local runs don't)
+        c += [(f"use:{n}:req:{day}:{who}", 1, share(m.rpd), DAY_TTL, "share")] if m.rpd else []
+        c += [(f"use:{n}:tok:{day}:{who}", tokens, share(m.tpd), DAY_TTL, "share")] if m.tpd else []
     pool = PROVIDER_LIMITS.get(m.provider, {})
     if "rpd" in pool:
         c += [(f"use:{m.provider}:req:{day}", 1, pool["rpd"], DAY_TTL, "day"),
               (f"use:{m.provider}:req:h{hour}", 1, hourly(pool["rpd"]), HOUR_TTL, "hour")]
+        if who:
+            c += [(f"use:{m.provider}:req:{day}:{who}", 1, share(pool["rpd"]), DAY_TTL, "share")]
     if "neurons_day" in pool:
         daily = int(pool["neurons_day"] * 0.97)  # keep a small safety margin
         c += [(f"use:{m.provider}:neu:{day}", neurons, daily, DAY_TTL, "day"),
               (f"use:{m.provider}:neu:h{hour}", neurons, hourly(daily), HOUR_TTL, "hour")]
+        if who:
+            c += [(f"use:{m.provider}:neu:{day}:{who}", neurons, share(daily), DAY_TTL, "share")]
     tokens_at = [i for i, x in enumerate(c) if ":tok:" in x[0]]
     neurons_at = [i for i, x in enumerate(c) if ":neu:" in x[0]]
     return c, tokens_at, neurons_at
 
 
 async def reserve(m: FreeModel, tokens: int, neurons: int = 0, paced: bool = True) -> tuple[Reservation | None, str]:
-    """Atomically books one call of ~`tokens` tokens. Returns (reservation, "") or (None, why: paused/minute/hour/day)."""
+    """Atomically books one call of ~`tokens` tokens. Returns (reservation, "") or (None, why: paused/minute/hour/day/share)."""
     counters, tokens_at, neurons_at = _counters(m, tokens, neurons, paced)
     pauses = [f"paused:{m.name}", f"paused:provider:{m.provider}"]
     keys = [k for k, *_ in counters]
@@ -216,14 +232,26 @@ async def pause(key: str, seconds: int) -> None:
     _memory[key] = (1, time.time() + seconds)
 
 
-async def provider_failed(provider: str) -> bool:
-    """Circuit breaker: 3 failures in a minute pause the whole provider for 60s. True if it just tripped."""
-    key = f"fail:{provider}:{int(time.time() // 60)}"
-    count = await _run("local n = redis.call('INCR', KEYS[1]) redis.call('EXPIRE', KEYS[1], 120) return n", [key], [])
+_failed: dict[str, tuple[set[str], float]] = {}  # memory fallback for the failure sets
+
+
+async def failed_networks(what: str) -> int:
+    """Records that `what` (a model or provider) just failed for this caller; returns how many DIFFERENT networks saw
+    it fail this minute. One visitor's requests count once, however many they send."""
+    key, who = f"fail:{what}:{int(time.time() // 60)}", CALLER.get() or "unknown"
+    count = await _run("redis.call('SADD', KEYS[1], ARGV[1]) redis.call('EXPIRE', KEYS[1], 120) return redis.call('SCARD', KEYS[1])", [key], [who])
     if count is None:
-        _add(key, 1, MINUTE_TTL)
-        count = _get(key)
-    if count >= 3:
+        seen, expires = _failed.get(key, (set(), 0))
+        seen = (seen if expires > time.time() else set()) | {who}
+        _failed[key] = (seen, time.time() + MINUTE_TTL)
+        count = len(seen)
+    return count
+
+
+async def provider_failed(provider: str) -> bool:
+    """Circuit breaker: failures from 3 different networks within a minute (an outage, not one visitor's requests)
+    pause the whole provider for 60s. True if it just tripped."""
+    if await failed_networks(f"provider:{provider}") >= 3:
         await pause(f"paused:provider:{provider}", 60)
         return True
     return False

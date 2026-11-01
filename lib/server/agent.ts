@@ -1,6 +1,7 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import type { ChatMessage, Lead } from "@/lib/chat-types";
+import { ipHash } from "@/lib/server/request";
 import type { SessionRow } from "@/lib/server/sheets";
 
 // Client for the Python agent (api/index.py). Locally AGENT_URL=http://127.0.0.1:8000;
@@ -14,6 +15,7 @@ function agentHeaders(req: Request) {
   return {
     "content-type": "application/json",
     "x-agent-secret": process.env.AGENT_SHARED_SECRET ?? "",
+    "x-caller": ipHash(req), // hashed network: the agent's fair shares and outage detection count networks, not requests
     cookie: req.headers.get("cookie") ?? "", // lets the call through Vercel's preview protection
   };
 }

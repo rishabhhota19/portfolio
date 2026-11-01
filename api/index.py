@@ -67,7 +67,7 @@ def check_secret(secret: str | None) -> None:
 
 
 @app.post("/api/agent/chat")
-async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
+async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_caller: str | None = Header(None)):
     """Streams the answer as NDJSON events, one JSON object per line:
         {"type": "text", "text": "…"}        more of the answer
         {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
@@ -77,6 +77,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
         {"type": "meta", "model": …, "level": …, …}        for the admin dashboard; the gateway strips it
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
+    usage.CALLER.set((x_caller or "")[:64])  # the visitor's network (hashed): fair shares and failure counting
     history = [HumanMessage(m.content) if m.role == "user" else AIMessage(m.content) for m in req.messages]
     started = time.perf_counter()
     result: dict = {"trace": []}
@@ -139,8 +140,9 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
 
 
 @app.post("/api/agent/summarize")
-async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Header(None)):
+async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Header(None), x_caller: str | None = Header(None)):
     check_secret(x_agent_secret)
+    usage.CALLER.set((x_caller or "")[:64])
     return await summarize([m.model_dump() for m in req.messages], req.lead, req.session_id)
 
 

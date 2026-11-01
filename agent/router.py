@@ -20,8 +20,8 @@ from . import llm, usage
 from .llm import FreeModel, Tier
 
 MAX_WAIT = 20  # seconds we'll wait for per-minute limits to reset before giving up
-NONE_LEFT_FOR = 60  # once no model in a pool could be booked at all, answer "busy" for this long without asking again
-_none_left: dict[tuple[str, ...], float] = {}  # pool → until when (this instance; costs no Redis commands to check)
+NONE_LEFT_FOR = 60  # once no model in a pool could be booked for a caller, answer them "busy" this long without asking again
+_none_left: dict[tuple, float] = {}  # (pool, caller) → until when; this instance only, costs no Redis commands to check
 
 
 @dataclass
@@ -36,12 +36,22 @@ class Answer:
     tried: list[str]
 
 
+def too_big(message: str) -> bool:
+    """A 429 for this request alone ("Limit 8000, Requested 9500"): not the account being busy."""
+    numbers = re.search(r"Limit (\d+),.*?Requested (\d+)", message)
+    return bool(numbers) and int(numbers[2]) > int(numbers[1])
+
+
 async def on_error(m: FreeModel, err: Exception) -> None:
-    """Pauses a failing model (rate limit: as long as the provider asks; bad key/model: an hour; outage: 30s + breaker)."""
+    """What a failed call means for everyone else. Only the provider's own word (429: the account is limited) pauses a
+    model straight away. Anything a single request could cause — too big, malformed, slow, a 5xx — skips the model for
+    that request only, and pauses it for everyone only when several different networks see it fail (usage.py)."""
     status = getattr(err, "status_code", None)
     response = getattr(err, "response", None)
     retry_after = response.headers.get("retry-after") if response is not None else None
-    if status == 429:
+    if status in (400, 413, 422) or (status == 429 and too_big(str(err))):
+        pass  # this request was too big or malformed for this model: skip it for this question only
+    elif status == 429:
         seconds = 60
         message = str(err)
         if any(w in message.lower() for w in ("per day", "daily", "perday")):
@@ -58,12 +68,12 @@ async def on_error(m: FreeModel, err: Exception) -> None:
             except ValueError:
                 pass
         await usage.pause(f"paused:{m.name}", min(seconds, 3600))
-    elif status in (400, 413):
-        pass  # this request was too big or malformed for this model: skip it for this question only, keep it for everyone
-    elif status in (401, 403, 404):
-        await usage.pause(f"paused:{m.name}", 3600)
+    elif status in (401, 403, 404):  # bad key or model: every visitor would fail the same way
+        if await usage.failed_networks(m.name) >= 2:
+            await usage.pause(f"paused:{m.name}", 3600)
     else:  # 5xx, timeout, connection error
-        await usage.pause(f"paused:{m.name}", 30)
+        if await usage.failed_networks(m.name) >= 2:
+            await usage.pause(f"paused:{m.name}", 30)
         if await usage.provider_failed(m.provider):
             print(f"[router] breaker: skipping {m.provider} for 60s")
     print(f"[router] {m.name} failed ({status or type(err).__name__})")
@@ -71,7 +81,7 @@ async def on_error(m: FreeModel, err: Exception) -> None:
 
 async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeModel], tuple[list, bool] | None]) -> Answer | None:
     """Tries `models` in order; returns the first real answer, or None if every free model is out of budget."""
-    pool = tuple(m.name for m in models)
+    pool = (tuple(m.name for m in models), usage.CALLER.get())  # per caller: one visitor's request never blocks others
     if _none_left.get(pool, 0) > time.time():
         return None  # everything was used up a moment ago: don't spend ~2 Redis commands per model finding that out again
     tried: list[str] = []
@@ -119,6 +129,8 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
                 await usage.sync_groq(m, (reply.response_metadata or {}).get("headers") or {})
             if reply.text.strip():
                 return Answer(reply.text, m.name, tokens_in, tokens_out, cached, depth, trimmed, tried)
-    if not tried:
+    if not tried and pool[1]:
+        if len(_none_left) > 5000:
+            _none_left.clear()
         _none_left[pool] = time.time() + NONE_LEFT_FOR
     return None

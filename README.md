@@ -104,8 +104,11 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
   (`DAILY_LLM_BUDGET`, `DAILY_SUMMARY_BUDGET`); replies that used no model give the budget back.
 - **Fails soft.** If Upstash errors (an outage or the free plan's monthly cap), limits fall back to each server's memory
   and the site keeps working; the dashboard shows "Reconnecting". Sheet writes that fail are queued and removed only
-  after they were sent. Visitor text never becomes a Sheet formula. A model that rejects one oversized request is
-  skipped for that request only, never paused for everyone.
+  after they were sent. Visitor text never becomes a Sheet formula.
+- **No visitor can switch a model off for everyone.** Each network (hashed IP) may use at most 10% of any model's daily
+  quota. A model is paused straight away only when the provider itself says the account is limited (429); errors one
+  request could cause (too big, malformed, slow, 5xx) skip the model for that request, and pause it for everyone only
+  when 2+ different networks see it fail in the same minute (3+ for the whole provider: a real outage).
 - **Grounded answers, measured.** The prompt forbids guessing or embellishing; the evals check facts and guardrails on
   every content change, and RAGAS scores faithfulness.
 
