@@ -207,5 +207,19 @@ async def health(x_agent_secret: str | None = Header(None)):
                 engines[e.name]["probe"] = f"ok, {(await e.embed(['ping'])).shape[1]}-dim"
             except Exception as err:
                 engines[e.name]["probe"] = f"failed: {type(err).__name__}"
+    from agent import cache
+
+    meta = cache.DATA_DIR / "answers.json"
+    info = json.loads(meta.read_text(encoding="utf-8")) if meta.exists() else {}
+    bank = {"status": "on" if cache.bank() is not None else "off", "built_for": info.get("version"), "site_content": cache.VERSION,
+            "model": info.get("model"), "intents": len(info.get("intents", [])), "disabled_by_env": env("ANSWER_BANK") == "off"}
+    if (loaded := cache.bank()) is not None:  # probe: embed the first intent's own question; it must come back as a hit
+        try:
+            engine, vectors = await embeddings.embed([loaded[2][0]["q"]])
+            hit = cache.from_bank(None if vectors is None else vectors[0])
+            bank["probe"] = f"hit, score {hit['score']}" if hit else "miss"
+            bank["probe_engine"] = engine.name if engine else "none"
+        except Exception as err:
+            bank["probe"] = f"failed: {type(err).__name__}"
     return {"ok": True, "levels": {lv: t.pool for lv, t in llm.TIERS.items()}, "summaries": llm.SUMMARY_POOL,
-            "shared_pools_today": await usage.pools(), "embeddings": engines, "models": models}
+            "shared_pools_today": await usage.pools(), "embeddings": engines, "answer_bank": bank, "models": models}
