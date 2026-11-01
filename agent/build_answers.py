@@ -79,6 +79,9 @@ async def main() -> None:
         else:
             state = await agent.ainvoke({"messages": [HumanMessage(intent["q"])]})
             answer = state["messages"][-1].content if state["messages"][-1].type == "ai" else ""
+            if state.get("model") == "none":  # free quotas used up: left out now, written by the next build
+                print(f"  no free model right now (retried next build): {intent['q']}")
+                continue
             if not passes(intent, answer):
                 print(f"  skipped (failed its checks): {intent['q']}")
                 continue
