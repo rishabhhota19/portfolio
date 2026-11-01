@@ -90,16 +90,18 @@ async def main() -> None:
     if bank == old["intents"] and old["version"] == VERSION and old.get("model") == PRIMARY.model and VECTORS.exists():
         print(f"Answer bank already up to date ({len(bank)} intents).")
         return
-    texts, owner = [], []
-    for n, entry in enumerate(bank):
-        for t in [entry["q"], *entry["paraphrases"]]:
-            texts.append(t)
-            owner.append(n)
-    vectors = await PRIMARY.embed(texts, timeout=60)
-    np.savez(VECTORS, vectors=vectors, intent=np.array(owner, dtype="int16"))
+    phrasings = lambda intents: [(n, t) for n, e in enumerate(intents) for t in [e["q"], *e["paraphrases"]]]  # noqa: E731
+    if phrasings(bank) != phrasings(old["intents"]) or old.get("model") != PRIMARY.model or not VECTORS.exists():
+        try:  # the vectors depend only on the phrasings: a changed answer or link needs no new embeddings
+            vectors = await PRIMARY.embed([t for _, t in phrasings(bank)], timeout=60)
+        except Exception as err:
+            # Keep the old bank: it switches itself off if it no longer matches the content (cache.bank()).
+            print(f"Answer bank: can't embed now ({type(err).__name__}) — kept as it was; the next build retries.")
+            return
+        np.savez(VECTORS, vectors=vectors, intent=np.array([n for n, _ in phrasings(bank)], dtype="int16"))
     META.write_text(json.dumps({"version": VERSION, "model": PRIMARY.model, "intents": bank}, indent=1, ensure_ascii=False) + "\n",
                     encoding="utf-8")
-    print(f"Answer bank: {len(bank)} intents, {len(texts)} phrasings (content version {VERSION}) -> {META.name}")
+    print(f"Answer bank: {len(bank)} intents, {len(phrasings(bank))} phrasings (content version {VERSION}) -> {META.name}")
 
 
 if __name__ == "__main__":
