@@ -10,16 +10,19 @@ export type Lead = {
   email: string;
   company: string;
   role: string;
+  phone: string; // optional — only if the visitor chooses to share it
   note: string;
 };
 
 export type ChatRequest = {
+  sessionId: string; // the visit (one browser tab on the site) — token totals add up per visit
   conversationId: string;
   messages: ChatMessage[];
   page: string;
 };
 
 export type EndRequest = {
+  sessionId: string;
   conversationId: string;
   token: string | null;
   startedAt: string;
@@ -30,6 +33,20 @@ export type EndRequest = {
 };
 
 export type LeadRequest = EndRequest & { lead: Lead };
+
+/** What the browser reports about a visit (no personal data: the server adds location and network). */
+export type VisitRequest = {
+  sessionId: string;
+  startedAt: string;
+  activeSeconds: number; // time the tab was actually visible
+  pages: string[];
+  actions: string[]; // e.g. resume_download, linkedin_click, chat_open
+  referrer: string;
+  utm: string;
+  screen: string;
+  language: string;
+  timezone: string;
+};
 
 export const LIMITS = {
   maxMessageChars: 500,

@@ -1,10 +1,11 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import type { ChatMessage, Lead } from "@/lib/chat-types";
+import type { SessionRow } from "@/lib/server/sheets";
 
 // Client for the Python agent (api/index.py). Locally AGENT_URL=http://127.0.0.1:8000;
 // on Vercel the agent lives on the same domain, so the request's own origin is used.
-function agentUrl(req: Request, path: "chat" | "summarize") {
+function agentUrl(req: Request, path: string) {
   const base = process.env.AGENT_URL || new URL(req.url).origin;
   return `${base}/api/agent/${path}`;
 }
@@ -18,12 +19,12 @@ function agentHeaders(req: Request) {
 }
 
 /** Streams the agent's answer, or returns null if the agent is unavailable. */
-export async function askAgent(req: Request, conversationId: string, messages: ChatMessage[]) {
+export async function askAgent(req: Request, conversationId: string, sessionId: string, messages: ChatMessage[]) {
   try {
     const res = await fetch(agentUrl(req, "chat"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ conversation_id: conversationId, messages }),
+      body: JSON.stringify({ conversation_id: conversationId, session_id: sessionId, messages }),
       signal: req.signal,
     });
     return res.ok && res.body ? res.body : null;
@@ -52,12 +53,12 @@ export function plainSummary(messages: ChatMessage[], note = ""): ChatSummary {
   return { summary: `${note}Visitor asked: ${asked.join("; ") || "nothing"}.`, topics: asked.slice(0, 6).join(", "), model: "none" };
 }
 
-export async function summarizeChat(req: Request, messages: ChatMessage[], lead?: Lead): Promise<ChatSummary> {
+export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], lead?: Lead): Promise<ChatSummary> {
   try {
     const res = await fetch(agentUrl(req, "summarize"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ messages, lead: lead ?? null }),
+      body: JSON.stringify({ messages, lead: lead ?? null, session_id: sessionId }),
       signal: AbortSignal.timeout(30_000),
     });
     if (res.ok) return (await res.json()) as ChatSummary;
@@ -68,4 +69,18 @@ export async function summarizeChat(req: Request, messages: ChatMessage[], lead?
     Sentry.captureException(err);
   }
   return plainSummary(messages);
+}
+
+type Usage = Pick<SessionRow, "tokensIn" | "tokensOut" | "tokensTotal" | "llmCalls" | "models" | "switches" | "avgLatency" | "summaryTokens">;
+
+/** The visit's real token totals (counted by the Python agent). Empty if the visitor didn't use the LLM. */
+export async function sessionUsage(req: Request, sessionId: string): Promise<Usage> {
+  try {
+    const res = await fetch(agentUrl(req, `session/${sessionId}`), { headers: agentHeaders(req), signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return {};
+    const usage = (await res.json()) as Usage;
+    return usage.llmCalls || usage.summaryTokens ? usage : {};
+  } catch {
+    return {};
+  }
 }

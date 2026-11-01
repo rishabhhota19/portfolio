@@ -59,7 +59,7 @@ class FreeModel:
             temperature=0.3,
             timeout=15,  # a slow provider shouldn't stall the chat — move on
             max_retries=0,  # no retries: switching to the next model is faster
-            stream_usage=False,
+            stream_usage=True,  # the provider reports the real token counts at the end of the stream
             extra_body=extra,
         )
 
@@ -114,9 +114,16 @@ async def fit(m: FreeModel, prompt: list, max_tokens: int = 350):
     return None
 
 
-async def record(m: FreeModel, sent: list, max_tokens: int = 350) -> None:
-    """Token tracking: count this call (prompt + reply allowance) against the model's free budget."""
-    tokens = estimate_tokens(sent) + max_tokens + m.extra_tokens
+def tokens_used(reply) -> tuple[int, int]:
+    """(input, output) tokens the provider reported for a reply, or (0, 0) if it didn't say."""
+    u = getattr(reply, "usage_metadata", None) or {}
+    return u.get("input_tokens", 0), u.get("output_tokens", 0)
+
+
+async def record(m: FreeModel, sent: list, max_tokens: int = 350, used: int = 0) -> None:
+    """Token tracking: count this call against the model's free budget — the provider's real count when it
+    gave one, otherwise an estimate (prompt + the full reply allowance, to stay on the safe side)."""
+    tokens = used or estimate_tokens(sent) + max_tokens + m.extra_tokens
     await usage.record(m.name, tokens)
     if m.provider in PROVIDER_DAILY_REQUESTS:
         await usage.record(m.provider, tokens)

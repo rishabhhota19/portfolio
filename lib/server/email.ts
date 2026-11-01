@@ -25,6 +25,7 @@ export async function sendLeadEmail({ lead, summary, topics, followUp, meta }: L
   const rows: [string, string][] = [
     ["Name", lead.name],
     ["Email", lead.email],
+    ["Phone", lead.phone || "—"],
     ["Company", lead.company || "—"],
     ["Hiring for", lead.role || "—"],
     ["Their note", lead.note || "—"],

@@ -8,6 +8,7 @@ const message = z.object({
 });
 
 export const chatRequest = z.object({
+  sessionId: z.uuid().optional(),
   conversationId: z.uuid(),
   page: z.string().max(200).default("/"),
   messages: z
@@ -19,6 +20,7 @@ export const chatRequest = z.object({
 });
 
 export const endRequest = z.object({
+  sessionId: z.uuid().optional(),
   conversationId: z.uuid(),
   token: z.string().max(200).nullable(),
   startedAt: z.iso.datetime(),
@@ -34,8 +36,24 @@ export const leadRequest = endRequest.extend({
     email: z.email().max(120),
     company: z.string().trim().max(80).default(""),
     role: z.string().trim().max(80).default(""),
+    phone: z.string().trim().max(30).regex(/^[+\d\s().-]*$/, "digits only").default(""),
     note: z.string().trim().max(600).default(""),
   }),
+});
+
+const short = (max: number) => z.string().trim().max(max).default("");
+
+export const visitRequest = z.object({
+  sessionId: z.uuid(),
+  startedAt: z.iso.datetime(),
+  activeSeconds: z.number().int().min(0).max(86_400),
+  pages: z.array(z.string().max(200).regex(/^\//)).max(60),
+  actions: z.array(z.string().regex(/^[a-z_]{1,40}$/)).max(60),
+  referrer: short(300),
+  utm: short(200),
+  screen: short(20),
+  language: short(20),
+  timezone: short(60),
 });
 
 export const json = (data: unknown, status = 200, headers?: HeadersInit) =>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { ChatLauncher } from "@/components/chat/ChatLauncher";
+import { VisitTracker } from "@/components/site/VisitTracker";
 import { site } from "@/lib/content";
 
 const display = Instrument_Serif({
@@ -96,6 +97,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </main>
         <Footer />
         <ChatLauncher />
+        <VisitTracker />
         {beaconToken ? (
           <script
             defer

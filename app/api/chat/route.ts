@@ -21,6 +21,7 @@ export async function POST(req: Request) {
   const parsed = chatRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ error: "bad_request", message: "That message couldn't be read." }, 400);
   const { conversationId, messages } = parsed.data;
+  const sessionId = parsed.data.sessionId ?? conversationId; // older tabs don't send a visit id yet
 
   if (!(await allow(`chat:ip:${ipHash(req)}`, 20, 600))) {
     return json({ error: "rate_limited", message: "You're sending messages quickly — give it a minute and try again." }, 429);
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
   }
 
-  const answer = await askAgent(req, conversationId, messages);
+  const answer = await askAgent(req, conversationId, sessionId, messages);
   if (!answer) {
     return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
   }

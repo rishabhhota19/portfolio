@@ -7,6 +7,7 @@ export type LeadDetails = {
   email: string;
   company: string;
   role: string;
+  phone: string;
   note: string;
 };
 
@@ -29,6 +30,7 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
       email: String(data.get("email") ?? "").trim(),
       company: String(data.get("company") ?? "").trim(),
       role: String(data.get("role") ?? "").trim(),
+      phone: String(data.get("phone") ?? "").trim(),
       note: String(data.get("note") ?? "").trim(),
     };
     setState("sending");
@@ -45,6 +47,14 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
         <input name="email" required type="email" maxLength={120} placeholder="Work email" className={field} autoComplete="email" />
         <input name="company" maxLength={80} placeholder="Company" className={field} autoComplete="organization" />
         <input name="role" maxLength={80} placeholder="Role you're hiring for" className={field} />
+        <input
+          name="phone"
+          type="tel"
+          maxLength={30}
+          placeholder="Phone (optional)"
+          className={`${field} col-span-2`}
+          autoComplete="tel"
+        />
       </div>
       <textarea name="note" maxLength={600} rows={2} placeholder="Anything he should know? (optional)" className={field} />
       {state === "error" ? (

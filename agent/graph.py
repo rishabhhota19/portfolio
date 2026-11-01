@@ -27,6 +27,7 @@ class State(TypedDict, total=False):
     intent: str
     docs: list[dict]  # retrieved chunks
     model: str  # which LLM answered
+    usage: dict  # real tokens in/out, latency, switches — added to the visit's totals
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
 
 
@@ -100,18 +101,24 @@ async def respond(state: State) -> dict:
         if sent is None:
             continue
         tried.append(m.name)
-        text = ""
+        reply = None  # chunks added up: the text, plus the token counts in the last chunk
         try:
             async for chunk in m.client().astream(sent):  # tokens stream to the browser as they arrive
-                text += chunk.text
+                reply = chunk if reply is None else reply + chunk
         except Exception as err:
-            if not text:  # failed before answering: pause it and silently try the next model
+            if reply is None or not reply.text:  # failed before answering: pause it and silently try the next model
                 await llm.on_error(m, err)
                 continue
-        await llm.record(m, sent)  # token tracking (an empty reply still used quota)
-        if text.strip():
+        tokens_in, tokens_out = llm.tokens_used(reply)
+        await llm.record(m, sent, used=tokens_in + tokens_out)  # token tracking (an empty reply still used quota)
+        if reply.text.strip():
             trimmed = len(prompt) - len(sent)
-            return {"messages": [AIMessage(text)], "model": m.name, "trace": step("respond", started, model=m.name, tried=tried, trimmed_turns=trimmed)}
+            ms = round((time.perf_counter() - started) * 1000)
+            used = {"calls": 1, "tokens_in": tokens_in, "tokens_out": tokens_out, "latency_ms": ms,
+                    "switches": llm.CHAT_MODELS.index(m),  # how far down the list the answer came from (0 = first choice)
+                    "trims": int(trimmed > 0)}
+            return {"messages": [AIMessage(reply.text)], "model": m.name, "usage": used,
+                    "trace": step("respond", started, model=m.name, tried=tried, trimmed_turns=trimmed)}
 
     # Every free model is used up: the API answers 503 and the chat pauses for everyone until limits reset.
     alert_exhausted()

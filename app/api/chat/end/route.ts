@@ -1,9 +1,11 @@
 import { after } from "next/server";
-import { plainSummary, summarizeChat } from "@/lib/server/agent";
-import { ipHash, requestMeta, verifyChatToken } from "@/lib/server/request";
-import { logConversation } from "@/lib/server/sheets";
+import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
+import { ipHash, verifyChatToken } from "@/lib/server/request";
+import { addChat } from "@/lib/server/session";
+import { logSession } from "@/lib/server/sheets";
 import { allow, firstTime, spendDailyBudget } from "@/lib/server/store";
 import { endRequest, json } from "@/lib/server/validate";
+import { whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
@@ -18,7 +20,7 @@ const REASON_LABEL = {
 
 /**
  * Called by the widget (fetch keepalive) when a chat is closed or the visitor leaves.
- * The transcript is summarised and only the summary is logged to Google Sheets.
+ * The transcript is summarised and only the summary goes into the visit's row in Google Sheets.
  */
 export async function POST(req: Request) {
   const parsed = endRequest.safeParse(await req.json().catch(() => null));
@@ -39,31 +41,28 @@ export async function POST(req: Request) {
     return json({ ok: true, skipped: "duplicate" }, 202);
   }
 
-  const meta = requestMeta(req);
+  const sessionId = data.sessionId ?? data.conversationId;
   after(async () => {
     const useLlm = verified && (await spendDailyBudget(DAILY_BUDGET));
-    const s = useLlm ? await summarizeChat(req, data.messages) : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
-    await logConversation({
-      conversationId: data.conversationId,
+    const s = useLlm
+      ? await summarizeChat(req, sessionId, data.messages)
+      : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
+    const [chat, usage] = await Promise.all([
+      addChat(sessionId, data.conversationId, data.messages.length, s),
+      sessionUsage(req, sessionId),
+    ]);
+    await logSession({
+      sessionId,
       startedAt: data.startedAt,
-      endedAt: data.endedAt,
-      endReason: REASON_LABEL[data.reason],
-      messages: data.messages.length,
-      visitorName: s.visitorName ?? "",
-      email: s.email ?? "",
-      company: s.company ?? "",
-      role: s.role ?? "",
-      intent: s.intent ?? "",
-      topics: s.topics ?? "",
-      summary: s.summary ?? "",
-      followUp: s.followUp ?? "",
-      leadShared: "",
-      recruiterNote: "",
-      country: meta.country,
-      city: meta.city,
-      device: meta.device,
-      entryPage: data.page,
-      model: s.model,
+      lastSeen: data.endedAt,
+      ...whereAndDevice(req),
+      ...chat,
+      ...usage,
+      chatEndReason: REASON_LABEL[data.reason],
+      visitorName: s.visitorName,
+      email: s.email,
+      company: s.company,
+      role: s.role,
     });
   });
 

@@ -19,6 +19,7 @@
   { "id": "internships", "kind": "fact", "q": "Did he do any internships?", "include": ["intern", "Smartknower|OsteosConnect"] },
   { "id": "covid", "kind": "fact", "q": "Tell me about his COVID-19 decision support project", "include": ["X-ray|CT|chest"], "url": "/projects/covid-decision-support" },
   { "id": "this-agent", "kind": "fact", "q": "How is the agent on this website built?", "include": ["LangGraph", "RAG|retriev"] },
+  { "id": "langgraph-prod", "kind": "fact", "q": "Has he used LangGraph in production?", "include": ["LangGraph", "this site|portfolio|live|production"], "exclude": ["(doesn't|does not|not) (mention|say|cover)", "no mention"], "url": "/projects/portfolio-agent" },
   { "id": "serving", "kind": "fact", "q": "Has he worked with vLLM or Ollama?", "include": ["vLLM|Ollama"] },
   { "id": "smartknower", "kind": "fact", "q": "What did he do at Smartknower?", "include": ["Power BI|ETL"], "url": "/experience" },
   { "id": "springer", "kind": "fact", "q": "Has he published with Springer?", "include": ["Springer"] },

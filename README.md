@@ -28,7 +28,7 @@ set, otherwise the Sheet's Apps Script sends it from your own Google account).
 - **Re-ranking — measured, then switched off.** A cross-encoder reads the question and each chunk *together*, which
   usually beats first-stage search. But on this site's eval questions the only free one (Cloudflare's bge-reranker-base)
   tied RRF on hit@4 (100%) and ranked worse (MRR@4 0.885 vs 0.962) — it missed acronyms like "MCP". So production keeps
-  the RRF order; setting the Cloudflare keys turns the re-ranker back on. Re-check with `npm run evals:rerank`.
+  the RRF order; `RERANKER=bge` (plus the Cloudflare keys) turns the re-ranker back on. Re-check with `npm run evals:rerank`.
 - **Router before the LLM.** Greetings, contact questions and prompt-injection attempts get instant canned replies —
   zero tokens, zero hallucination risk.
 - **Free-model orchestration.** Only free models (Groq, Gemini, OpenRouter `:free`). Each has known free-tier limits;

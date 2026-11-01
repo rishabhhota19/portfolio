@@ -36,16 +36,26 @@ export function verifyChatToken(conversationId: string, token: string | null | u
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
+/** Location (from Vercel's edge, city-level) and device (from the user agent) — nothing the visitor typed. */
 export function requestMeta(req: Request) {
   const ua = req.headers.get("user-agent") ?? "";
-  const mobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+  const header = (name: string) => decodeURIComponent(req.headers.get(`x-vercel-ip-${name}`) ?? "");
+  const deviceType = /iPad|Tablet/i.test(ua) ? "Tablet" : /Mobi|Android|iPhone/i.test(ua) ? "Mobile" : "Desktop";
   const browser =
-    /Edg\//.test(ua) ? "Edge" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
-  const city = req.headers.get("x-vercel-ip-city");
+    /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
+  const os =
+    /Windows/.test(ua) ? "Windows" : /Android/.test(ua) ? "Android" : /iPhone|iPad|iOS/.test(ua) ? "iOS" : /Mac OS X/.test(ua) ? "macOS" : /Linux/.test(ua) ? "Linux" : "Other";
+  const [lat, lon] = [header("latitude"), header("longitude")];
   return {
-    country: req.headers.get("x-vercel-ip-country") ?? "",
-    city: city ? decodeURIComponent(city) : "",
-    device: `${mobile ? "Mobile" : "Desktop"} · ${browser}`,
+    country: header("country"),
+    region: header("country-region"),
+    city: header("city"),
+    location: lat && lon ? `${lat}, ${lon}` : "",
+    timezone: header("timezone"),
+    deviceType,
+    os,
+    browser,
+    device: `${deviceType} · ${browser}`,
   };
 }
 

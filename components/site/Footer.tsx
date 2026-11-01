@@ -38,6 +38,9 @@ export function Footer() {
           <Link href="/blog/how-my-portfolio-agent-works" className="link-underline w-fit">
             How the agent works →
           </Link>
+          <Link href="/privacy" className="link-underline w-fit text-muted">
+            Privacy
+          </Link>
         </div>
       </div>
     </footer>

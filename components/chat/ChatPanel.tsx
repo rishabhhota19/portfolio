@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { track } from "@/lib/analytics";
+import { sessionId } from "@/lib/visit";
 import starters from "@/content/starters.json";
 import {
   CHAT_TOKEN_HEADER,
@@ -63,6 +64,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const endPayload = useCallback((reason: EndReason): EndRequest => {
     const convo = currentConversation();
     return {
+      sessionId: sessionId(),
       conversationId: convo.id,
       token: token.current,
       startedAt: convo.startedAt,
@@ -148,7 +150,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ conversationId: currentConversation().id, messages: history, page: window.location.pathname }),
+          body: JSON.stringify({ sessionId: sessionId(), conversationId: currentConversation().id, messages: history, page: window.location.pathname }),
           signal: controller.signal,
         });
         const issued = res.headers.get(CHAT_TOKEN_HEADER);

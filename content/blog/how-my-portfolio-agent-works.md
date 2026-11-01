@@ -15,7 +15,7 @@ The agent is a small **LangGraph** graph written in Python:
    - **FAISS** finds chunks with similar *meaning*, using Gemini embeddings.
    - **BM25** finds exact *keywords*.
    - **Reciprocal Rank Fusion** merges the two rankings.
-3. **rerank:** a cross-encoder (bge-reranker-base) reads the question and each chunk together, and keeps the best 4.
+3. **rerank:** keeps the best 4 chunks. I A/B-tested a cross-encoder (bge-reranker-base, which reads the question and each chunk together) on the eval set: it tied RRF on hit@4 but ranked worse (MRR@4 0.885 vs 0.962), so the site keeps the RRF order.
 4. **respond:** an LLM answers from those chunks only, and streams the reply token by token.
 
 ## Free models, with fallbacks

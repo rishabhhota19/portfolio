@@ -7,14 +7,17 @@ For every question in questions.json with an expected page, compares the top 4 c
   MRR@4   1 / rank of the first chunk from that page — rewards putting it first
 
 Last run (Nov 2026, 13 questions): hit@4 100% for both, MRR@4 RRF 0.962 vs bge-reranker 0.885,
-so production keeps the RRF order (the re-ranker switches on only when the Cloudflare keys are set).
+so production keeps the RRF order (RERANKER=bge plus the Cloudflare keys switches the re-ranker on).
 """
 
 import asyncio
 import json
+import os
 from pathlib import Path
 
-from agent.rag import rerank, search
+os.environ["RERANKER"] = "bge"  # this script compares both orders, so switch the re-ranker on here
+
+from agent.rag import rerank, search  # noqa: E402
 
 HERE = Path(__file__).parent
 

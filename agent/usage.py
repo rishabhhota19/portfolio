@@ -76,6 +76,52 @@ async def record(name: str, tokens: int) -> None:
         _memory[key] = (value + amount if exp > now else amount, exp if exp > now else now + ttl)
 
 
+# ── Per-visit totals (one visit = one browser tab on the site; the Sessions sheet shows them) ──
+
+SESSION_TTL = 2 * 86400
+_sessions: dict[str, dict[str, int]] = {}  # memory fallback: "sess:<id>" and "sess:<id>:models" -> counts
+
+
+async def add_to_session(session_id: str, counts: dict[str, int], model: str = "") -> None:
+    """Adds one LLM call's numbers (tokens, latency, switches…) to a visit's running totals."""
+    if not session_id:
+        return
+    key, models = f"sess:{session_id}", f"sess:{session_id}:models"
+    redis = _client()
+    if redis:
+        try:
+            pipe = redis.pipeline()
+            for field, amount in counts.items():
+                pipe.hincrby(key, field, amount)
+            if model:
+                pipe.hincrby(models, model, 1)
+            pipe.expire(key, SESSION_TTL)
+            pipe.expire(models, SESSION_TTL)
+            await pipe.exec()
+            return
+        except Exception as err:
+            print(f"[usage] redis write failed, using memory: {err}")
+    totals = _sessions.setdefault(key, {})
+    for field, amount in counts.items():
+        totals[field] = totals.get(field, 0) + amount
+    if model:
+        per_model = _sessions.setdefault(models, {})
+        per_model[model] = per_model.get(model, 0) + 1
+
+
+async def session(session_id: str) -> tuple[dict[str, int], dict[str, int]]:
+    """A visit's totals, and how many answers each model gave."""
+    key, models = f"sess:{session_id}", f"sess:{session_id}:models"
+    redis = _client()
+    if redis:
+        try:
+            totals, per_model = await redis.hgetall(key), await redis.hgetall(models)
+            return {k: int(v) for k, v in (totals or {}).items()}, {k: int(v) for k, v in (per_model or {}).items()}
+        except Exception as err:
+            print(f"[usage] redis read failed, using memory: {err}")
+    return dict(_sessions.get(key, {})), dict(_sessions.get(models, {}))
+
+
 async def pause(name: str, seconds: int) -> None:
     """Skips a model for a while (e.g. after the provider says it's rate-limited)."""
     key = _keys(name)["paused"]

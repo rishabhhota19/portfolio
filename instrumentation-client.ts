@@ -1,11 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
 import { initBotId } from "botid/client/core";
 
-// Vercel BotID: invisible bot checks on the endpoints that spend LLM tokens or send email.
+// Vercel BotID: invisible bot checks on the endpoints that spend LLM tokens, send email or log visits.
 initBotId({
   protect: [
     { path: "/api/chat", method: "POST" },
     { path: "/api/lead", method: "POST" },
+    { path: "/api/visit", method: "POST" },
   ],
 });
 

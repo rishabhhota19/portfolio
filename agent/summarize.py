@@ -5,11 +5,11 @@ import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from . import llm
+from . import llm, usage
 from .prompts import SUMMARY_PROMPT
 
 
-async def summarize(messages: list[dict], lead: dict | None = None) -> dict:
+async def summarize(messages: list[dict], lead: dict | None = None, session_id: str = "") -> dict:
     transcript = "\n".join(f"{'Visitor' if m['role'] == 'user' else 'Agent'}: {m['content']}" for m in messages)
     if lead:
         transcript += f"\n(Visitor shared their details: {json.dumps(lead)})"
@@ -24,7 +24,9 @@ async def summarize(messages: list[dict], lead: dict | None = None) -> dict:
         except Exception as err:
             await llm.on_error(m, err)
             continue
-        await llm.record(m, sent, max_tokens=300)
+        used = sum(llm.tokens_used(reply))
+        await llm.record(m, sent, max_tokens=300, used=used)
+        await usage.add_to_session(session_id, {"summary_tokens": used})
         match = re.search(r"\{.*\}", reply.text, re.S)
         if match:
             try:

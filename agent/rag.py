@@ -85,10 +85,11 @@ async def rerank(query: str, docs: list[dict], top_n: int = 4) -> tuple[list[dic
     """Second-stage re-ranking with a cross-encoder (bge-reranker-base, free on Cloudflare Workers AI).
 
     A cross-encoder reads the question and each chunk together, so it judges relevance better than the
-    first-stage search. Without Cloudflare keys (or if the call fails) we keep the RRF order.
+    first-stage search. Unless it's switched on (or if the call fails) we keep the RRF order.
     """
+    # Opt-in (RERANKER=bge): on this site's evals it didn't beat RRF, so production keeps the RRF order.
     account, token = env("CF_ACCOUNT_ID"), env("CF_WORKERS_AI_TOKEN")
-    if not (account and token and docs):
+    if env("RERANKER") != "bge" or not (account and token and docs):
         return docs[:top_n], "rrf"
     try:
         async with httpx.AsyncClient(timeout=5) as client:

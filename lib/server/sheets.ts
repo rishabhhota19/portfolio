@@ -1,38 +1,71 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 
-// One row per conversation in a Google Sheet, written through a small Apps Script web app
-// (integrations/google-sheets/Code.gs). The script upserts by conversation ID, so a later
-// summary (e.g. after the chat closes) updates the row a lead submission created earlier.
-export type ConversationRow = {
-  conversationId: string;
-  startedAt: string;
-  endedAt: string;
-  endReason: string;
-  messages: number;
-  visitorName: string;
-  email: string;
-  company: string;
-  role: string;
-  intent: string;
-  topics: string;
-  summary: string;
-  followUp: string;
-  leadShared: "Yes" | "";
-  recruiterNote: string;
-  country: string;
-  city: string;
-  device: string;
-  entryPage: string;
-  model: string;
+// One row per visit in the "Sessions" tab of a Google Sheet, written through a small Apps Script web app
+// (integrations/google-sheets/Code.gs). The script upserts by session ID and never overwrites a filled cell
+// with an empty one, so the visit beacon, chat summaries and a lead submission all land in the same row.
+export type SessionRow = {
+  sessionId: string;
+  // the visit
+  startedAt?: string;
+  lastSeen?: string;
+  timeOnSite?: string;
+  pageCount?: number;
+  pages?: string;
+  entryPage?: string;
+  exitPage?: string;
+  source?: string;
+  referrer?: string;
+  utm?: string;
+  returning?: string;
+  actions?: string;
+  // where (city-level) and network
+  ip?: string;
+  ipHash?: string;
+  city?: string;
+  region?: string;
+  country?: string;
+  location?: string;
+  timezone?: string;
+  network?: string;
+  // device
+  device?: string;
+  os?: string;
+  browser?: string;
+  screen?: string;
+  language?: string;
+  // the chat (empty if they didn't chat)
+  chats?: number;
+  messages?: number;
+  tokensIn?: number;
+  tokensOut?: number;
+  tokensTotal?: number;
+  llmCalls?: number;
+  models?: string;
+  switches?: number;
+  avgLatency?: number;
+  summaryTokens?: number;
+  intent?: string;
+  topics?: string;
+  summary?: string;
+  followUp?: string;
+  chatEndReason?: string;
+  // the lead (only what the visitor typed into "Share your details")
+  leadShared?: "Yes";
+  visitorName?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  role?: string;
+  recruiterNote?: string;
 };
 
 /** notify: also have the script email the row to you (lead alerts when Resend isn't set up). */
-export async function logConversation(row: ConversationRow, { notify = false } = {}) {
+export async function logSession(row: SessionRow, { notify = false } = {}) {
   const url = process.env.GOOGLE_SHEETS_WEBHOOK_URL;
   const secret = process.env.GOOGLE_SHEETS_SECRET;
   if (!url || !secret) {
-    console.info("[sheets] GOOGLE_SHEETS_WEBHOOK_URL / GOOGLE_SHEETS_SECRET not set — row not logged:", row);
+    console.info("[sheets] GOOGLE_SHEETS_WEBHOOK_URL / GOOGLE_SHEETS_SECRET not set — row not logged:", row.sessionId);
     return false;
   }
   try {
