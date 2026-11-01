@@ -99,6 +99,15 @@ export function plainSummary(messages: ChatMessage[], note = ""): ChatSummary {
   return { summary: `${note}Visitor asked: ${asked.join("; ") || "nothing"}.`, topics: asked.slice(0, 6).join(", "), model: "none" };
 }
 
+/** The summary is a model's JSON: every field becomes a short string (a list is joined), so nothing later can trip on it. */
+function cleanSummary(raw: unknown, messages: ChatMessage[]): ChatSummary {
+  if (!raw || typeof raw !== "object") return plainSummary(messages);
+  const text = (v: unknown) =>
+    (typeof v === "string" ? v : typeof v === "number" ? String(v) : Array.isArray(v) ? v.filter((x) => typeof x === "string").join(", ") : "").slice(0, 1000);
+  const s = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, text(v)])) as ChatSummary;
+  return s.summary ? s : plainSummary(messages);
+}
+
 export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], lead?: Lead): Promise<ChatSummary> {
   try {
     const res = await fetch(agentUrl(req, "summarize"), {
@@ -107,7 +116,7 @@ export async function summarizeChat(req: Request, sessionId: string, messages: C
       body: JSON.stringify({ messages, lead: lead ?? null, session_id: sessionId }),
       signal: AbortSignal.timeout(30_000),
     });
-    if (res.ok) return (await res.json()) as ChatSummary;
+    if (res.ok) return cleanSummary(await res.json(), messages);
     console.error("[agent] summarize failed:", res.status);
     Sentry.captureMessage(`Agent summarize failed (${res.status})`, "warning");
   } catch (err) {

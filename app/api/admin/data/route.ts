@@ -20,7 +20,11 @@ function top(days: Counts[], prefix: string, n = 8): [string, number][] {
 export async function GET(req: Request) {
   if (!validSession((await cookies()).get(COOKIE)?.value)) return json({ ok: false, error: "signed_out" }, 401);
   const wantModels = new URL(req.url).searchParams.get("models") === "1";
-  const [snap, health] = await Promise.all([snapshot(), wantModels ? agentHealth(req) : null]);
+  const [snap, health] = await Promise.all([snapshot(), wantModels ? agentHealth(req) : null]).catch((err: unknown) => {
+    console.error("[admin] data read failed:", err); // Upstash down or over its free cap: the dashboard shows "Reconnecting"
+    return [null, null] as const;
+  });
+  if (!snap) return json({ ok: false, error: "store_unavailable" }, 503);
 
   const stats = snap.days.map((d) => d.stats);
   const series = (field: string) => snap.days.map((d) => ({ day: d.day, value: d.stats[field] ?? 0 }));

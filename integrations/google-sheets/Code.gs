@@ -171,6 +171,8 @@ function blankOldIpsDaily_() {
 
 // Plain-text lead alert to the sheet owner (you). Reply goes straight to the recruiter.
 function notify_(row) {
+  var text = function (v) { return typeof v === 'string' ? v.replace(/^'/, '') : v; }; // the sender's "keep as text" mark
+  Object.keys(row).forEach(function (k) { row[k] = text(row[k]); });
   var where = [row.city, row.country].filter(String).join(', ');
   var body = [
     'Name: ' + (row.visitorName || ''),

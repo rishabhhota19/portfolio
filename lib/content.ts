@@ -15,6 +15,13 @@ export const profile = content.profile;
 
 export const featuredProjects = projects.filter((p) => p.featured);
 
+/** Every page on the site (the admin dashboard counts any other path as "other"). */
+export const sitePaths = new Set([
+  "/", "/projects", "/publications", "/experience", "/blog", "/resume", "/privacy",
+  ...projects.map((p) => `/projects/${p.slug}`),
+  ...posts.map((p) => `/blog/${p.slug}`),
+]);
+
 /** "Simplilearn · Jun – Aug 2025", or just "Personal" when the résumé gives no date. */
 export function projectMeta(p: Project) {
   return [p.org, p.period].filter(Boolean).join(" · ");

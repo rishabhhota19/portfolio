@@ -1,4 +1,5 @@
 import "server-only";
+import { sitePaths } from "@/lib/content";
 import { redis } from "@/lib/server/store";
 
 // The admin dashboard's own data. Events travel here straight from the site (visits, page views, agent
@@ -23,16 +24,22 @@ const clip = (s: unknown, n = 80) => String(s ?? "").slice(0, n);
 type Counts = Record<string, number>;
 const pairs = (c: Counts) => Object.entries(c).filter(([, n]) => n).flatMap(([f, n]) => [clip(f), String(Math.round(n))]);
 
-const PUSH = `
+// A day's counter hash takes at most 600 different fields (a field it already has always counts), so made-up pages
+// or sources sent by a script can't grow it without limit.
+const COUNT = `local function count(key, field, n)
+  if redis.call('HEXISTS', key, field) == 1 or redis.call('HLEN', key) < 600 then redis.call('HINCRBY', key, field, n) end
+end`;
+
+const PUSH = `${COUNT}
 if ARGV[1] ~= '' then redis.call('LPUSH', KEYS[1], ARGV[1]) redis.call('LTRIM', KEYS[1], 0, ${FEED - 1}) end
 if KEYS[3] then redis.call('LPUSH', KEYS[3], ARGV[1]) redis.call('LTRIM', KEYS[3], 0, 199) redis.call('EXPIRE', KEYS[3], 7776000) end
-for i = 3, #ARGV, 2 do redis.call('HINCRBY', KEYS[2], ARGV[i], ARGV[i + 1]) end
+for i = 3, #ARGV, 2 do count(KEYS[2], ARGV[i], ARGV[i + 1]) end
 redis.call('EXPIRE', KEYS[2], ARGV[2])
 return 1`;
 
 // Visit reports arrive several times per visit (each time the tab is hidden): count the visit once, and add
 // only the time that is new since the last report.
-const VISIT = `
+const VISIT = `${COUNT}
 local first = redis.call('HSETNX', KEYS[3], 'seen', 1)
 local before = tonumber(redis.call('HGET', KEYS[3], 'active') or '0')
 local now = tonumber(ARGV[3])
@@ -40,22 +47,30 @@ if now > before then redis.call('HSET', KEYS[3], 'active', now) redis.call('HINC
 redis.call('EXPIRE', KEYS[3], 172800)
 if first == 1 then
   redis.call('LPUSH', KEYS[1], ARGV[1]) redis.call('LTRIM', KEYS[1], 0, ${FEED - 1})
-  for i = 4, #ARGV, 2 do redis.call('HINCRBY', KEYS[2], ARGV[i], ARGV[i + 1]) end
+  for i = 4, #ARGV, 2 do count(KEYS[2], ARGV[i], ARGV[i + 1]) end
 end
 redis.call('EXPIRE', KEYS[2], ARGV[2])
 return first`;
 
 // Heartbeat: mark the visitor live, remember what they're looking at, count a page view when the page changed.
-const LIVE = `
-redis.call('ZADD', KEYS[1], ARGV[1], ARGV[2])
-redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', tonumber(ARGV[1]) - 600000)
+// Its rate limits live here too, so a ping is exactly one command: the same tab on the same page at most every 10 s
+// (returns 0), and at most 300 pings a minute from one network (returns -1 → 429).
+const LIVE = `${COUNT}
+local now = tonumber(ARGV[1])
 local before = redis.call('HGET', KEYS[2], 'page')
+local last = tonumber(redis.call('ZSCORE', KEYS[1], ARGV[2]) or '0')
+if before == ARGV[3] and now - last < 10000 then return 0 end
+local n = redis.call('INCR', KEYS[4])
+if n == 1 then redis.call('EXPIRE', KEYS[4], 120) end
+if n > 300 then return -1 end
+redis.call('ZADD', KEYS[1], now, ARGV[2])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now - 600000)
 for i = 5, #ARGV, 2 do redis.call('HSET', KEYS[2], ARGV[i], ARGV[i + 1]) end
 redis.call('HSETNX', KEYS[2], 'since', ARGV[1])
 redis.call('HSET', KEYS[2], 'last', ARGV[1])
 redis.call('EXPIRE', KEYS[2], 600)
 if before ~= ARGV[3] then
-  redis.call('HINCRBY', KEYS[3], 'pv', 1) redis.call('HINCRBY', KEYS[3], 'page:' .. ARGV[3], 1)
+  redis.call('HINCRBY', KEYS[3], 'pv', 1) count(KEYS[3], 'page:' .. ARGV[3], 1)
   redis.call('EXPIRE', KEYS[3], ARGV[4])
 end
 return 1`;
@@ -79,10 +94,10 @@ const bump = (d: string, c: Counts) => {
   mem.stats.set(d, s);
 };
 
-async function run(script: string, keys: string[], args: string[], fallback: () => void) {
+async function run(script: string, keys: string[], args: string[], fallback: () => void): Promise<unknown> {
   if (!redis) return fallback();
   try {
-    await redis.eval(script, keys, args);
+    return await redis.eval(script, keys, args);
   } catch (err) {
     console.error("[events] write failed:", err); // the dashboard is best-effort: never break the visitor's request
   }
@@ -130,22 +145,26 @@ export async function visit(v: Visit) {
   });
 }
 
-type Presence = { sessionId: string; page: string; city?: string; country?: string; device?: string; network?: string; source?: string };
+type Presence = { sessionId: string; page: string; ipHash: string; city?: string; country?: string; device?: string; network?: string; source?: string };
 
-/** Heartbeat from an open, visible tab (every 30 s and on each page change). */
+/** Heartbeat from an open, visible tab (every 30 s and on each page change). Returns false when one network is
+ * pinging too fast (the route answers 429). */
 export async function live(p: Presence) {
   const now = Date.now();
-  const fields = Object.entries({ page: p.page, city: p.city, country: p.country, device: p.device, net: p.network, src: p.source, sid: p.sessionId.slice(0, 8) })
+  const page = sitePaths.has(p.page) ? p.page : "other"; // a 404 or a made-up path
+  const fields = Object.entries({ page, city: p.city, country: p.country, device: p.device, net: p.network, src: p.source, sid: p.sessionId.slice(0, 8) })
     .filter(([, v]) => v)
     .flatMap(([k, v]) => [k, clip(v)]);
   const d = day(now);
-  await run(LIVE, ["live", `lv:${p.sessionId}`, `st:${d}`], [String(now), p.sessionId, clip(p.page, 200), String(DAY_TTL), ...fields], () => {
+  const minute = Math.floor(now / 60_000);
+  const result = await run(LIVE, ["live", `lv:${p.sessionId}`, `st:${d}`, `rl:live:${p.ipHash}:${minute}`], [String(now), p.sessionId, page, String(DAY_TTL), ...fields], () => {
     const before = mem.live.get(p.sessionId);
-    if (before?.page !== p.page) bump(d, { pv: 1, [`page:${p.page}`]: 1 });
+    if (before?.page !== page) bump(d, { pv: 1, [`page:${page}`]: 1 });
     const entry: Record<string, string> = { ...before, since: before?.since ?? String(now), last: String(now) };
     for (let i = 0; i < fields.length; i += 2) entry[fields[i]] = fields[i + 1];
     mem.live.set(p.sessionId, entry);
   });
+  return result !== -1;
 }
 
 // ── Reader (admin only) ─────────────────────────────────────────────────────

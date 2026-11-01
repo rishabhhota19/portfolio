@@ -145,8 +145,12 @@ def candidates(level: str) -> list[FreeModel]:
 
 
 def estimate_tokens(messages: list) -> int:
-    """Token count estimate (~4 characters per token — within 1% of the providers' counts on our prompts)."""
-    return sum(len(str(m.content)) for m in messages) // 4 + 4 * len(messages)
+    """Token count estimate: ~4 characters per token for English (within 1% of the providers' counts on our prompts).
+    Other scripts and emoji take 1–3 tokens a character, so each non-ASCII character counts as 1.5 — padded
+    Chinese or emoji text can't pass as small any more."""
+    text = "".join(str(m.content) for m in messages)
+    other = sum(1 for c in text if ord(c) > 127)
+    return (len(text) - other) // 4 + other * 3 // 2 + 4 * len(messages)
 
 
 def tokens_used(reply) -> tuple[int, int, int]:

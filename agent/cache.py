@@ -14,6 +14,7 @@ import hashlib
 import json
 import re
 import time
+import unicodedata
 from functools import lru_cache
 
 import numpy as np
@@ -29,9 +30,18 @@ _memory: dict[str, tuple[str, float]] = {}
 # ── exact cache ─────────────────────────────────────────────────────────────
 
 
+MAX_CACHED = 160  # characters: the site's suggested questions are all shorter; long ones are too specific to repeat
+
+
 def _key(question: str) -> str:
-    words = " ".join(re.sub(r"[^a-z0-9 ]+", " ", question.lower()).split())  # "Where did he study??" = "where did he study"
-    return f"ans:v2:{VERSION}:{hashlib.sha1(words.encode()).hexdigest()[:16]}"
+    # "Where did he study??" = "where did he study". Letters of every script count, so text in another language can't
+    # vanish from the key and make an edited question look like a common one.
+    words = " ".join(re.sub(r"[\W_]+", " ", unicodedata.normalize("NFKC", question).casefold()).split())
+    return f"ans:v3:{VERSION}:{hashlib.sha1(words.encode()).hexdigest()[:16]}"
+
+
+def cacheable(question: str) -> bool:
+    return len(question.strip()) <= MAX_CACHED
 
 
 async def get(question: str) -> dict | None:
@@ -48,6 +58,8 @@ async def get(question: str) -> dict | None:
 
 
 async def put(question: str, text: str, links: list[dict]) -> None:
+    if not cacheable(question):
+        return
     key, redis, raw = _key(question), redis_client(), json.dumps({"text": text, "links": links})
     if redis:
         try:

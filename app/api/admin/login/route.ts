@@ -8,11 +8,12 @@ import { json } from "@/lib/server/validate";
 
 const body = z.object({ password: z.string().min(1).max(200) });
 
-/** Signs the owner in to /admin. BotID + 5 tries per 15 minutes per network + 30 an hour overall. */
+/** Signs the owner in to /admin. BotID + 5 tries per 15 minutes per network. (No overall limit: anyone could use
+ * one to lock the owner out. A 24-character password behind BotID and a per-network limit can't be guessed.) */
 export async function POST(req: Request) {
   if (await isBot()) return json({ ok: false, error: "forbidden" }, 403);
   if (!adminConfigured()) return json({ ok: false, error: "not_configured" }, 503);
-  if (!(await allow(`admin:login:${ipHash(req)}`, 5, 900)) || !(await allow("admin:login", 30, 3600))) {
+  if (!(await allow(`admin:login:${ipHash(req)}`, 5, 900))) {
     return json({ ok: false, error: "rate_limited", message: "Too many tries. Wait 15 minutes." }, 429);
   }
   const parsed = body.safeParse(await req.json().catch(() => null));

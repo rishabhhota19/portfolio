@@ -2,10 +2,12 @@ import "server-only";
 import { z } from "zod";
 import { LIMITS } from "@/lib/chat-types";
 
-const message = z.object({
-  role: z.enum(["user", "assistant"]),
-  content: z.string().max(4000),
-});
+// History is written by the browser, so nothing in it is trusted: every turn and the whole is capped (padded fake
+// history used to be a way to make requests too big for the models).
+const message = z
+  .object({ role: z.enum(["user", "assistant"]), content: z.string().max(LIMITS.maxAnswerChars) })
+  .refine((m) => m.role === "assistant" || m.content.length <= LIMITS.maxMessageChars, "message too long");
+const totalChars = (list: { content: string }[]) => list.reduce((n, m) => n + m.content.length, 0);
 
 export const chatRequest = z.object({
   sessionId: z.uuid().optional(),
@@ -16,7 +18,7 @@ export const chatRequest = z.object({
     .min(1)
     .max(LIMITS.maxHistory)
     .refine((m) => m[m.length - 1].role === "user" && m[m.length - 1].content.trim().length > 0, "last message must be from the user")
-    .refine((m) => m[m.length - 1].content.length <= LIMITS.maxMessageChars, "message too long"),
+    .refine((m) => totalChars(m) <= LIMITS.maxHistoryChars, "history too long"),
 });
 
 export const endRequest = z.object({
@@ -27,7 +29,10 @@ export const endRequest = z.object({
   endedAt: z.iso.datetime(),
   reason: z.enum(["closed_chat", "left_site", "tab_hidden", "lead_submitted"]),
   page: z.string().max(200).default("/"),
-  messages: z.array(message.extend({ content: z.string().max(LIMITS.maxLoggedChars) })).max(LIMITS.maxLoggedMessages),
+  messages: z
+    .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(LIMITS.maxLoggedChars) }))
+    .max(LIMITS.maxLoggedMessages)
+    .refine((m) => totalChars(m) <= LIMITS.maxLoggedTotalChars, "transcript too long"),
 });
 
 export const leadRequest = endRequest.extend({

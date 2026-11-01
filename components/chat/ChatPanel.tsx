@@ -8,6 +8,7 @@ import starters from "@/content/starters.json";
 import {
   CHAT_TOKEN_HEADER,
   LIMITS,
+  newestWithin,
   type ChatMessage,
   type EndReason,
   type EndRequest,
@@ -73,7 +74,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const transcript = (list: UiMessage[]): ChatMessage[] =>
     list
       .filter((m) => m.kind !== "notice" && m.content.trim())
-      .map(({ role, content }) => ({ role, content }));
+      .map(({ role, content }) => ({ role, content: content.slice(0, role === "user" ? LIMITS.maxMessageChars : LIMITS.maxAnswerChars) }));
 
   const endPayload = useCallback((reason: EndReason): EndRequest => {
     const convo = currentConversation();
@@ -85,9 +86,12 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       endedAt: new Date().toISOString(),
       reason,
       page: window.location.pathname,
-      messages: transcript(messagesRef.current)
-        .slice(-LIMITS.maxLoggedMessages)
-        .map((m) => ({ ...m, content: m.content.slice(0, LIMITS.maxLoggedChars) })),
+      messages: newestWithin(
+        transcript(messagesRef.current)
+          .slice(-LIMITS.maxLoggedMessages)
+          .map((m) => ({ ...m, content: m.content.slice(0, LIMITS.maxLoggedChars) })),
+        LIMITS.maxLoggedTotalChars,
+      ),
     };
   }, []);
 
@@ -163,7 +167,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         return;
       }
 
-      const history = [...transcript(messagesRef.current), { role: "user" as const, content: text }].slice(-LIMITS.maxHistory);
+      const history = newestWithin([...transcript(messagesRef.current), { role: "user" as const, content: text }].slice(-LIMITS.maxHistory), LIMITS.maxHistoryChars);
       append({ role: "user", content: text });
       track("chat_question", { page: window.location.pathname }); // never the question text
       setInput("");
@@ -285,7 +289,10 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         headers: { "content-type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) return false;
+      if (!res.ok) {
+        const said = (await res.json().catch(() => null)) as { message?: string } | null;
+        return said?.message ?? "Couldn't send that — please email rishabhhota19@gmail.com directly.";
+      }
       loggedCount.current = transcript(messagesRef.current).length;
       setLeadSent(true);
       setShowLead(false);
@@ -295,9 +302,9 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         kind: "notice",
         content: `Thanks, ${lead.name.split(" ")[0] || "there"} — Rishabh has your details and will reach out at ${lead.email}.`,
       });
-      return true;
+      return null;
     } catch {
-      return false;
+      return "Couldn't send that — please email rishabhhota19@gmail.com directly.";
     }
   };
 

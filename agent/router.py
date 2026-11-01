@@ -20,6 +20,8 @@ from . import llm, usage
 from .llm import FreeModel, Tier
 
 MAX_WAIT = 20  # seconds we'll wait for per-minute limits to reset before giving up
+NONE_LEFT_FOR = 60  # once no model in a pool could be booked at all, answer "busy" for this long without asking again
+_none_left: dict[tuple[str, ...], float] = {}  # pool → until when (this instance; costs no Redis commands to check)
 
 
 @dataclass
@@ -56,6 +58,8 @@ async def on_error(m: FreeModel, err: Exception) -> None:
             except ValueError:
                 pass
         await usage.pause(f"paused:{m.name}", min(seconds, 3600))
+    elif status in (400, 413):
+        pass  # this request was too big or malformed for this model: skip it for this question only, keep it for everyone
     elif status in (401, 403, 404):
         await usage.pause(f"paused:{m.name}", 3600)
     else:  # 5xx, timeout, connection error
@@ -67,6 +71,9 @@ async def on_error(m: FreeModel, err: Exception) -> None:
 
 async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeModel], tuple[list, bool] | None]) -> Answer | None:
     """Tries `models` in order; returns the first real answer, or None if every free model is out of budget."""
+    pool = tuple(m.name for m in models)
+    if _none_left.get(pool, 0) > time.time():
+        return None  # everything was used up a moment ago: don't spend ~2 Redis commands per model finding that out again
     tried: list[str] = []
     # Pass 1 keeps every model within its hourly pace (so the best ones last all day); pass 2 ignores the pace
     # (still within the real per-minute and per-day limits); pass 3 waits for the per-minute limits to reset.
@@ -112,4 +119,6 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
                 await usage.sync_groq(m, (reply.response_metadata or {}).get("headers") or {})
             if reply.text.strip():
                 return Answer(reply.text, m.name, tokens_in, tokens_out, cached, depth, trimmed, tried)
+    if not tried:
+        _none_left[pool] = time.time() + NONE_LEFT_FOR
     return None

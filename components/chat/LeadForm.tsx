@@ -12,7 +12,7 @@ export type LeadDetails = {
 };
 
 type Props = {
-  onSubmit: (lead: LeadDetails) => Promise<boolean>;
+  onSubmit: (lead: LeadDetails) => Promise<string | null>; // null = sent; otherwise what to tell the visitor
   onCancel: () => void;
 };
 
@@ -21,6 +21,7 @@ const field =
 
 export function LeadForm({ onSubmit, onCancel }: Props) {
   const [state, setState] = useState<"idle" | "sending" | "error">("idle");
+  const [problem, setProblem] = useState("");
 
   async function handle(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,8 +35,11 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
       note: String(data.get("note") ?? "").trim(),
     };
     setState("sending");
-    const ok = await onSubmit(lead);
-    if (!ok) setState("error");
+    const error = await onSubmit(lead);
+    if (error !== null) {
+      setProblem(error);
+      setState("error");
+    }
   }
 
   return (
@@ -44,13 +48,25 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
       <p className="text-xs text-muted">Rishabh gets an email with your note and a short summary of this chat.</p>
       <div className="grid grid-cols-2 gap-2">
         <input name="name" required maxLength={80} placeholder="Your name" className={field} autoComplete="name" />
-        <input name="email" required type="email" maxLength={120} placeholder="Work email" className={field} autoComplete="email" />
+        <input
+          name="email"
+          required
+          type="email"
+          maxLength={120}
+          pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+          title="An email address like name@company.com"
+          placeholder="Work email"
+          className={field}
+          autoComplete="email"
+        />
         <input name="company" maxLength={80} placeholder="Company" className={field} autoComplete="organization" />
         <input name="role" maxLength={80} placeholder="Role you're hiring for" className={field} />
         <input
           name="phone"
           type="tel"
           maxLength={30}
+          pattern="[+0-9\s().\-]*"
+          title="Digits, spaces and + ( ) - only"
           placeholder="Phone (optional)"
           className={`${field} col-span-2`}
           autoComplete="tel"
@@ -58,7 +74,7 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
       </div>
       <textarea name="note" maxLength={600} rows={2} placeholder="Anything he should know? (optional)" className={field} />
       {state === "error" ? (
-        <p className="text-xs text-accent">Couldn&apos;t send that — please email rishabhhota19@gmail.com directly.</p>
+        <p className="text-xs text-accent">{problem || "Couldn't send that — please email rishabhhota19@gmail.com directly."}</p>
       ) : null}
       <div className="flex items-center justify-end gap-2">
         <button type="button" onClick={onCancel} className="label px-3 py-2 hover:text-ink">

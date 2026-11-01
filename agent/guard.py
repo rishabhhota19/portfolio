@@ -11,6 +11,7 @@ Every pattern here is checked by evals/scope.json: attack prompts must be refuse
 """
 
 import re
+from urllib.parse import urlsplit
 
 from .config import KNOWLEDGE, SITE
 from .pages import PAGES, PATHS
@@ -112,12 +113,21 @@ def check(answer: str) -> str | None:
     return None
 
 
+SITE_HOST = urlsplit(SITE["url"]).hostname
+
+
 def _allowed(url: str) -> bool:
     if url.startswith("/"):
         return url.split("#")[0].rstrip("/") in PATHS or url == "/"
     if url.startswith("mailto:"):
         return url[7:] == SITE["email"]
-    return url.rstrip("/.,") in ALLOWED_URLS or url.startswith(SITE["url"])
+    if url.rstrip("/.,") in ALLOWED_URLS:
+        return True
+    try:
+        u = urlsplit(url)
+    except ValueError:
+        return False
+    return u.scheme == "https" and u.hostname == SITE_HOST and "@" not in u.netloc and _allowed(u.path or "/")
 
 
 def clean(answer: str) -> str:

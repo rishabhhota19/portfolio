@@ -3,7 +3,7 @@ import { sessionUsage } from "@/lib/server/agent";
 import * as events from "@/lib/server/events";
 import { ipHash } from "@/lib/server/request";
 import { logSession } from "@/lib/server/sheets";
-import { allow } from "@/lib/server/store";
+import { allow, allowNearby } from "@/lib/server/store";
 import { json, visitRequest } from "@/lib/server/validate";
 import { countActions, networkOf, returning, sourceOf, whereAndDevice } from "@/lib/server/visitor";
 
@@ -21,6 +21,7 @@ const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|cur
 export async function POST(req: Request) {
   if (BOT_UA.test(req.headers.get("user-agent") ?? "")) return json({ ok: true, skipped: "bot" }, 202);
 
+  if (!allowNearby(`visit:${ipHash(req)}`, 60, 60)) return json({ ok: false, error: "rate_limited" }, 429);
   const parsed = visitRequest.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return json({ ok: false }, 400);
   const v = parsed.data;

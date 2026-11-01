@@ -9,7 +9,10 @@ type ChatNote = { id: string; messages: number; intent: string; topics: string; 
 
 export async function addChat(sessionId: string, conversationId: string, messages: number, s: ChatSummary) {
   const key = `chats:${sessionId}`;
-  const chats: ChatNote[] = JSON.parse((await store.get(key)) ?? "[]");
+  let chats: ChatNote[] = [];
+  try {
+    chats = JSON.parse((await store.get(key)) ?? "[]");
+  } catch {} // a damaged note starts the visit's list again instead of failing every later chat
   const note = {
     id: conversationId,
     messages,
@@ -26,7 +29,7 @@ export async function addChat(sessionId: string, conversationId: string, message
   const latest = chats[chats.length - 1];
   const numbered = (pick: (c: ChatNote) => string) =>
     chats.length === 1 ? pick(latest) : chats.map((c, n) => `${n + 1}) ${pick(c)}`).join("\n");
-  const topics = new Set(chats.flatMap((c) => c.topics.split(",").map((t) => t.trim()).filter(Boolean)));
+  const topics = new Set(chats.flatMap((c) => String(c.topics ?? "").split(",").map((t) => t.trim()).filter(Boolean)));
   return {
     chats: chats.length,
     messages: chats.reduce((sum, c) => sum + c.messages, 0),

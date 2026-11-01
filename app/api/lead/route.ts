@@ -12,7 +12,14 @@ import { networkOf, whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
-const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 3000);
+const SUMMARY_BUDGET = Number(process.env.DAILY_SUMMARY_BUDGET ?? 400);
+const SUMMARIES_PER_CHAT = 3;
+
+const settled = <T,>(r: PromiseSettledResult<T>, fallback: T): T => {
+  if (r.status === "fulfilled") return r.value;
+  console.error("[lead] side step failed:", r.reason);
+  return fallback;
+};
 
 /** "Share your details" form: details + chat summary into the visit's row in Google Sheets, and an email
  * to Rishabh (via Resend if configured, otherwise the Sheet's Apps Script sends it). */
@@ -41,15 +48,23 @@ export async function POST(req: Request) {
   const meta = requestMeta(req);
   after(async () => {
     const s =
-      data.messages.length && (await spendDailyBudget(DAILY_BUDGET))
+      data.messages.length &&
+      (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
+      (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"))
         ? await summarizeChat(req, sessionId, data.messages, data.lead)
         : plainSummary(data.messages);
-    const [chat, usage, network] = await Promise.all([
+    // allSettled: the lead's dashboard record, Sheet row and email never fail because a side step (notes, usage) did.
+    const [chatR, usageR, networkR] = await Promise.allSettled([
       addChat(sessionId, data.conversationId, data.messages.length, { ...s, intent: s.intent || "Hiring — exploring" }),
       sessionUsage(req, sessionId),
       networkOf(req),
     ]);
-    await Promise.all([
+    const chat = settled(chatR, {
+      chats: 1, messages: data.messages.length, intent: s.intent ?? "", topics: s.topics ?? "", summary: s.summary ?? "", followUp: s.followUp ?? "",
+    });
+    const usage = settled(usageR, {});
+    const network = settled(networkR, "");
+    const sent = await Promise.allSettled([
       events.record(
         { type: "lead", sid: sessionId, name: data.lead.name, email: data.lead.email, company: data.lead.company || s.company || "",
           role: data.lead.role || s.role || "", note: (data.lead.note ?? "").slice(0, 300), page: data.page },
@@ -83,6 +98,7 @@ export async function POST(req: Request) {
         meta: { ...meta, page: data.page },
       }),
     ]);
+    for (const r of sent) if (r.status === "rejected") console.error("[lead] delivery step failed:", r.reason);
   });
 
   return json({ ok: true });

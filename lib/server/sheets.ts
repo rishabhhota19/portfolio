@@ -62,6 +62,16 @@ export type SessionRow = {
 };
 
 type Item = { row: SessionRow; notify: boolean };
+
+/** Apps Script writes values the way typed input is read: "=…" would become a live formula (visitor text can't be
+ * trusted) and a digits-only phone a number that loses its "+" or leading 0. A leading apostrophe keeps them as text
+ * (Sheets hides it). */
+function asText(row: SessionRow): SessionRow {
+  const safe = Object.entries(row).map(([k, v]) => [k, typeof v === "string" && /^[=+\-@]/.test(v) ? `'${v}` : v]);
+  const out = Object.fromEntries(safe) as SessionRow;
+  if (out.phone && /^[\d]+$/.test(out.phone)) out.phone = `'${out.phone}`;
+  return out;
+}
 const RETRY = "sheet:retry"; // writes that failed (Sheet busy or down), sent again as one batch
 
 async function send(items: Item[]) {
@@ -94,14 +104,15 @@ export async function logSession(row: SessionRow, { notify = false } = {}) {
     console.info("[sheets] GOOGLE_SHEETS_WEBHOOK_URL / GOOGLE_SHEETS_SECRET not set — row not logged:", row.sessionId);
     return false;
   }
+  row = asText(row);
   if (!(await send([{ row, notify }]))) {
     await store.push(RETRY, JSON.stringify({ row, notify }), 2 * 86_400);
     Sentry.captureMessage("Google Sheets write failed — queued for retry", "warning");
     return false;
   }
-  const backlog = await store.popMany(RETRY, 50); // the Sheet is answering again: send what failed earlier
-  if (backlog.length && !(await send(backlog.map((item) => JSON.parse(item) as Item)))) {
-    for (const item of backlog) await store.push(RETRY, item, 2 * 86_400);
-  }
+  // The Sheet is answering again: send what failed earlier, and only then take it off the queue, so nothing is lost
+  // if this function is stopped half way (rows are matched by visit, so sending one twice is harmless).
+  const backlog = await store.peek(RETRY, 50);
+  if (backlog.length && (await send(backlog.map((item) => JSON.parse(item) as Item)))) await store.remove(RETRY, backlog);
   return true;
 }

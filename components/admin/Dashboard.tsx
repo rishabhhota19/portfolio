@@ -23,7 +23,8 @@ type Data = {
   health: { models?: Record<string, ModelHealth>; embeddings?: Record<string, Engine> } | null;
 };
 
-const POLL_MS = 5_000;
+const POLL_MS = 10_000;
+const IDLE_MS = 5 * 60_000; // left open and untouched: stop polling (each poll is one Upstash command)
 const MODELS_MS = 120_000;
 const fmt = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
 const n = (v: unknown) => fmt.format(Number(v) || 0);
@@ -48,6 +49,7 @@ export function Dashboard() {
   const [updated, setUpdated] = useState(0);
   const [now, setNow] = useState(() => Date.now());
   const [failed, setFailed] = useState(false);
+  const [idle, setIdle] = useState(false);
   const [modelsOpen, setModelsOpen] = useState(false);
 
   const load = useCallback(
@@ -70,17 +72,31 @@ export function Dashboard() {
 
   useEffect(() => {
     let timer = 0;
+    let lastInput = Date.now();
+    let paused = false;
     const tick = () => {
-      if (document.visibilityState === "visible") void load();
+      paused = Date.now() - lastInput > IDLE_MS;
+      setIdle(paused);
+      if (document.visibilityState === "visible" && !paused) void load();
       timer = window.setTimeout(tick, POLL_MS);
     };
-    tick();
+    const onInput = () => {
+      lastInput = Date.now();
+      if (!paused) return;
+      paused = false;
+      setIdle(false);
+      void load();
+    };
+    timer = window.setTimeout(tick, 0);
     const clockTimer = window.setInterval(() => setNow(Date.now()), 1000);
-    const onVisible = () => document.visibilityState === "visible" && void load();
+    const onVisible = () => document.visibilityState === "visible" && !paused && void load();
+    const inputs = ["pointermove", "keydown", "scroll", "touchstart"] as const;
+    for (const name of inputs) window.addEventListener(name, onInput, { passive: true });
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       window.clearTimeout(timer);
       window.clearInterval(clockTimer);
+      for (const name of inputs) window.removeEventListener(name, onInput);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [load]);
@@ -109,8 +125,8 @@ export function Dashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="label flex items-center gap-2">
-            <span className={`inline-block size-2 rounded-full ${failed ? "bg-muted" : "pulse-dot bg-accent"}`} aria-hidden />
-            {failed ? "Reconnecting" : "Live"} · updated {since(updated, now)} ago
+            <span className={`inline-block size-2 rounded-full ${failed || idle ? "bg-muted" : "pulse-dot bg-accent"}`} aria-hidden />
+            {failed ? "Reconnecting" : idle ? "Paused (move the mouse to resume)" : "Live"} · updated {since(updated, now)} ago
           </p>
           <h1 className="mt-2 font-serif text-5xl">Dashboard</h1>
         </div>

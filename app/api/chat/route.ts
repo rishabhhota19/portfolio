@@ -4,7 +4,7 @@ import { askAgent, splitMeta } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import * as events from "@/lib/server/events";
 import { ipHash, issueChatToken } from "@/lib/server/request";
-import { allow, spendDailyBudget } from "@/lib/server/store";
+import { allow, refundDailyBudget, spendDailyBudget } from "@/lib/server/store";
 import { chatRequest, json } from "@/lib/server/validate";
 
 export const maxDuration = 60;
@@ -39,12 +39,14 @@ export async function POST(req: Request) {
 
   const answer = await askAgent(req, conversationId, sessionId, messages);
   if (!answer) {
+    await refundDailyBudget();
     return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
   }
 
   const { stream, meta } = splitMeta(answer, req.signal);
   after(async () => {
     const m = await meta;
+    if (!m || !(m.tokens_in + m.tokens_out)) await refundDailyBudget(); // greeting, cache, refusal, page jump: no model
     if (m) await events.turn({ ...m, sessionId, page: parsed.data.page });
   });
 
