@@ -34,7 +34,7 @@ export default async function Image() {
           </div>
           <div style={{ display: "flex", alignItems: "center", fontSize: 26 }}>
             <div style={{ width: 14, height: 14, borderRadius: 7, background: ACCENT, marginRight: 14 }} />
-            Ask my AI agent → {site.url.replace("https://", "")}
+            Ask Dumbledore, my AI agent → {site.url.replace("https://", "")}
           </div>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", width: 6 * 58, alignContent: "center" }}>

@@ -59,7 +59,7 @@ export default async function ProjectPage({ params }: PageProps<"/projects/[slug
               className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm text-paper transition-transform hover:-translate-y-0.5"
             >
               <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
-              Ask the agent about this
+              Ask Dumbledore about this
             </AskAgentButton>
           </div>
         </aside>

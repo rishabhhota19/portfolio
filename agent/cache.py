@@ -1,44 +1,90 @@
-"""Answer cache for repeated first questions (L0): instant, costs no tokens, and still works when every model is busy.
+"""L0 answers — instant, no LLM tokens, and still working when every model is busy. Two kinds, first questions only
+(later ones depend on the chat so far):
 
-Only a conversation's *first* question is cached (later ones depend on the chat so far), for a day. The key includes
-a hash of the site's content, so editing the content starts a fresh cache automatically.
+  - exact cache (Redis, a day): the same question again, word for word. Only answers that passed every gate are put
+    here (graph.py, Gate 5), so a bad answer can't be repeated to the next visitor.
+  - answer bank (agent/data/answers.*, built by `python -m agent.build_answers`): common questions asked any way at
+    all. Each canonical question has paraphrases; a new question whose embedding is clearly nearest one intent gets
+    its answer — written by the agent and checked against the evals before it went in.
+
+Both are keyed to a hash of the site's content, so editing the content retires old answers automatically.
 """
 
 import hashlib
 import json
 import re
 import time
+from functools import lru_cache
 
-from .prompts import KNOWLEDGE
+import numpy as np
+
+from .config import DATA_DIR, KNOWLEDGE, env
 from .usage import _client as redis_client
 
 TTL = 86_400
 VERSION = hashlib.sha1(json.dumps(KNOWLEDGE, sort_keys=True).encode()).hexdigest()[:10]
 _memory: dict[str, tuple[str, float]] = {}
 
+# ── exact cache ─────────────────────────────────────────────────────────────
+
 
 def _key(question: str) -> str:
     words = " ".join(re.sub(r"[^a-z0-9 ]+", " ", question.lower()).split())  # "Where did he study??" = "where did he study"
-    return f"ans:{VERSION}:{hashlib.sha1(words.encode()).hexdigest()[:16]}"
+    return f"ans:v2:{VERSION}:{hashlib.sha1(words.encode()).hexdigest()[:16]}"
 
 
-async def get(question: str) -> str | None:
-    key, redis = _key(question), redis_client()
+async def get(question: str) -> dict | None:
+    """{"text": answer, "links": [...]} or None."""
+    key, redis, raw = _key(question), redis_client(), None
     if redis:
         try:
-            return await redis.get(key)
+            raw = await redis.get(key)
         except Exception as err:
             print(f"[cache] redis read failed: {err}")
-    hit = _memory.get(key)
-    return hit[0] if hit and hit[1] > time.time() else None
+    if raw is None and (hit := _memory.get(key)) and hit[1] > time.time():
+        raw = hit[0]
+    return json.loads(raw) if raw else None
 
 
-async def put(question: str, answer: str) -> None:
-    key, redis = _key(question), redis_client()
+async def put(question: str, text: str, links: list[dict]) -> None:
+    key, redis, raw = _key(question), redis_client(), json.dumps({"text": text, "links": links})
     if redis:
         try:
-            await redis.set(key, answer, ex=TTL)
+            await redis.set(key, raw, ex=TTL)
             return
         except Exception as err:
             print(f"[cache] redis write failed: {err}")
-    _memory[key] = (answer, time.time() + TTL)
+    _memory[key] = (raw, time.time() + TTL)
+
+
+# ── answer bank ─────────────────────────────────────────────────────────────
+
+MIN_SCORE = 0.88  # nearest paraphrase must be this similar (cosine) …
+MIN_LEAD = 0.06  # … and this much closer than any other intent (EmbeddingGemma: 65% of unseen paraphrases served, 0 wrong)
+
+
+@lru_cache
+def bank() -> tuple[np.ndarray, np.ndarray, list[dict]] | None:
+    meta, vecs = DATA_DIR / "answers.json", DATA_DIR / "answers.npz"
+    if env("ANSWER_BANK") == "off" or not (meta.exists() and vecs.exists()):
+        return None
+    info = json.loads(meta.read_text(encoding="utf-8"))
+    if info["version"] != VERSION:
+        return None  # built for older content: don't serve it
+    data = np.load(vecs)
+    return data["vectors"], data["intent"], info["intents"]
+
+
+def from_bank(vector: np.ndarray | None) -> dict | None:
+    """The bank's answer if the question is clearly one of its intents, else None."""
+    loaded = bank()
+    if vector is None or loaded is None:
+        return None
+    vectors, owner, intents = loaded
+    sims = vectors @ vector
+    best = np.full(len(intents), -1.0)
+    np.maximum.at(best, owner, sims)  # each intent's closest paraphrase
+    first, second = np.argsort(-best)[:2]
+    if best[first] >= MIN_SCORE and best[first] - best[second] >= MIN_LEAD:
+        return {**intents[first], "score": round(float(best[first]), 3)}
+    return None

@@ -1,0 +1,673 @@
+{
+ "version": "a47097f942",
+ "model": "@cf/google/embeddinggemma-300m",
+ "intents": [
+  {
+   "q": "What is Rishabh's current role?",
+   "paraphrases": [
+    "What is Rishabh's current job?",
+    "What role does he hold right now?",
+    "Where is Rishabh working currently?",
+    "What's his title today?",
+    "Current position?",
+    "What is Rishabh doing for work right now?",
+    "Can you tell me his current employment role?",
+    "What does his current job entail?"
+   ],
+   "text": "Rishabh is a **Sr. AI Researcher at Simplilearn** in Bengaluru, a role he has held since **March 2026**. \n\nHe leads hands-on research into emerging AI technology and turns it into business automation, focusing on agentic orchestration, complex workflows, and open-source work [1]. You can view more on his [Simplilearn experience page](/experience#01-simplilearn-sr-ai-researcher).",
+   "links": [
+    {
+     "path": "/experience#01-simplilearn-sr-ai-researcher",
+     "label": "Sr. AI Researcher at Simplilearn"
+    },
+    {
+     "path": "/experience#02-simplilearn-ai-researcher",
+     "label": "AI Researcher at Simplilearn"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "How accurate was his osteoarthritis model?",
+   "paraphrases": [
+    "How precise was his osteoarthritis model?",
+    "What was the accuracy rate of his osteoarthritis project?",
+    "Did his osteoarthritis model perform well?",
+    "How accurate is the osteoarthritis model he built?",
+    "What was the accuracy metric for his osteoarthritis AI?",
+    "How reliable was his osteoarthritis model?",
+    "What percentage accuracy did his osteoarthritis model achieve?",
+    "How well did his osteoarthritis model perform?"
+   ],
+   "text": "Rishabh's osteoarthritis model achieved **96% classification accuracy**, along with more than **90% concordance** with radiologists in trials at SRM Trichy. It also outperformed the competitor RBKnee. \n\nYou can read more about it on the [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification) page.",
+   "links": [
+    {
+     "path": "/projects/oa-classification",
+     "label": "AI-Powered Osteoarthritis Classification & Reporting"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "What did the Collaterals Agent achieve?",
+   "paraphrases": [
+    "What were the results of the Collaterals Agent?",
+    "What did his Collaterals Agent accomplish?",
+    "What is the impact of the Collaterals Agent he built?",
+    "What did the Collaterals Agent achieve?",
+    "How successful was the Collaterals Agent project?",
+    "What problems did the Collaterals Agent solve?",
+    "What was the outcome of his work on the Collaterals Agent?",
+    "What value did the Collaterals Agent deliver?"
+   ],
+   "text": "Rishabh's [Collaterals Agent](/projects/collaterals-agent) reduced course-launch marketing collateral creation time from **7–10 days** (requiring two teams of four people) down to **1 day**, handling drafting, reviews, and approvals automatically. \n\nFor this work, the team won Simplilearn's **Best Team Award (Q3)**. \n\nIf you'd like to discuss how his agentic workflows might fit your team, you can email him at rishabhhota19@gmail.com or share your details using the button below.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "How many people did the Collaterals Agent save time for?",
+   "paraphrases": [
+    "How many people had their time saved by the Collaterals Agent?",
+    "Whose time did the Collaterals Agent save, and how many?",
+    "How many users benefited from the time-saving Collaterals Agent?",
+    "What was the scale of time saved by his Collaterals Agent?",
+    "How many staff members did the Collaterals Agent help?",
+    "How many people's workflows were sped up by the Collaterals Agent?",
+    "How many professionals did the Collaterals Agent save time for?",
+    "What is the user reach of the time-saving Collaterals Agent?"
+   ],
+   "text": "The Collaterals Agent helped streamline the workflow for two teams of four people, totaling eight individuals, who previously spent 7–10 days producing marketing collateral. By automating this process, Rishabh reduced the turnaround time to just one day.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Which award did he win at Simplilearn?",
+   "paraphrases": [
+    "Which award did Rishabh receive at Simplilearn?",
+    "What prize did he win while at Simplilearn?",
+    "Did Rishabh win any recognition at Simplilearn?",
+    "What award was given to him at Simplilearn?",
+    "What accolade did Rishabh earn at Simplilearn?",
+    "Which honor did he receive at Simplilearn?",
+    "Tell me about the award he won at Simplilearn.",
+    "Did he get recognized with an award at Simplilearn?"
+   ],
+   "text": "He won the **Best Team Award (Q3)** at Simplilearn for building the **Collaterals Agent**, an N8N-based multi-agent system that cut course-launch collateral creation from 7–10 days to 1 day.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    }
+   ],
+   "source": "cloudflare/@cf/zai-org/glm-4.7-flash"
+  },
+  {
+   "q": "Where did he study?",
+   "paraphrases": [
+    "Where did Rishabh go to university?",
+    "What college did he attend?",
+    "Where did he complete his education?",
+    "What is Rishabh's alma mater?",
+    "Where did he study?",
+    "Which university did he graduate from?",
+    "What school did he get his degree from?",
+    "Where did Rishabh study for his degree?"
+   ],
+   "text": "He earned a **B.E. in Electronics & Communication** from **B.M.S. College of Engineering, Bangalore** (Aug 2019 – Aug 2023), graduating with a GPA of **7.65/10**.",
+   "links": [],
+   "source": "cloudflare/@cf/zai-org/glm-4.7-flash"
+  },
+  {
+   "q": "What F1 score did LCSNet get?",
+   "paraphrases": [
+    "What F1 score did LCSNet achieve?",
+    "How did LCSNet score on the F1 metric?",
+    "What was the F1 score for his LCSNet model?",
+    "Did LCSNet get a high F1 score?",
+    "What is the performance of LCSNet in terms of F1?",
+    "What F1 score did LCSNet get?",
+    "Can you give me the F1 score of LCSNet?",
+    "How well did LCSNet score on F1?"
+   ],
+   "text": "LCSNet reached an **F1-score of 71.7%** and an IoU of 56.8% for dental caries segmentation. You can read more about it in the published paper on [Intelligence-Based Medicine](/publications#lcsnet).",
+   "links": [
+    {
+     "path": "/publications#lcsnet",
+     "label": "LCSNet"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Where was LCSNet published?",
+   "paraphrases": [
+    "Where was LCSNet published?",
+    "In which journal or conference did LCSNet appear?",
+    "What publication featured his LCSNet paper?",
+    "Where can I find the published LCSNet paper?",
+    "Which publisher or venue accepted LCSNet?",
+    "Where did LCSNet get published?",
+    "What academic venue published LCSNet?",
+    "In what journal/conference is LCSNet published?"
+   ],
+   "text": "LCSNet was published in **Intelligence-Based Medicine (Elsevier)**. You can read the full paper at [LCSNet](/publications).",
+   "links": [
+    {
+     "path": "/publications#lcsnet",
+     "label": "LCSNet"
+    }
+   ],
+   "source": "cloudflare/@cf/zai-org/glm-4.7-flash"
+  },
+  {
+   "q": "What is QFPViT?",
+   "paraphrases": [
+    "What is QFPViT?",
+    "Can you explain his QFPViT project?",
+    "What does QFPViT stand for or involve?",
+    "What is the QFPViT model he worked on?",
+    "Tell me about QFPViT.",
+    "What is the QFPViT architecture?",
+    "How would you describe QFPViT?",
+    "What did he do with QFPViT?"
+   ],
+   "text": "**QFPViT** is a quantum self-attention operator for Vision Transformers designed and evaluated by Rishabh on MedMNIST benchmarks. \n\nHe built it starting from zero quantum-computing background, and the paper has been communicated to the journal Quantum. You can learn more on the [publications page](/publications).",
+   "links": [
+    {
+     "path": "/publications#qfpvit",
+     "label": "QFPViT"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Has he built anything with MCP?",
+   "paraphrases": [
+    "Has he built anything using MCP?",
+    "Did he use MCP in any of his projects?",
+    "Has Rishabh developed applications with Model Context Protocol (MCP)?",
+    "Has he worked with MCP?",
+    "Does he have experience building with MCP?",
+    "Have you seen any projects by him using MCP?",
+    "Has he integrated MCP into his work?",
+    "What has he built with MCP?"
+   ],
+   "text": "Yes, he has. He built **TurboTrade**, a chat copilot for researching, planning, and trading in Indian markets. \n\nIt utilizes the **Zerodha Kite MCP server** to securely stream real-time account data, allowing users to perform tasks like checking live P&L or executing trades directly through chat. You can find more details on his [TurboTrade](/projects/turbotrade) project page.",
+   "links": [
+    {
+     "path": "/projects/turbotrade",
+     "label": "TurboTrade"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "What tools did he use for the sales training chatbot?",
+   "paraphrases": [
+    "What stack did he use for the sales training chatbot?",
+    "Which tools powered his sales training chatbot?",
+    "What did he use to build the sales training chatbot?",
+    "What tech was used for the sales training chatbot?",
+    "What libraries or frameworks went into his sales training chatbot?",
+    "What tools did he use for the sales training chatbot?",
+    "How did he build the sales training chatbot?",
+    "What tech stack did he use for the sales chatbot?"
+   ],
+   "text": "For the [Scalable Sales Training Chatbot](/projects/sales-training-chatbot), Rishabh used **FAISS retrieval**, **Gemini**, **Google ADK**, and built a **Streamlit** interface.",
+   "links": [
+    {
+     "path": "/projects/sales-training-chatbot",
+     "label": "Scalable Sales Training Chatbot"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Has he fine-tuned LLMs? With what?",
+   "paraphrases": [
+    "Has Rishabh fine-tuned LLMs? What did he use?",
+    "Did he ever fine-tune large language models?",
+    "What tools or frameworks has he used to fine-tune LLMs?",
+    "Has he fine-tuned LLMs? With what?",
+    "Does he have experience fine-tuning LLMs, and how?",
+    "What is his experience with fine-tuning LLMs?",
+    "Has he trained or fine-tuned any LLMs?",
+    "Which LLMs has he fine-tuned and using what tooling?"
+   ],
+   "text": "Yes, he has experience with LLM fine-tuning. His core strengths include **LoRA**, **QLoRA**, **Unsloth**, and **TRL**. \n\nIf you would like to discuss how he applies these techniques to specific projects or roles, you might consider using the \"Share your details\" button or emailing him directly.",
+   "links": [
+    {
+     "path": "/projects/portfolio-agent",
+     "label": "AI Portfolio Agent"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Which cloud platforms has he used?",
+   "paraphrases": [
+    "What cloud services has he worked with?",
+    "Which cloud platforms has he used?",
+    "Does he have AWS, GCP, or Azure experience?",
+    "What cloud providers is he familiar with?",
+    "Which cloud environments has Rishabh used?",
+    "What's his cloud platform experience?",
+    "Has he deployed on any cloud platforms?",
+    "Which cloud platforms does he know?"
+   ],
+   "text": "He has experience working with **AWS** (including S3, Lambda, SageMaker, EC2, and Bedrock) and **Azure AI**.",
+   "links": [],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Was his OsteosConnect job remote?",
+   "paraphrases": [
+    "Was his time at OsteosConnect remote?",
+    "Did he work remotely for OsteosConnect?",
+    "Was his OsteosConnect job remote?",
+    "Was the OsteosConnect position work-from-home?",
+    "Did he work on-site or remotely at OsteosConnect?",
+    "Was OsteosConnect a remote role for him?",
+    "Did he work from home for OsteosConnect?",
+    "Is his OsteosConnect experience remote?"
+   ],
+   "text": "Yes, his work at **OsteosConnect Inc** was remote. He served as an **AI/ML Intern** from July 2023 to January 2024 and as an **AI Engineer** from February 2024 to March 2025, both in a remote capacity based in California.",
+   "links": [
+    {
+     "path": "/experience#04-osteosconnect-intern",
+     "label": "AI/ML Intern at OsteosConnect Inc"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "How many years of experience does he have?",
+   "paraphrases": [
+    "How many years of professional experience does he have?",
+    "What is the length of his career in tech?",
+    "How long has Rishabh been working?",
+    "How many years of experience does he have?",
+    "What's his total years of experience?",
+    "How seasoned is he in terms of years worked?",
+    "How many years has he been in the industry?",
+    "What is his level of experience in years?"
+   ],
+   "text": "He has **3+ years** of experience turning AI research into production prototypes and AWS-hosted pipelines.",
+   "links": [],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "What is the AI teddy bear project?",
+   "paraphrases": [
+    "What is the AI teddy bear project about?",
+    "Tell me about the AI teddy bear he built.",
+    "What is the AI teddy bear project?",
+    "Did he really build an AI teddy bear?",
+    "What's the story behind his AI teddy bear project?",
+    "Can you explain his AI teddy bear application?",
+    "What does his AI teddy bear do?",
+    "How does the AI teddy bear project work?"
+   ],
+   "text": "The **AI Teddy Bear** is a personal project where he developed an MVP for a storytelling teddy bear designed for children. It features a unique character voice and personalized storytelling to ensure children feel comfortable.\n\nThe project is **open source** and built to be ready for both hardware integration and a companion app, with guardrails in place to ensure it is secure for children. As many technical details are confidential, he would be happy to walk you through the project specifics directly if you would like to discuss it further.",
+   "links": [
+    {
+     "path": "/projects/ai-teddy-bear",
+     "label": "AI Teddy Bear"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "What programming languages and ML frameworks does he use?",
+   "paraphrases": [
+    "What languages and ML frameworks does he use?",
+    "What is his programming language and ML stack?",
+    "Which coding languages and ML frameworks does he know?",
+    "What programming languages and ML frameworks does he use?",
+    "What are his go-to programming languages and ML frameworks?",
+    "What tech stack does he use for coding and machine learning?",
+    "Which languages and machine learning frameworks is he proficient in?",
+    "What does his programming and ML toolkit look like?"
+   ],
+   "text": "Rishabh works with **Python**, **scikit-learn**, **TensorFlow**, **PyTorch**, and **PyTorch Lightning**, alongside frameworks like **LangChain**, **LangGraph**, **Google ADK**, **CrewAI**, and **FastAPI** [1]. \n\nYou can explore his complete technical stack on his [Experience page](/experience).",
+   "links": [],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Did he do any internships?",
+   "paraphrases": [
+    "Did he complete any internships?",
+    "Does he have internship experience?",
+    "Did he do any internships?",
+    "Were there any internship roles in his background?",
+    "What internships has Rishabh done?",
+    "Did he intern anywhere before working full-time?",
+    "Any past internships on his resume?",
+    "What internship experience does he list?"
+   ],
+   "text": "Yes, he completed two internships:\n\n- **AI/ML Intern** at OsteosConnect Inc (July 2023 – January 2025).\n- **Data Science & ML Intern** at Smartknower Pvt Ltd (November 2020 – January 2021).\n\nIf you would like to discuss his experience further, please feel free to use the \"Share your details\" button or email him directly.",
+   "links": [],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Tell me about his COVID-19 decision support project",
+   "paraphrases": [
+    "Tell me about his COVID-19 decision support project.",
+    "What was his COVID-19 decision support system?",
+    "Can you describe his COVID-19 project?",
+    "How did his COVID-19 decision support tool work?",
+    "What did he build for COVID-19 decision support?",
+    "Tell me about his COVID-19 decision support project",
+    "What was his role in the COVID-19 decision support project?",
+    "What was the impact of his COVID-19 decision support system?"
+   ],
+   "text": "Rishabh's [COVID-19 Decision Support System](/projects/covid-decision-support) is an IoT-enabled, two-stage diagnostic pipeline that combines patient vitals, symptoms, and chest X-rays. \n\n- Stage one uses sensor data and symptom checklists for a preliminary assessment.\n- Stage two adds chest X-ray or CT analysis for a deeper diagnosis.\n- A rule-based engine combines all inputs into a final report with recommended next steps.\n\nIt was built as a college team project and placed **6th place college-wide**. You can also explore his related papers on [Publications](/publications).",
+   "links": [
+    {
+     "path": "/projects/covid-decision-support",
+     "label": "COVID-19 Decision Support System"
+    },
+    {
+     "path": "/publications#covid-multimodal",
+     "label": "Multi-Modal Decision Support for COVID-19 Prediction"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "How is the agent on this website built?",
+   "paraphrases": [
+    "How was the agent on this website built?",
+    "What powers the AI agent on this portfolio site?",
+    "How is the agent on this website built?",
+    "What tech is behind the agent on this site?",
+    "How did he build the agent embedded in this website?",
+    "What framework powers the agent on this page?",
+    "How does the chatbot agent on this site work?",
+    "What stack was used for the agent on this website?"
+   ],
+   "text": "Rishabh's portfolio agent, Dumbledore, is a Python **LangGraph** agent featuring hybrid RAG, page navigation, and a five-gate refusal pipeline. \n\n- A **Next.js gateway** handles security by checking for bots, validating input, and enforcing rate limits before calling the agent.\n- Free LLM tiers use smart fallbacks across providers, with Redis atomically managing budgets and rate limits. \n- You can read more about it in the blog post [How the AI agent on this site works](/blog/how-my-portfolio-agent-works).",
+   "links": [
+    {
+     "path": "/blog/how-my-portfolio-agent-works",
+     "label": "How the AI agent on this site works"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Has he used LangGraph in production?",
+   "paraphrases": [
+    "Has he used LangGraph in production environments?",
+    "Does he have production experience with LangGraph?",
+    "Has he deployed LangGraph in production?",
+    "Has he used LangGraph in production?",
+    "Is he experienced using LangGraph for production apps?",
+    "Has he built production systems with LangGraph?",
+    "Can he use LangGraph in a production setting?",
+    "What is his experience with LangGraph in production?"
+   ],
+   "text": "Yes, he has. He built the **AI Portfolio Agent** (Dumbledore) using a **LangGraph** graph in Python, which has been live in production on this site since October 2026. \n\nHe also utilizes **LangGraph** as part of his core professional strengths in agentic AI and multi-agent orchestration.",
+   "links": [
+    {
+     "path": "/projects/portfolio-agent",
+     "label": "AI Portfolio Agent"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Has he worked with vLLM or Ollama?",
+   "paraphrases": [
+    "Has he worked with vLLM or Ollama?",
+    "Does he have experience using vLLM or Ollama?",
+    "Has he deployed or tested vLLM and Ollama?",
+    "Has he worked with vLLM or Ollama?",
+    "Are vLLM and Ollama part of his toolset?",
+    "Has he used vLLM or Ollama for local LLM serving?",
+    "Does he know how to use vLLM or Ollama?",
+    "Have you seen him use vLLM or Ollama in projects?"
+   ],
+   "text": "Yes, he has experience with both. His expertise includes **vLLM** and **Ollama** for LLM inference and serving, alongside other tools like llama.cpp, model quantization, and KV-cache optimization.",
+   "links": [],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "What did he do at Smartknower?",
+   "paraphrases": [
+    "What did Rishabh do at Smartknower?",
+    "What was his role and work at Smartknower?",
+    "What did he accomplish at Smartknower?",
+    "What did he do at Smartknower?",
+    "Can you summarize his time at Smartknower?",
+    "What responsibilities did he have at Smartknower?",
+    "What projects did he work on at Smartknower?",
+    "What was his experience at Smartknower like?"
+   ],
+   "text": "At Smartknower Pvt Ltd, Rishabh worked as a **Data Science & ML Intern** from **Nov 2020 – Jan 2021**, where he:\n\n- Built a full ETL pipeline, feature engineering and predictive models.\n- Developed Power BI dashboards for sales forecasting and presented actionable insights.\n\nYou can read more on his [Experience](/experience) page.",
+   "links": [
+    {
+     "path": "/experience#05-smartknower-intern",
+     "label": "Data Science & ML Intern at Smartknower Pvt Ltd"
+    }
+   ],
+   "source": "gemini/gemini-3.5-flash-lite"
+  },
+  {
+   "q": "Has he published with Springer?",
+   "paraphrases": [
+    "Has he published any papers with Springer?",
+    "Did he publish research through Springer?",
+    "Has he published with Springer?",
+    "Does he have Springer publications on his CV?",
+    "Has any of his research been published by Springer?",
+    "Are there Springer papers authored by him?",
+    "Did he get a paper published in Springer?",
+    "Have his academic works appeared in Springer?"
+   ],
+   "text": "Yes, he has. He published a chapter titled \"Depression Identification Decision Support System (DIDSS)\" in the Springer book *Advanced Machine Learning for Real World Applications*. You can find more details on his [publications](/publications) page.",
+   "links": [
+    {
+     "path": "/publications#didss",
+     "label": "Depression Identification Decision Support System"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "Would he fit a Forward Deployed Engineer role?",
+   "paraphrases": [
+    "Would Rishabh be a good fit for a Forward Deployed Engineer position?",
+    "Is he suitable for a Forward Deployed Engineer role?",
+    "Could he handle a Forward Deployed Engineer job?",
+    "Would he fit a Forward Deployed Engineer role?",
+    "Does his background align with a Forward Deployed Engineer position?",
+    "Is he qualified to be a Forward Deployed Engineer?",
+    "How well would he do as a Forward Deployed Engineer?",
+    "Does he have the skills for a Forward Deployed Engineer role?"
+   ],
+   "text": "**Yes – he’s an excellent fit for a Forward Deployed Engineer role.**  \n- His core strengths list **Forward Deployed Engineering**, system design, and agentic AI orchestration.  \n- Over **3 + years** he’s turned research into production pipelines on AWS and Azure, delivering high‑impact prototypes (e.g., the 96 % accurate OA classification pipeline).  \n- At Simplilearn he leads hands‑on research and builds automation for complex business workflows, a key part of the FDE skill set.  \n\nYou can view his detailed experience on the **[Experience](/experience)** page or share your details via the “Share your details” button for a direct conversation.",
+   "links": [],
+   "source": "cloudflare/@cf/openai/gpt-oss-120b"
+  },
+  {
+   "q": "Where is he based?",
+   "paraphrases": [
+    "Where is Rishabh located?",
+    "What city or country is he based in?",
+    "Where is he based?",
+    "What is his current location?",
+    "Where does Rishabh live?",
+    "What is his geographical location?",
+    "Where is he working from?",
+    "Where is Rishabh currently residing?"
+   ],
+   "text": "Rishabh is based in **Bengaluru, India**. He currently works on-site there as a Sr. AI Researcher at Simplilearn.",
+   "links": [
+    {
+     "path": "/experience#01-simplilearn-sr-ai-researcher",
+     "label": "Sr. AI Researcher at Simplilearn"
+    },
+    {
+     "path": "/experience#02-simplilearn-ai-researcher",
+     "label": "AI Researcher at Simplilearn"
+    }
+   ],
+   "source": "gemini/gemini-3.1-flash-lite"
+  },
+  {
+   "q": "What's the best email to reach him?",
+   "paraphrases": [
+    "What is the best email address to contact him at?",
+    "Where can I email Rishabh?",
+    "What email can I use to reach him?",
+    "What's his preferred email?",
+    "What's the best email to reach him?",
+    "How can I email Rishabh directly?",
+    "What is his contact email?",
+    "Give me his email address for outreach."
+   ],
+   "text": "You can email him at **rishabhhota19@gmail.com** or message him on [LinkedIn](https://www.linkedin.com/in/rishabh-hota-4138b31b3). He doesn't share a phone number or address here — or tap **Share your details** below and he'll get back to you.",
+   "links": [],
+   "source": "router"
+  },
+  {
+   "q": "What does Rishabh do right now?",
+   "paraphrases": [
+    "What is Rishabh currently up to professionally?",
+    "What does Rishabh do right now?",
+    "What is his present occupation?",
+    "What's his current professional focus?",
+    "What is Rishabh's day job right now?",
+    "What is he working on at the moment?",
+    "What is his current professional status?",
+    "What does Rishabh do right now?"
+   ],
+   "text": "He's a **Sr. AI Researcher at Simplilearn** in Bengaluru (since Mar 2026). He researches new AI tech hands-on and turns it into agentic automation for complex business workflows. Before that he was an AI Researcher at Simplilearn, and an AI Engineer at OsteosConnect, where he led a 96%-accurate osteoarthritis X-ray pipeline on AWS.",
+   "links": [
+    {
+     "path": "/experience#01-simplilearn-sr-ai-researcher",
+     "label": "Sr. AI Researcher at Simplilearn"
+    },
+    {
+     "path": "/experience#02-simplilearn-ai-researcher",
+     "label": "AI Researcher at Simplilearn"
+    }
+   ],
+   "source": "starter"
+  },
+  {
+   "q": "What's his strongest project?",
+   "paraphrases": [
+    "What is his most impressive project?",
+    "Which of his projects is his strongest?",
+    "What's his best project so far?",
+    "What is his standout project?",
+    "What's his strongest project?",
+    "Which project best showcases his skills?",
+    "What is his premier project?",
+    "What project is he most known for?"
+   ],
+   "text": "Two stand out:\n- **Collaterals Agent (Simplilearn):** an N8N multi-agent system — a Head Agent coordinating a Researcher and an Analyst — that cut course-launch collateral from **7–10 days to 1 day**. It won the Best Team Award.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **96% accuracy** and more than 90% agreement with radiologists, ahead of competitor RBKnee.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    }
+   ],
+   "source": "starter"
+  },
+  {
+   "q": "Tell me about his research",
+   "paraphrases": [
+    "Tell me about his research background.",
+    "What academic research has he done?",
+    "Can you share details on his research work?",
+    "Tell me about his research",
+    "What papers or studies has he authored?",
+    "What does his research portfolio look like?",
+    "What scientific or ML research has he published?",
+    "Tell me about his contributions to research."
+   ],
+   "text": "- **LCSNet** (published, Elsevier *Intelligence-Based Medicine*, Oct 2025): a lightweight network that segments dental caries from smartphone photos (F1 71.7%, IoU 56.8%).\n- **Quantum attention:** QFPViT, a quantum self-attention operator for Vision Transformers (under review at *Quantum*), and a matched-budget study of quantum-inspired attention (under review at Springer QMI).\n- Earlier work includes a Springer chapter on depression identification and COVID-19 decision-support papers.",
+   "links": [
+    {
+     "path": "/publications#lcsnet",
+     "label": "LCSNet"
+    },
+    {
+     "path": "/publications#qfpvit",
+     "label": "QFPViT"
+    }
+   ],
+   "source": "starter"
+  },
+  {
+   "q": "Has he built agentic AI in production?",
+   "paraphrases": [
+    "Has he built agentic AI systems in production?",
+    "Does he have production experience with agentic AI?",
+    "Has he deployed agentic AI in production?",
+    "Has he built agentic AI in production?",
+    "Has he put agentic AI into production?",
+    "Does he build production-grade AI agents?",
+    "What is his experience deploying agentic AI?",
+    "Has he worked on production agentic workflows?"
+   ],
+   "text": "Yes. At Simplilearn his N8N-based **Collaterals Agent** runs launch content end to end: a Head Agent, a Researcher (SerpAPI) and an Analyst, a fine-tuned GPT, and Google Docs output. He also built **TurboTrade**, a LangChain + Groq copilot over Zerodha's Kite **MCP** server with OAuth scopes and reversible, logged actions. Agentic orchestration is a core part of his current role.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    },
+    {
+     "path": "/projects/turbotrade",
+     "label": "TurboTrade"
+    }
+   ],
+   "source": "starter"
+  },
+  {
+   "q": "What's his tech stack?",
+   "paraphrases": [
+    "What technologies make up his stack?",
+    "What is his tech stack?",
+    "What tools and technologies does he work with?",
+    "What does his technology stack look like?",
+    "What is Rishabh's technical stack?",
+    "What tools are in his technical toolkit?",
+    "What software and frameworks does he use?",
+    "What is his overall tech stack?"
+   ],
+   "text": "**Agents and LLMs:** LangChain, LangGraph, Google ADK, CrewAI, MCP/FastMCP, RAG and Graph RAG.\n**Fine-tuning and serving:** Unsloth, LoRA/QLoRA, TRL, vLLM, Ollama, llama.cpp, GGUF/AWQ.\n**ML:** PyTorch, TensorFlow, computer vision, medical imaging.\n**Cloud:** AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Docker.\n**Backend:** Python, FastAPI.",
+   "links": [],
+   "source": "starter"
+  },
+  {
+   "q": "How do I contact him?",
+   "paraphrases": [
+    "How can I get in touch with him?",
+    "How do I reach out to Rishabh?",
+    "What is the best way to contact him?",
+    "How do I contact him?",
+    "Where can I find his contact info?",
+    "How can someone get a hold of Rishabh?",
+    "What are his contact details?",
+    "How should I reach him?"
+   ],
+   "text": "Email **rishabhhota19@gmail.com** or message him on [LinkedIn](https://www.linkedin.com/in/rishabh-hota-4138b31b3). Or tap **Share your details** below — he gets an email with your note and will reach out.",
+   "links": [],
+   "source": "starter"
+  }
+ ]
+}

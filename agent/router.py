@@ -11,6 +11,7 @@ budget, wait for the next minute once. Only when everything is out for the day d
 """
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass
 from typing import Callable
@@ -27,6 +28,7 @@ class Answer:
     model: str
     tokens_in: int
     tokens_out: int
+    cached: int  # input tokens the provider served from its prompt cache (Groq: free against its limits)
     depth: int  # how many models were skipped or failed before this one (0 = first choice)
     trimmed: bool  # context had to be shortened to fit
     tried: list[str]
@@ -39,8 +41,15 @@ async def on_error(m: FreeModel, err: Exception) -> None:
     retry_after = response.headers.get("retry-after") if response is not None else None
     if status == 429:
         seconds = 60
-        if any(w in str(err).lower() for w in ("per day", "daily", "perday")):
+        message = str(err)
+        if any(w in message.lower() for w in ("per day", "daily", "perday")):
             seconds = 3600  # daily quota gone: look again in an hour
+            # Groq says exactly how much is used and when it frees up: "…tokens per day (TPD): Limit 200000,
+            # Used 199835, Requested 1567. Please try again in 11m16s" → match our counter and pause just that long.
+            if used := re.search(r"per day \((TPD|RPD)\): Limit \d+, Used (\d+)", message):
+                await usage.sync_day(m, tokens=int(used[2]) if used[1] == "TPD" else 0, requests=int(used[2]) if used[1] == "RPD" else 0)
+            if wait := re.search(r"try again in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", message):
+                seconds = int(wait[1] or 0) * 3600 + int(wait[2] or 0) * 60 + int(float(wait[3])) + 1
         elif retry_after:
             try:
                 seconds = int(float(retry_after)) + 1  # the provider says exactly when to come back
@@ -82,12 +91,12 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
                 continue
             tried.append(m.name)
             reply = None  # chunks added up: the text and the response headers
-            tokens_in = tokens_out = 0  # largest count seen: providers repeat or accumulate usage across chunks
+            tokens_in = tokens_out = cached = 0  # largest count seen: providers repeat or accumulate usage across chunks
             try:
                 async for chunk in m.client(tier.max_tokens, tier.effort, tier.timeout).astream(prompt):
                     reply = chunk if reply is None else reply + chunk
-                    chunk_in, chunk_out = llm.tokens_used(chunk)
-                    tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
+                    chunk_in, chunk_out, chunk_cached = llm.tokens_used(chunk)
+                    tokens_in, tokens_out, cached = max(tokens_in, chunk_in), max(tokens_out, chunk_out), max(cached, chunk_cached)
             except Exception as err:
                 if reply is None or not reply.text.strip():  # failed before answering: give the budget back, move on
                     await usage.refund(reservation)
@@ -96,10 +105,11 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             if reply is None:  # the stream ended without a single chunk
                 await usage.refund(reservation)
                 continue
-            used = tokens_in + tokens_out or booked
-            await usage.settle(reservation, used, m.neurons_for(tokens_in or prompt_tokens, tokens_out))
+            # Groq doesn't count cached prompt tokens against its limits, so neither do we.
+            counted = tokens_in - (cached if m.provider == "groq" else 0) + tokens_out
+            await usage.settle(reservation, counted or booked, m.neurons_for(tokens_in or prompt_tokens, tokens_out))
             if m.provider == "groq":
                 await usage.sync_groq(m, (reply.response_metadata or {}).get("headers") or {})
             if reply.text.strip():
-                return Answer(reply.text, m.name, tokens_in, tokens_out, depth, trimmed, tried)
+                return Answer(reply.text, m.name, tokens_in, tokens_out, cached, depth, trimmed, tried)
     return None

@@ -30,7 +30,7 @@ async def main() -> None:
     cases = [c for c in json.loads((HERE / "questions.json").read_text(encoding="utf-8")) if "url" in c]
     rows = []
     for case in cases:
-        docs = await search(case["q"])
+        docs, _ = await search(case["q"])
         reranked, how = await rerank(case["q"], docs)
         if how != "bge-reranker":
             raise SystemExit("Re-ranker unavailable: set CF_ACCOUNT_ID and CF_WORKERS_AI_TOKEN.")

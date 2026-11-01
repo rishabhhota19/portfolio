@@ -20,8 +20,10 @@ jobs:
   agent:
     runs-on: ubuntu-latest
     env:
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      # No Groq key here on purpose: Groq's daily token cap is the site's best capacity, so CI uses Gemini + Cloudflare.
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # embeddings (EmbeddingGemma) + Cloudflare models
+      CF_WORKERS_AI_TOKEN: ${{ secrets.CF_WORKERS_AI_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,10 +37,10 @@ jobs:
       - run: npm ci
       - run: pip install -r requirements-dev.txt
 
-      - name: Rebuild knowledge + FAISS index
-        run: npm run content && python -m agent.build_index
+      - name: Rebuild knowledge, FAISS index, scope bank and answer bank (each skips itself if nothing changed)
+        run: npm run content && python -m agent.build_index && python -m agent.build_answers
 
-      - name: Commit the index if it changed (Vercel then redeploys)
+      - name: Commit the agent data if it changed (Vercel then redeploys)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -47,6 +49,12 @@ jobs:
 
       - name: Difficulty levels (rules, no API calls)
         run: python -m evals.difficulty_eval
+
+      - name: Navigation (rules, no API calls)
+        run: python -m evals.navigation_eval
+
+      - name: Refusal pipeline (attacks must be refused with 0 leaks, recruiters' questions never)
+        run: python -m evals.scope_eval --full
 
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals

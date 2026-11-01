@@ -38,6 +38,11 @@ function formatDate(value: unknown, withDay = false) {
   return withDay ? `${d.getUTCDate()} ${month} ${d.getUTCFullYear()}` : `${month} ${d.getUTCFullYear()}`;
 }
 
+// Windows checkouts can have CRLF line endings; normalise so the agent's data is identical everywhere (CI included).
+function readText(file: string) {
+  return fs.readFileSync(file, "utf8").replace(/\r\n?/g, "\n");
+}
+
 function readDir(dir: string): Entry[] {
   const full = path.join(contentDir, dir);
   if (!fs.existsSync(full)) return [];
@@ -45,7 +50,7 @@ function readDir(dir: string): Entry[] {
     .readdirSync(full)
     .filter((f) => f.endsWith(".md"))
     .map((file) => {
-      const raw = fs.readFileSync(path.join(full, file), "utf8");
+      const raw = readText(path.join(full, file));
       const { data, content } = matter(raw);
       const body = stripComments(content);
       return {
@@ -59,7 +64,7 @@ function readDir(dir: string): Entry[] {
 }
 
 function readOne(file: string): Entry {
-  const raw = fs.readFileSync(path.join(contentDir, file), "utf8");
+  const raw = readText(path.join(contentDir, file));
   const { data, content } = matter(raw);
   const body = stripComments(content);
   return {
@@ -157,6 +162,7 @@ const docs = [
     kind: "project",
     title: p.title,
     url: `/projects/${p.slug}`,
+    summary: p.summary, // one line per page in the agent's site map
     keywords: [...p.keywords, ...p.tags],
     text: `Project: ${p.title} (${[p.org, p.period].filter(Boolean).join(", ")})\n${p.summary}\n${p.text}`,
   })),
@@ -173,6 +179,7 @@ const docs = [
     kind: "blog",
     title: b.title,
     url: `/blog/${b.slug}`,
+    summary: b.summary,
     keywords: b.keywords,
     text: `Blog post: ${b.title} (${b.date})\n${b.summary}\n${b.text}`,
   })),

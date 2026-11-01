@@ -12,7 +12,7 @@ export default function ResumePage() {
   return (
     <>
       <PageIntro label="Résumé" title={<>The one-page story, <em className="text-accent">in three pages.</em></>}>
-        Prefer a conversation? The agent can answer anything on it.
+        Prefer a conversation? Dumbledore, my AI agent, can answer anything on it.
       </PageIntro>
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="flex flex-wrap gap-3">

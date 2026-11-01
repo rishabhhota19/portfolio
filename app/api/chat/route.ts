@@ -41,7 +41,7 @@ export async function POST(req: Request) {
 
   return new Response(answer, {
     headers: {
-      "content-type": "text/plain; charset=utf-8",
+      "content-type": "application/x-ndjson; charset=utf-8", // agent events, one JSON object per line
       "cache-control": "no-store",
       "x-accel-buffering": "no",
       [CHAT_TOKEN_HEADER]: issueChatToken(conversationId),

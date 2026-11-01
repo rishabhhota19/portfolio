@@ -17,7 +17,7 @@ export function Header() {
             className="hidden items-center gap-2 whitespace-nowrap rounded-full border border-rule px-3 py-1.5 text-sm transition-colors hover:border-accent hover:text-accent lg:inline-flex"
           >
             <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
-            Ask my agent
+            Ask Dumbledore
           </AskAgentButton>
           <ThemeToggle />
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { track } from "@/lib/analytics";
 import { sessionId } from "@/lib/visit";
@@ -17,8 +18,18 @@ import type { PendingQuestion } from "./ChatLauncher";
 import { LeadForm } from "./LeadForm";
 import { Markdown } from "./Markdown";
 
-type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice" };
+type PageLink = { path: string; label: string };
+type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string };
 type Status = "idle" | "waiting" | "streaming" | "offline";
+
+// What the agent streams (one JSON object per line) — see api/index.py.
+type AgentEvent =
+  | { type: "text" | "replace"; text: string }
+  | { type: "navigate"; path: string; label: string; focus?: boolean }
+  | { type: "links"; links: PageLink[] };
+
+// Only this site's own pages: the agent can't send anyone elsewhere, and router.push never sees a javascript: URL.
+const SITE_PATH = /^\/(?!\/)[a-z0-9\-/]*(#[a-z0-9\-]+)?$/i;
 
 type Props = {
   open: boolean;
@@ -32,6 +43,7 @@ const newId = () => crypto.randomUUID();
 // Temporary memory: everything below lives in React state only — no localStorage, no server copy.
 // Closing the chat (×) or leaving the site wipes it; only a summary is logged via /api/chat/end.
 export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled }: Props) {
+  const router = useRouter();
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
@@ -122,8 +134,20 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
     return msg.id;
   };
 
-  const updateMessage = (id: string, content: string) =>
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content } : m)));
+  const updateMessage = (id: string, patch: Partial<UiMessage>) =>
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+
+  // Dumbledore taking the visitor somewhere. The chat lives in the layout, so it survives the navigation.
+  const goTo = useCallback(
+    (path: string, source: "agent" | "button", focus = true) => {
+      if (!SITE_PATH.test(path)) return;
+      track("agent_navigate", { path, source }); // our own page path, never visitor text
+      if (path !== window.location.pathname) router.push(path);
+      // Phones show the chat full-screen: step aside so the visitor sees the page they asked for.
+      if (focus && window.matchMedia("(max-width: 639px)").matches) onMinimize();
+    },
+    [router, onMinimize],
+  );
 
   const ask = useCallback(
     async (raw: string) => {
@@ -177,24 +201,44 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let full = "";
+        let pending = ""; // a line that hasn't fully arrived yet
+        const handle = (line: string) => {
+          if (!line.trim()) return;
+          let event: AgentEvent;
+          try {
+            event = JSON.parse(line);
+          } catch {
+            return;
+          }
+          if (event.type === "text") full += event.text;
+          else if (event.type === "replace") full = event.text; // the output guard changed what was shown
+          else if (event.type === "links") updateMessage(replyId, { links: event.links.filter((l) => SITE_PATH.test(l.path)) });
+          else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
+            updateMessage(replyId, { opened: event.label });
+            goTo(event.path, "agent", event.focus);
+          }
+          updateMessage(replyId, { content: full });
+        };
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
-          full += decoder.decode(value, { stream: true });
-          updateMessage(replyId, full);
+          const lines = (pending + decoder.decode(value, { stream: true })).split("\n");
+          pending = lines.pop() ?? "";
+          lines.forEach(handle);
         }
-        if (!full.trim()) updateMessage(replyId, "I couldn't come up with an answer for that — try rephrasing?");
+        handle(pending);
+        if (!full.trim()) updateMessage(replyId, { content: "I couldn't come up with an answer for that — try rephrasing?" });
         setStatus("idle");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          updateMessage(replyId, "Connection hiccup. Please try again.");
+          updateMessage(replyId, { content: "Connection hiccup. Please try again." });
         }
         setStatus("idle");
       } finally {
         abortRef.current = null;
       }
     },
-    [status],
+    [status, goTo],
   );
 
   // Questions from "Ask the agent" buttons elsewhere on the site. The id guard makes this
@@ -264,7 +308,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   return (
     <section
       role="dialog"
-      aria-label="Chat with Rishabh's AI agent"
+      aria-label="Chat with Dumbledore, Rishabh's AI agent"
       aria-modal="false"
       hidden={!open}
       onKeyDown={(e) => {
@@ -275,16 +319,18 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       {/* Header */}
       <header className="flex items-center gap-3 border-b border-rule px-4 py-3">
         <span className="grid size-9 place-items-center rounded-full bg-ink font-serif text-lg text-paper" aria-hidden>
-          R
+          D
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium leading-tight">Rishabh&apos;s agent</p>
+          <p className="truncate font-medium leading-tight">
+            Dumbledore <span className="font-normal text-muted">· Rishabh&apos;s AI agent</span>
+          </p>
           <p className="label flex items-center gap-1.5 !text-[0.62rem]">
             <span
               className={`inline-block size-1.5 rounded-full ${status === "offline" ? "bg-muted" : "bg-accent pulse-dot"}`}
               aria-hidden
             />
-            {status === "offline" ? "Resting · quick answers below" : "LangGraph · RAG over his real work"}
+            {status === "offline" ? "Resting · quick answers below" : "Answers from his real work · takes you to any page"}
           </p>
         </div>
         <button type="button" onClick={onMinimize} className="label rounded px-2 py-1 hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Minimize — keeps the chat while you browse">
@@ -298,8 +344,9 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
         <div className="max-w-[88%] rounded-sm border border-rule bg-surface px-3.5 py-2.5 text-[0.93rem] leading-relaxed">
-          Hi! I&apos;m Rishabh&apos;s AI agent. Ask me about his projects, research or experience — I answer from his real
-          work and say so when I don&apos;t know.
+          Hello! I&apos;m Dumbledore, Rishabh&apos;s AI agent. Ask me about his projects, research or experience — I answer
+          from his real work and say so when I don&apos;t know. I can also take you to any page: try &ldquo;take me to his
+          projects&rdquo;.
         </div>
 
         {messages.map((m) =>
@@ -321,6 +368,22 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
                   Retrieving from his work<span className="caret">▍</span>
                 </span>
               )}
+              {m.opened ? <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p> : null}
+              {m.links?.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {m.links.map((l) => (
+                    <button
+                      key={l.path}
+                      type="button"
+                      onClick={() => goTo(l.path, "button")}
+                      title={l.label}
+                      className="max-w-full truncate rounded-full border border-accent/50 px-2.5 py-1 text-left text-xs text-accent transition-colors hover:bg-accent hover:text-paper"
+                    >
+                      Take me to {l.label} →
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ),
         )}
@@ -356,7 +419,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         ) : null}
         <form onSubmit={onSubmit} className="flex items-end gap-2">
           <label htmlFor="agent-input" className="sr-only">
-            Ask about Rishabh
+            Ask Dumbledore about Rishabh
           </label>
           <textarea
             id="agent-input"
@@ -370,7 +433,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
               }
             }}
             rows={1}
-            placeholder={status === "offline" ? "The agent is resting — try the quick answers" : "Ask about his work…"}
+            placeholder={status === "offline" ? "Dumbledore is resting — try the quick answers" : "Ask about his work, or “take me to…”"}
             disabled={status === "offline"}
             className="max-h-32 min-h-[2.6rem] flex-1 resize-none rounded-sm border border-rule bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-60"
           />

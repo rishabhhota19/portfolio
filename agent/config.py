@@ -1,5 +1,6 @@
-"""Settings. Locally, keys are read from the repo's .env.local (the same file Next.js uses)."""
+"""Settings and the site's knowledge. Locally, keys are read from the repo's .env.local (the same file Next.js uses)."""
 
+import json
 import os
 import re
 from pathlib import Path
@@ -24,3 +25,8 @@ _load_env_local()
 
 def env(name: str, default: str = "") -> str:
     return os.environ.get(name, "").strip() or default
+
+
+# Everything the agent knows, generated from content/ by scripts/build-content.ts.
+KNOWLEDGE = json.loads((DATA_DIR / "knowledge.json").read_text(encoding="utf-8"))
+SITE = KNOWLEDGE["site"]

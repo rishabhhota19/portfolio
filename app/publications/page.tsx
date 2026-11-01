@@ -15,7 +15,7 @@ export default function PublicationsPage() {
       </PageIntro>
       <ol className="mx-auto max-w-6xl divide-y divide-rule border-y border-rule px-5 sm:px-8">
         {publications.map((p, i) => (
-          <li key={p.slug} className="grid gap-4 py-8 md:grid-cols-[4rem_1fr_14rem]">
+          <li key={p.slug} id={p.slug} className="grid scroll-mt-24 gap-4 py-8 md:grid-cols-[4rem_1fr_14rem]">
             <span className="label pt-1">[{i + 1}]</span>
             <div>
               <h2 className="font-serif text-2xl leading-snug sm:text-[1.75rem]">{p.title}</h2>

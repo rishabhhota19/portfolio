@@ -1,20 +1,22 @@
 ---
 title: AI Portfolio Agent (this site)
-summary: A Python LangGraph agent, live in production on this site, with hybrid RAG (FAISS + BM25 fused with RRF) that answers questions about Rishabh — on a ₹0/month stack.
+summary: Dumbledore, a Python LangGraph agent live on this site — hybrid RAG, a five-gate refusal pipeline, page navigation and 15 free LLMs on a ₹0/month stack.
 org: Personal
 period: Oct 2026
 tags: [LangGraph, LangChain, RAG, FAISS, Python, RAGAS]
 featured: true
 order: 11
-keywords: [this site, portfolio, chatbot, agent, how does this chat work, langgraph, langchain, rag, faiss, bm25, rerank, reranking, ragas, fastapi, python, evals]
+keywords: [this site, portfolio, chatbot, agent, dumbledore, how does this chat work, langgraph, langchain, rag, faiss, bm25, rerank, reranking, ragas, fastapi, python, evals, guardrails, refusal, navigation]
 ---
 
-- **Status:** live in production on this site (rishabh-hota.vercel.app) since October 2026, serving real visitors, with error monitoring (Sentry) and evals on every push.
-- **Agent:** a LangGraph graph in Python (FastAPI on Vercel) with four steps:
-  - **route:** greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;
-  - **retrieve:** hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;
-  - **rerank:** keeps the 4 best chunks in RRF order. A cross-encoder (bge-reranker-base) was A/B-tested on the eval set and kept off because it ranked worse (MRR@4 0.885 vs 0.962);
-  - **respond:** streams the answer from 7 free LLMs (Groq, Gemini, OpenRouter). The backend tracks each model's tokens and requests against its free limits, trims long conversations to fit, and switches models invisibly.
+- **Status:** live in production on this site (rishabh-hota.vercel.app) since October 2026, serving real visitors, with error monitoring (Sentry) and evals on every push. The agent is called **Dumbledore**; the chat window is just its interface.
+- **Agent:** a LangGraph graph in Python (FastAPI on Vercel):
+  - **route:** greetings, contact questions and "take me to …" requests get an instant answer with no LLM call;
+  - **retrieve:** hybrid search, combining FAISS for meaning (EmbeddingGemma embeddings on Cloudflare Workers AI) with BM25 for keywords, merged with Reciprocal Rank Fusion. A cross-encoder re-ranker was A/B-tested and kept off (MRR@4 0.885 vs 0.962);
+  - **respond:** 15 free LLMs across Groq, Gemini, Cloudflare Workers AI and OpenRouter, picked by question difficulty (fact, standard, reasoning). Budgets are reserved atomically in Redis, so many visitors at once never overload one model, and the switch between models is invisible.
+- **Refusal pipeline:** five gates keep it on topic — rules, then a meaning check against on-topic and off-topic examples (both before any LLM), the prompt, an output check on every sentence before the visitor sees it (code and leaked instructions replaced; unknown links, phone numbers and other emails removed), and a cache that stores only clean answers. On 76 attack and off-topic prompts (follow-ups included): 0 leaks. On held-out prompts it refused 32 of 33, 24 of them before any LLM, with 0 false refusals on 47 real recruiter questions.
+- **Agent actions:** it takes visitors to the page they ask for ("open the LCSNet paper") and offers "take me there" buttons under answers. Targets come from an allow-list of the site's own pages, so no one can be sent elsewhere.
+- **Answer bank:** common questions, asked any way, are answered instantly from checked answers: an embedding match with a safety margin (0 wrong answers on held-out paraphrases).
 - **Security:** a Next.js gateway in front of the agent checks for bots, validates input, rate-limits per visitor and enforces a daily budget.
 - **Memory:** lives only in the visitor's open tab. When the chat or the site is closed, it's gone, and only a short AI summary is logged to a Google Sheet.
-- **Evals:** a Python suite checks retrieval, facts and guardrails, and RAGAS scores faithfulness, answer relevancy and context precision.
+- **Evals:** Python suites check retrieval, facts, guardrails, refusals, navigation and difficulty routing; RAGAS scores faithfulness, answer relevancy and context precision.

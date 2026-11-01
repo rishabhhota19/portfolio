@@ -10,7 +10,7 @@ export function Footer() {
             Let&apos;s build something <em className="text-accent">that ships.</em>
           </p>
           <p className="mt-3 max-w-sm text-sm text-muted">
-            Recruiting for an AI, GenAI or research-engineering role? Ask my agent, or write to me directly.
+            Recruiting for an AI, GenAI or research-engineering role? Ask Dumbledore, my AI agent, or write to me directly.
           </p>
         </div>
         <div className="flex flex-col gap-2 text-sm">

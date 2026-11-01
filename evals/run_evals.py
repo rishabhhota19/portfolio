@@ -13,14 +13,17 @@ Also writes evals/results.jsonl (question, answer, retrieved chunks) for RAGAS: 
 
 import asyncio
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage
+os.environ["ANSWER_BANK"] = "off"  # the bank is built from these questions — test the live pipeline instead
 
-from agent.graph import agent
-from agent.prompts import KNOWLEDGE
+from langchain_core.messages import HumanMessage  # noqa: E402
+
+from agent.graph import agent  # noqa: E402
+from agent.prompts import KNOWLEDGE  # noqa: E402
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 4  # Groq's free tier limits tokens per minute, so don't fire questions back to back

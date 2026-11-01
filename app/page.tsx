@@ -38,7 +38,7 @@ export default function Home() {
           <div className="reveal mt-8 flex flex-wrap items-center gap-3" style={{ ["--i" as string]: 3 }}>
             <AskAgentButton className="group inline-flex items-center gap-2.5 rounded-full bg-ink px-5 py-3 text-paper transition-transform hover:-translate-y-0.5">
               <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
-              Ask my agent anything
+              Ask Dumbledore, my AI agent
               <span className="transition-transform group-hover:translate-x-0.5" aria-hidden>
                 →
               </span>
@@ -158,12 +158,13 @@ export default function Home() {
       {/* Agent band */}
       <section className="mx-auto max-w-6xl px-5 pt-24 sm:px-8">
         <div className="relative overflow-hidden rounded-sm border border-rule bg-band p-8 text-band-ink sm:p-12">
-          <p className="label !text-band-ink/60">§4 — The agent</p>
+          <p className="label !text-band-ink/60">§4 — Dumbledore, the agent</p>
           <h2 className="mt-3 max-w-2xl font-serif text-4xl leading-tight sm:text-6xl">
             Skip the scroll. <em className="text-band-accent">Just ask.</em>
           </h2>
           <p className="mt-4 max-w-xl text-band-ink/70">
-            My agent answers from my real projects, papers and experience using retrieval over this site&apos;s content.
+            Dumbledore, my AI agent, answers from my real projects, papers and experience using retrieval over this
+            site&apos;s content, takes you to any page you ask for, and politely declines anything off-topic.
             The conversation disappears when you close it.
           </p>
           <ul className="mt-8 grid gap-2 sm:grid-cols-2">

@@ -17,7 +17,7 @@ export default function ExperiencePage() {
       <section className="mx-auto max-w-6xl px-5 sm:px-8">
         <ol className="relative border-l border-rule">
           {experience.map((r, i) => (
-            <li key={r.slug} className="relative grid gap-3 pb-12 pl-8 md:grid-cols-[13rem_1fr] md:gap-10">
+            <li key={r.slug} id={r.slug} className="relative grid scroll-mt-24 gap-3 pb-12 pl-8 md:grid-cols-[13rem_1fr] md:gap-10">
               <span
                 className={`absolute -left-[5px] top-2 size-[9px] rounded-full border border-accent ${i === 0 ? "bg-accent pulse-dot" : "bg-paper"}`}
                 aria-hidden

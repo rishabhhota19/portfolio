@@ -100,6 +100,7 @@
       "kind": "project",
       "title": "Collaterals Agent",
       "url": "/projects/collaterals-agent",
+      "summary": "An N8N-based multi-agent system that cut course-launch marketing collateral from 7–10 days to 1 day.",
       "keywords": [
         "collaterals",
         "collateral",
@@ -127,6 +128,7 @@
       "kind": "project",
       "title": "AI-Powered Osteoarthritis Classification & Reporting",
       "url": "/projects/oa-classification",
+      "summary": "End-to-end knee X-ray grading on AWS — 96% accuracy, more than 90% concordance with radiologists, ahead of competitor RBKnee.",
       "keywords": [
         "osteoarthritis",
         "oa",
@@ -156,6 +158,7 @@
       "kind": "project",
       "title": "TurboTrade — Zerodha MCP trading copilot",
       "url": "/projects/turbotrade",
+      "summary": "A chat copilot that researches, plans and trades Indian markets using LangChain, Groq and Zerodha's Kite MCP.",
       "keywords": [
         "turbotrade",
         "turbotrader",
@@ -181,6 +184,7 @@
       "kind": "project",
       "title": "AI Teddy Bear (MVP)",
       "url": "/projects/ai-teddy-bear",
+      "summary": "A storytelling teddy bear for children with its own character voice — guardrailed, open source, hardware- and app-ready.",
       "keywords": [
         "teddy",
         "teddy bear",
@@ -205,6 +209,7 @@
       "kind": "project",
       "title": "Scalable Sales Training Chatbot",
       "url": "/projects/sales-training-chatbot",
+      "summary": "A high-throughput sales-enablement chatbot using FAISS retrieval, Gemini and Google ADK, with a Streamlit training UI.",
       "keywords": [
         "sales",
         "sales training",
@@ -229,6 +234,7 @@
       "kind": "project",
       "title": "Ed-Tech Web App",
       "url": "/projects/edtech-platform",
+      "summary": "A cohort-based learning platform with automated cohort and instructor mapping, WhatsApp agent posts and automated payroll.",
       "keywords": [
         "edtech",
         "ed-tech",
@@ -257,6 +263,7 @@
       "kind": "project",
       "title": "Claude Personal Health Doctor",
       "url": "/projects/claude-health-doctor",
+      "summary": "A Claude \"Doctor Skill\" plus a knowledge-graph second brain built from personal medical records.",
       "keywords": [
         "health",
         "doctor",
@@ -279,6 +286,7 @@
       "kind": "project",
       "title": "Gemma 3n on Android — Google AI Edge Gallery",
       "url": "/projects/gemma-3n-on-device",
+      "summary": "Ran an Android-compatible Gemma 3n model inside a custom offline chatbot app.",
       "keywords": [
         "gemma",
         "gemma 3n",
@@ -301,6 +309,7 @@
       "kind": "project",
       "title": "COVID-19 Decision Support System",
       "url": "/projects/covid-decision-support",
+      "summary": "An IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays — 6th place college-wide.",
       "keywords": [
         "covid",
         "covid-19",
@@ -324,6 +333,7 @@
       "kind": "project",
       "title": "News Search & Research Tool",
       "url": "/projects/news-research-tool",
+      "summary": "A GenAI pipeline that turns a question into a scraped, RAG-backed research answer.",
       "keywords": [
         "news",
         "research tool",
@@ -343,11 +353,13 @@
       "kind": "project",
       "title": "AI Portfolio Agent (this site)",
       "url": "/projects/portfolio-agent",
+      "summary": "Dumbledore, a Python LangGraph agent live on this site — hybrid RAG, a five-gate refusal pipeline, page navigation and 15 free LLMs on a ₹0/month stack.",
       "keywords": [
         "this site",
         "portfolio",
         "chatbot",
         "agent",
+        "dumbledore",
         "how does this chat work",
         "langgraph",
         "langchain",
@@ -360,6 +372,9 @@
         "fastapi",
         "python",
         "evals",
+        "guardrails",
+        "refusal",
+        "navigation",
         "LangGraph",
         "LangChain",
         "RAG",
@@ -367,7 +382,7 @@
         "Python",
         "RAGAS"
       ],
-      "text": "Project: AI Portfolio Agent (this site) (Personal, Oct 2026)\nA Python LangGraph agent, live in production on this site, with hybrid RAG (FAISS + BM25 fused with RRF) that answers questions about Rishabh — on a ₹0/month stack.\n- Status: live in production on this site (rishabh-hota.vercel.app) since October 2026, serving real visitors, with error monitoring (Sentry) and evals on every push.\n- Agent: a LangGraph graph in Python (FastAPI on Vercel) with four steps:\n  - route: greetings, contact questions and prompt-injection attempts get an instant answer with no LLM call;\n  - retrieve: hybrid search, combining FAISS for meaning (Gemini embeddings) with BM25 for keywords, merged with Reciprocal Rank Fusion;\n  - rerank: keeps the 4 best chunks in RRF order. A cross-encoder (bge-reranker-base) was A/B-tested on the eval set and kept off because it ranked worse (MRR@4 0.885 vs 0.962);\n  - respond: streams the answer from 7 free LLMs (Groq, Gemini, OpenRouter). The backend tracks each model's tokens and requests against its free limits, trims long conversations to fit, and switches models invisibly.\n- Security: a Next.js gateway in front of the agent checks for bots, validates input, rate-limits per visitor and enforces a daily budget.\n- Memory: lives only in the visitor's open tab. When the chat or the site is closed, it's gone, and only a short AI summary is logged to a Google Sheet.\n- Evals: a Python suite checks retrieval, facts and guardrails, and RAGAS scores faithfulness, answer relevancy and context precision."
+      "text": "Project: AI Portfolio Agent (this site) (Personal, Oct 2026)\nDumbledore, a Python LangGraph agent live on this site — hybrid RAG, a five-gate refusal pipeline, page navigation and 15 free LLMs on a ₹0/month stack.\n- Status: live in production on this site (rishabh-hota.vercel.app) since October 2026, serving real visitors, with error monitoring (Sentry) and evals on every push. The agent is called Dumbledore; the chat window is just its interface.\n- Agent: a LangGraph graph in Python (FastAPI on Vercel):\n  - route: greetings, contact questions and \"take me to …\" requests get an instant answer with no LLM call;\n  - retrieve: hybrid search, combining FAISS for meaning (EmbeddingGemma embeddings on Cloudflare Workers AI) with BM25 for keywords, merged with Reciprocal Rank Fusion. A cross-encoder re-ranker was A/B-tested and kept off (MRR@4 0.885 vs 0.962);\n  - respond: 15 free LLMs across Groq, Gemini, Cloudflare Workers AI and OpenRouter, picked by question difficulty (fact, standard, reasoning). Budgets are reserved atomically in Redis, so many visitors at once never overload one model, and the switch between models is invisible.\n- Refusal pipeline: five gates keep it on topic — rules, then a meaning check against on-topic and off-topic examples (both before any LLM), the prompt, an output check on every sentence before the visitor sees it (code and leaked instructions replaced; unknown links, phone numbers and other emails removed), and a cache that stores only clean answers. On 76 attack and off-topic prompts (follow-ups included): 0 leaks. On held-out prompts it refused 32 of 33, 24 of them before any LLM, with 0 false refusals on 47 real recruiter questions.\n- Agent actions: it takes visitors to the page they ask for (\"open the LCSNet paper\") and offers \"take me there\" buttons under answers. Targets come from an allow-list of the site's own pages, so no one can be sent elsewhere.\n- Answer bank: common questions, asked any way, are answered instantly from checked answers: an embedding match with a safety margin (0 wrong answers on held-out paraphrases).\n- Security: a Next.js gateway in front of the agent checks for bots, validates input, rate-limits per visitor and enforces a daily budget.\n- Memory: lives only in the visitor's open tab. When the chat or the site is closed, it's gone, and only a short AI summary is logged to a Google Sheet.\n- Evals: Python suites check retrieval, facts, guardrails, refusals, navigation and difficulty routing; RAGAS scores faithfulness, answer relevancy and context precision."
     },
     {
       "id": "publication:lcsnet",
@@ -496,6 +511,7 @@
       "kind": "blog",
       "title": "How the AI agent on this site works (and why it costs ₹0)",
       "url": "/blog/how-my-portfolio-agent-works",
+      "summary": "Dumbledore, a Python LangGraph agent — hybrid RAG, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.",
       "keywords": [
         "blog",
         "this site",
@@ -507,9 +523,13 @@
         "reranking",
         "ragas",
         "architecture",
-        "free stack"
+        "free stack",
+        "refusal",
+        "guardrails",
+        "navigation",
+        "dumbledore"
       ],
-      "text": "Blog post: How the AI agent on this site works (and why it costs ₹0) (31 Oct 2026)\nA Python LangGraph agent, hybrid RAG with FAISS + BM25 and re-ranking, free LLMs with fallbacks, and RAGAS evals.\nRecruiters rarely have time to read a whole portfolio, so I put an agent on this site that answers questions about my work. Here's how it's built.\n\nThe graph\nThe agent is a small LangGraph graph written in Python:\n\n1. route: simple messages (hi, \"how do I contact him?\", prompt-injection attempts) get an instant reply without calling an LLM. That saves the free quota for real questions.\n2. retrieve: hybrid search over this site's own content.\n   - FAISS finds chunks with similar meaning, using Gemini embeddings.\n   - BM25 finds exact keywords.\n   - Reciprocal Rank Fusion merges the two rankings.\n3. rerank: keeps the best 4 chunks. I A/B-tested a cross-encoder (bge-reranker-base, which reads the question and each chunk together) on the eval set: it tied RRF on hit@4 but ranked worse (MRR@4 0.885 vs 0.962), so the site keeps the RRF order.\n4. respond: an LLM answers from those chunks only, and streams the reply token by token.\n\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. The agent tries Groq gpt-oss-120b first, then Gemini Flash-Lite, then more Groq and Gemini models, then free models on OpenRouter. The backend tracks every model's requests and tokens against its free limits, skips a model before it runs out, and trims older turns if a long conversation doesn't fit — so the switch is invisible. Only when every free model is used up does the chat pause, until the limits reset.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.\n\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.\n\nMeasuring it\n- An eval suite checks that retrieval finds the right page, that answers contain the right facts, and that guardrails hold: no phone numbers, no leaked prompt, no invented claims.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge."
+      "text": "Blog post: How the AI agent on this site works (and why it costs ₹0) (31 Oct 2026)\nDumbledore, a Python LangGraph agent — hybrid RAG, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.\nRecruiters rarely have time to read a whole portfolio, so I put an agent on this site that answers questions about my work. It's called Dumbledore; the chat window is only its interface. Here's how it's built.\n\nThe graph\nThe agent is a small LangGraph graph written in Python:\n\n1. route: simple messages (hi, \"how do I contact him?\", \"take me to his projects\") get an instant reply without calling an LLM. That saves the free quota for real questions.\n2. retrieve: hybrid search over this site's own content.\n   - FAISS finds chunks with similar meaning, using EmbeddingGemma embeddings on Cloudflare Workers AI.\n   - BM25 finds exact keywords.\n   - Reciprocal Rank Fusion merges the two rankings.\n3. scope: checks the question is about my work before any LLM sees it (more below).\n4. rerank: keeps the best chunks. I A/B-tested a cross-encoder (bge-reranker-base) on the eval set: it tied RRF on hit@4 but ranked worse (MRR@4 0.885 vs 0.962), so the site keeps the RRF order.\n5. respond: an LLM answers from those chunks only.\n6. check: every sentence is checked before it reaches you.\n\nSaying no: the refusal pipeline\nAn agent on a portfolio shouldn't write code, essays or opinions for anyone. Five gates keep it on topic:\n- Rules: harmful requests, jailbreaks, personal questions and off-topic tasks are refused instantly.\n- Meaning: the question's embedding (already computed for retrieval, so it's free) is compared with on-topic and off-topic example questions. Clearly off-topic means refused, still with no LLM call. A follow-up like \"give me the link of the paper\" is judged together with the previous question.\n- Prompt: the model answers only from my profile, or replies with one exact refusal sentence. If a small model refuses a real question about me, a different model gets a second opinion.\n- Output: the server holds each sentence until it's checked. Code or leaked instructions replace the whole answer; unknown links, phone numbers and other people's emails are removed.\n- Cache: only clean, on-topic answers are ever cached.\n\nOn 76 attack and off-topic prompts there were 0 leaks. On prompts written after the rules (a held-out set), it refused 32 of 33, 24 of them before any LLM, with 0 false refusals on 47 real recruiter questions.\n\nAn agent that acts\nAsk \"open the LCSNet paper\" and Dumbledore takes you there. After an answer it offers \"take me there\" buttons for the pages it was about. Where to go is decided by rules over an allow-list of this site's pages, so it can't be talked into sending anyone elsewhere.\n\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. Each question gets a difficulty level (fact, standard, reasoning), and each level has its own pool of free models across Groq, Gemini, Cloudflare Workers AI and OpenRouter. Before calling a model, the backend reserves its budget atomically in Redis, so many visitors at once never pile onto one model, and it trims older turns if a long conversation doesn't fit. The switch is invisible. Common questions are answered instantly from a bank of checked answers. Only when every free model is used up does the chat pause, until the limits reset.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.\n\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.\n\nMeasuring it\n- Eval suites check that retrieval finds the right page, that answers contain the right facts, that guardrails and refusals hold, and that navigation lands on the right page.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge."
     },
     {
       "id": "profile:skills",

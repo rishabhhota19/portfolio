@@ -29,13 +29,20 @@ def tokenize(text: str) -> list[str]:
 
 @lru_cache
 def embedder() -> OpenAIEmbeddings:
-    """Gemini's free embedding model, called through its OpenAI-compatible API."""
+    """EmbeddingGemma (768-dim, multilingual) on Cloudflare Workers AI, through its OpenAI-compatible API.
+
+    Free: a question costs a tiny fraction of a neuron (10,000 a day). It replaced Gemini's embedding API, whose free
+    tier stops at 1,000 requests a day — one per chat question. Chosen on this site's evals (evals/scope.json):
+    same retrieval hit rate as the others tried, and the cleanest split between on-topic and off-topic questions.
+    """
     return OpenAIEmbeddings(
-        model="gemini-embedding-001",
-        dimensions=768,
-        api_key=env("GOOGLE_GENERATIVE_AI_API_KEY", "missing"),
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        model="@cf/google/embeddinggemma-300m",
+        api_key=env("CF_WORKERS_AI_TOKEN", "missing"),
+        base_url=f"https://api.cloudflare.com/client/v4/accounts/{env('CF_ACCOUNT_ID')}/ai/v1",
         check_embedding_ctx_length=False,  # not an OpenAI model, so skip OpenAI's token counting
+        chunk_size=50,  # texts per request
+        timeout=5,  # a slow call mustn't stall the chat: without an embedding, keyword search still answers
+        max_retries=1,
     )
 
 
@@ -63,22 +70,33 @@ def reciprocal_rank_fusion(rankings: list[list[int]], k: int = 60) -> list[int]:
     return sorted(scores, key=scores.get, reverse=True)
 
 
-async def search(query: str, k: int = 8) -> list[dict]:
-    """Hybrid search: FAISS + BM25, fused with RRF. Returns up to k candidate chunks."""
+async def embed(texts: list[str]) -> np.ndarray | None:
+    """Unit vectors for the texts in one API call, or None if the embedding API is down (keyword search still works)."""
+    try:
+        return normalize(await embedder().aembed_documents(texts))
+    except Exception as err:
+        print(f"[rag] embedding skipped: {err}")
+        return None
+
+
+async def search(query: str, vector: np.ndarray | None = None, k: int = 8) -> tuple[list[dict], float]:
+    """Hybrid search: FAISS + BM25, fused with RRF. Returns up to k candidate chunks, and how close the best one is
+    in meaning (cosine 0–1; the scope check uses it). Pass `vector` if the query is already embedded."""
     chunks, index, bm25 = load()
+    if vector is None and (vectors := await embed([query])) is not None:
+        vector = vectors[0]
 
     dense: list[int] = []
-    try:
-        query_vector = normalize(await embedder().aembed_query(query)).reshape(1, -1)
-        _, ids = index.search(query_vector, k)
+    relevance = 0.0
+    if vector is not None:
+        scores, ids = index.search(vector.reshape(1, -1).astype("float32"), k)
         dense = [int(i) for i in ids[0] if i >= 0]
-    except Exception as err:  # embedding API down → keyword search still works
-        print(f"[rag] dense search skipped: {err}")
+        relevance = float(scores[0][0]) if dense else 0.0
 
     scores = bm25.get_scores(tokenize(query))
     sparse = [int(i) for i in np.argsort(-scores)[:k] if scores[i] > 0]
 
-    return [chunks[i] for i in reciprocal_rank_fusion([dense, sparse])[:k]]
+    return [chunks[i] for i in reciprocal_rank_fusion([dense, sparse])[:k]], relevance
 
 
 async def rerank(query: str, docs: list[dict], top_n: int = 4) -> tuple[list[dict], str]:

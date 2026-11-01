@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           when you close it.
         </p>
 
-        <h2>If you chat with the agent</h2>
+        <h2>If you chat with the agent (Dumbledore)</h2>
         <p>
           Your messages are sent to the AI model that answers them (free tiers of Groq, Google Gemini or OpenRouter) and
           are not stored by this site. When the chat ends, only a short AI-written summary of what you asked is added

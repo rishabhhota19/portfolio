@@ -12,11 +12,13 @@
     "lint": "eslint",
     "evals": "python -m evals.run_evals",
     "agent": "python -m uvicorn api.index:app --port 8000 --reload",
-    "agent:index": "npm run content && python -m agent.build_index",
+    "agent:index": "npm run content && python -m agent.build_index && python -m agent.build_answers",
     "evals:ragas": "python -m evals.ragas_eval",
     "evals:rerank": "python -m evals.rerank_ab",
     "evals:difficulty": "python -m evals.difficulty_eval",
-    "evals:load": "python -m evals.load_sim"
+    "evals:load": "python -m evals.load_sim",
+    "evals:scope": "python -m evals.scope_eval --full",
+    "evals:nav": "python -m evals.navigation_eval"
   },
   "dependencies": {
     "@sentry/nextjs": "^11.10.0",

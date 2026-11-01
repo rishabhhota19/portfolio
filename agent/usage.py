@@ -191,6 +191,18 @@ async def sync_groq(m: FreeModel, headers: dict) -> None:
                 _add(k, v - _get(k))
 
 
+async def sync_day(m: FreeModel, tokens: int = 0, requests: int = 0) -> None:
+    """A provider told us its exact daily use (Groq's 429 message): raise today's counters to match."""
+    counters, *_ = _counters(m, 0, 0)
+    pairs = [(k, v) for k, v in ((counters[5][0], tokens), (counters[4][0], requests)) if v]  # tokens / requests today
+    if not pairs:
+        return
+    if await _run(RAISE, [k for k, _ in pairs], [x for _, v in pairs for x in (v, DAY_TTL)]) is None:
+        for k, v in pairs:
+            if _get(k) < v:
+                _add(k, v - _get(k))
+
+
 # ── pauses and circuit breaker ──────────────────────────────────────────────
 
 async def pause(key: str, seconds: int) -> None:

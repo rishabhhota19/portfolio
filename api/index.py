@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from agent import usage
 from agent.config import env
 from agent.graph import agent
+from agent.guard import StreamGuard
 from agent.summarize import summarize
 
 if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs and evals stay out of Sentry
@@ -67,44 +68,66 @@ def check_secret(secret: str | None) -> None:
 
 @app.post("/api/agent/chat")
 async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None)):
-    """Streams the answer as plain text. Returns 503 if every model is unavailable."""
+    """Streams the answer as NDJSON events, one JSON object per line:
+        {"type": "text", "text": "…"}        more of the answer
+        {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
+        {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
+        {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
+    Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
     history = [HumanMessage(m.content) if m.role == "user" else AIMessage(m.content) for m in req.messages]
     started = time.perf_counter()
     result: dict = {"trace": []}
+    line = lambda event: json.dumps(event, ensure_ascii=False) + "\n"  # noqa: E731
 
-    async def tokens():
+    async def events():
+        output = StreamGuard()
+        call = None  # the LLM call being streamed
+        final = None  # the answer as the graph finished it (after the output guard)
         async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"]):
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
-                    result["streamed"] = True
-                    yield chunk.text
+                    if chunk.id != call:  # a second opinion: the held-back refusal is dropped, nothing was shown
+                        call = chunk.id
+                        output = output if output.sent else StreamGuard()
+                    for kind, text in output.push(chunk.text):
+                        yield line({"type": kind, "text": text})
             else:  # "updates": what each node returned
-                for node, update in data.items():
+                for update in data.values():
                     update = update or {}
                     result["trace"] += update.get("trace", [])
-                    result.update({k: update[k] for k in ("intent", "level", "model", "usage") if k in update})
-                    # Replies that weren't streamed token by token: the router's canned answer,
-                    # or the facts-only fallback when every model is busy.
-                    if update.get("messages") and (node == "route" or not result.get("streamed")):
-                        yield update["messages"][-1].content
-        if result.get("usage"):  # real token counts from the provider, added to this visit's totals
-            await usage.add_to_session(req.session_id, result["usage"], model=result.get("model", ""))
+                    result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions") if k in update})
+                    if update.get("messages"):
+                        final = update["messages"][-1].content
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
-        print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}))
+        print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}, default=str))
+        if result.get("model") == "none":
+            return  # every model is out of budget → nothing streamed → 503 below
+        for kind, text in output.finish():
+            yield line({"type": kind, "text": text})
+        if final is not None and final != output.sent:  # canned replies, or the graph's guard changed the answer
+            yield line({"type": "replace" if output.sent else "text", "text": final})
+        for action in result.get("actions", []):
+            yield line(action)
 
-    stream = tokens()
-    first = await anext(stream, None)  # wait for the first token so "all models down" becomes a clean 503
+        counts = dict(result.get("usage") or {})  # real token counts from the provider
+        if result.get("intent") == "refused":
+            counts["refused"] = 1  # questions the refusal pipeline turned down
+        if counts:  # added to this visit's totals
+            await usage.add_to_session(req.session_id, counts, model=result.get("model", "") if result.get("usage") else "")
+
+    stream = events()
+    first = await anext(stream, None)  # wait for the first event so "all models down" becomes a clean 503
     if first is None:
         return JSONResponse({"error": "offline"}, status_code=503)
 
     async def body():
         yield first
-        async for token in stream:
-            yield token
+        async for event in stream:
+            yield event
 
-    return StreamingResponse(body(), media_type="text/plain; charset=utf-8", headers={"Cache-Control": "no-store"})
+    return StreamingResponse(body(), media_type="application/x-ndjson; charset=utf-8", headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/agent/summarize")
@@ -132,6 +155,7 @@ async def session_usage(session_id: str, x_agent_secret: str | None = Header(Non
         "switches": totals.get("switches", 0),
         "avgLatency": round(totals.get("latency_ms", 0) / calls) if calls else 0,
         "summaryTokens": totals.get("summary_tokens", 0),
+        "refused": totals.get("refused", 0),  # questions the refusal pipeline turned down
     }
 
 
