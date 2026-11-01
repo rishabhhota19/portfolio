@@ -13,7 +13,7 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
            Python agent  (api/index.py → agent/graph.py)     LangGraph:
              route ─► retrieve ─► rerank ─► respond            route    canned replies, no LLM (greeting/contact/injection)
                                                                retrieve FAISS (meaning) + BM25 (keywords) → RRF
-                                                               rerank   bge-reranker cross-encoder → top 4
+                                                               rerank   top 4 (RRF order; optional cross-encoder)
                                                                respond  7 free models (Groq → Gemini → OpenRouter),
                                                                         token-tracked; switches are invisible
 ```
@@ -25,8 +25,10 @@ set, otherwise the Sheet's Apps Script sends it from your own Google account).
 ## Why it's built this way
 - **Hybrid retrieval.** Embeddings understand paraphrases but can miss exact names ("LCSNet", "RBKnee"); BM25 is the
   opposite. Reciprocal Rank Fusion merges the two rankings without having to calibrate their very different scores.
-- **Re-ranking.** First-stage search is fast but shallow. A cross-encoder reads the question and each chunk *together*,
-  so the final 4 chunks the LLM sees are the most relevant ones.
+- **Re-ranking — measured, then switched off.** A cross-encoder reads the question and each chunk *together*, which
+  usually beats first-stage search. But on this site's eval questions the only free one (Cloudflare's bge-reranker-base)
+  tied RRF on hit@4 (100%) and ranked worse (MRR@4 0.885 vs 0.962) — it missed acronyms like "MCP". So production keeps
+  the RRF order; setting the Cloudflare keys turns the re-ranker back on. Re-check with `npm run evals:rerank`.
 - **Router before the LLM.** Greetings, contact questions and prompt-injection attempts get instant canned replies —
   zero tokens, zero hallucination risk.
 - **Free-model orchestration.** Only free models (Groq, Gemini, OpenRouter `:free`). Each has known free-tier limits;
@@ -44,7 +46,7 @@ set, otherwise the Sheet's Apps Script sends it from your own Google account).
 | Path | What it does |
 |---|---|
 | `agent/graph.py` | The LangGraph agent: the 4 nodes and how they connect |
-| `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, cross-encoder re-ranking |
+| `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, optional cross-encoder re-ranking |
 | `agent/llm.py` | The free models + their limits; picks one that fits (context shifting), pauses failures |
 | `agent/usage.py` | Token and request tracking per model, per minute and per day (Redis, shared by all servers) |
 | `agent/prompts.py` | System prompt (grounding + guardrail rules) and summary prompt |
@@ -52,6 +54,7 @@ set, otherwise the Sheet's Apps Script sends it from your own Google account).
 | `api/index.py` | FastAPI: `/api/agent/chat` (streams), `/api/agent/summarize`, `/api/agent/health` |
 | `evals/run_evals.py` | Retrieval / fact / guardrail checks over `evals/questions.json` |
 | `evals/ragas_eval.py` | RAGAS: faithfulness, answer relevancy, context precision |
+| `evals/rerank_ab.py` | A/B: RRF order vs the cross-encoder re-ranker (hit@4, MRR@4) |
 | `app/api/*` | Next.js gateway: security checks, then calls the Python agent; logging + lead email |
 | `content/` | All site text. The same files feed the pages and the agent |
 
@@ -74,6 +77,7 @@ npm run agent:index   # rebuilds knowledge.json + the FAISS index in agent/data/
 ```bash
 npm run evals         # checks; writes evals/results.jsonl
 npm run evals:ragas   # RAGAS scores on those results (Gemini as the judge)
+npm run evals:rerank  # does the re-ranker beat RRF? (needs the Cloudflare keys)
 ```
 
 ## Deploy (Vercel, free)
