@@ -36,6 +36,11 @@ class Answer:
     trimmed: bool  # context had to be shortened to fit
     tried: list[str]
 
+    @property
+    def counted(self) -> int:
+        """Tokens that count against the provider's free limits: Groq doesn't count prompt tokens from its cache."""
+        return self.tokens_in - (self.cached if self.model.startswith("groq/") else 0) + self.tokens_out
+
 
 def too_big(message: str) -> bool:
     """A 429 for this request alone ("Limit 8000, Requested 9500"): not the account being busy."""

@@ -164,7 +164,8 @@ async def respond(state: State) -> dict:
 
     ms = round((time.perf_counter() - started) * 1000)
     used = {"calls": len(answers), "tokens_in": sum(a.tokens_in for a in answers), "tokens_out": sum(a.tokens_out for a in answers),
-            "tokens_cached": sum(a.cached for a in answers), "latency_ms": ms, "switches": answer.depth,
+            "tokens_cached": sum(a.cached for a in answers), "tokens_counted": sum(a.counted for a in answers),
+            "latency_ms": ms, "switches": answer.depth,
             "trims": int(answer.trimmed), f"level_{level}": 1}
     return {"messages": [AIMessage(answer.text)], "model": answer.model, "usage": used,
             "trace": step("respond", started, level=level, model=answer.model, tried=answer.tried, depth=answer.depth)}

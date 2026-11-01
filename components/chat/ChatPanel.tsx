@@ -51,7 +51,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const [input, setInput] = useState("");
   const [showLead, setShowLead] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
-  const [tokens, setTokens] = useState(0); // real tokens this chat has used, as the AI providers count them
+  const [tokens, setTokens] = useState(0); // tokens this chat counted against the free limits (cached prompt tokens are free)
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
@@ -434,8 +434,11 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
             </button>
           ) : null}
           {tokens > 0 ? (
-            <span className="label ml-auto !text-[0.62rem]" title="Tokens the AI models used for this chat (free tiers)">
-              This chat · {tokens.toLocaleString("en-IN")} tokens
+            <span
+              className="label ml-auto !text-[0.62rem]"
+              title="Tokens this chat counted against the AI models' free limits. Prompt tokens a model served from its cache are free and not included."
+            >
+              This chat · {tokens.toLocaleString("en-IN")} tokens of free quota
             </span>
           ) : null}
         </div>

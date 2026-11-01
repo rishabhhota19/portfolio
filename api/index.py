@@ -74,7 +74,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
         {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
         {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
-        {"type": "usage", "tokens": 123}                   tokens this turn used (the chat shows the running total)
+        {"type": "usage", "tokens": 123}                   tokens this turn counted against free limits (chat shows a total)
         {"type": "meta", "model": …, "level": …, …}        for the admin dashboard; the gateway strips it
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
@@ -125,8 +125,10 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
             yield line({"type": "replace" if output.sent else "text", "text": final})
         for action in result.get("actions", []):
             yield line(action)
-        used = result.get("usage") or {}  # this turn's real tokens (0 when no model was needed): the chat shows a total
-        yield line({"type": "usage", "tokens": used.get("tokens_in", 0) + used.get("tokens_out", 0)})
+        # This turn's tokens as the free limits count them (Groq's cached prompt tokens are free), 0 when no model was
+        # needed; the chat shows the running total.
+        used = result.get("usage") or {}
+        yield line({"type": "usage", "tokens": used.get("tokens_counted", used.get("tokens_in", 0) + used.get("tokens_out", 0))})
         # For the admin dashboard only: the gateway records this line and strips it, so visitors never see models.
         yield line({"type": "meta", "intent": result.get("intent", ""), "why": result.get("why", ""), "level": result.get("level", ""),
                     "model": result.get("model", ""), "tokens_in": used.get("tokens_in", 0), "tokens_out": used.get("tokens_out", 0),
