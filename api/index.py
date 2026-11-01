@@ -176,5 +176,16 @@ async def health(x_agent_secret: str | None = Header(None)):
         models[key] = {"model": m.name, "available": m.available, "paused": bool(u["paused"]),
                        "requests_today": f"{u['req_day']}/{m.rpd or '∞'}",
                        "tokens_today": f"{u['tok_day']}/{m.tpd or '∞'}", "tokens_this_minute": u["tok_min"]}
+    from agent import embeddings
+
+    engines = {}  # the embedding lineup, in order; the local one is test-run so a broken runtime shows here
+    for e in embeddings.ENGINES:
+        engines[e.name] = {"model": e.model, "ready": e.ready,
+                           "paused": bool((await usage.get(e.remote.name))["paused"]) if e.remote else False}
+        if e.remote is None and e.ready:
+            try:
+                engines[e.name]["probe"] = f"ok, {(await e.embed(['ping'])).shape[1]}-dim"
+            except Exception as err:
+                engines[e.name]["probe"] = f"failed: {type(err).__name__}"
     return {"ok": True, "levels": {lv: t.pool for lv, t in llm.TIERS.items()}, "summaries": llm.SUMMARY_POOL,
-            "shared_pools_today": await usage.pools(), "models": models}
+            "shared_pools_today": await usage.pools(), "embeddings": engines, "models": models}
