@@ -2,28 +2,23 @@
 
     npm run agent:index
 
-1. chunks: every page split into ~900-character pieces (agent/data/chunks.json) — shared by all engines and BM25.
-2. per embedding engine (agent/embeddings.py), in agent/data/embeddings/<engine>/: a FAISS index of the chunks and
-   the scope bank (agent/scope.py) with that engine's thresholds. Each part has a stamp and is rebuilt only when its
-   inputs change. An engine that can't be built right now (no key, out of quota) keeps what still matches the
-   chunks; vectors that don't match are deleted, which switches the engine off until a later build succeeds.
+1. chunks: every page split into ~900-character pieces (agent/data/chunks.json) — for FAISS and BM25.
+2. with the shared embedding model (agent/embeddings.py), run locally — free, no quota, same vectors every time:
+   the FAISS index of the chunks and the scope bank (agent/scope.py), in agent/data/embeddings/.
+   Rebuilt only when the chunks, the examples or the model change (stamps.json).
 """
 
 import asyncio
 import hashlib
 import json
-import shutil
 
 import faiss
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from .config import DATA_DIR
-from .embeddings import ENGINES, PRIMARY, Engine
-from .scope import IN_SCOPE, OUT_OF_SCOPE, calibrate
-
-LABELS = np.array([1] * len(IN_SCOPE) + [0] * len(OUT_OF_SCOPE), dtype="int8")
-CALIBRATION = ("margin", "about_margin", "relevant", "spread", "relevant_pct")
+from .embeddings import ENGINES, FOLDER, MODEL
+from .scope import IN_SCOPE, OUT_OF_SCOPE
 
 
 def chunk_pages() -> list[dict]:
@@ -42,70 +37,25 @@ def chunk_pages() -> list[dict]:
     ]
 
 
-def stamp(*parts) -> str:
-    return hashlib.sha1(json.dumps(parts).encode()).hexdigest()[:16]
-
-
-def build(engine: Engine, chunks: list[dict], reference: dict | None) -> None:
-    folder = engine.folder
-    stamps_file = folder / "stamps.json"
-    old = json.loads(stamps_file.read_text()) if stamps_file.exists() else {}
-    texts = IN_SCOPE + OUT_OF_SCOPE
-    want = {"index": stamp(engine.model, chunks),
-            "scope": stamp(engine.model, chunks, texts, reference and [reference[k] for k in CALIBRATION])}
-    if old == want:
-        print(f"{engine.name}: up to date")
-        return
-    try:
-        if old.get("index") != want["index"]:
-            vectors = asyncio.run(engine.embed([c["text"] for c in chunks], timeout=60))
-            index = faiss.IndexFlatIP(vectors.shape[1])
-            index.add(vectors)
-            folder.mkdir(parents=True, exist_ok=True)
-            faiss.write_index(index, str(folder / "index.faiss"))
-            old["index"] = want["index"]
-        if old.get("scope") != want["scope"] and (engine == PRIMARY or reference):
-            bank = asyncio.run(engine.embed(texts, timeout=60))
-            relevance = faiss.read_index(str(folder / "index.faiss")).search(bank, 1)[0][:, 0]  # nearest chunk
-            thresholds = calibrate(bank, LABELS, relevance, None if engine == PRIMARY else reference)
-            np.savez(folder / "scope.npz", vectors=bank, labels=LABELS, texts=np.array(texts), **thresholds)
-            old["scope"] = want["scope"]
-            print(f"{engine.name}: scope margin {thresholds['margin']:.3f} / about him {thresholds['about_margin']:.3f} "
-                  f"/ relevant {thresholds['relevant']:.2f}")
-        print(f"{engine.name}: built ({len(chunks)} chunks)")
-    except Exception as err:
-        print(f"{engine.name}: can't build now ({type(err).__name__}: {str(err)[:80]})")
-        if old.get("index") != want["index"]:  # its vectors don't match today's chunks: never serve them
-            for name in ("index.faiss", "scope.npz"):
-                (folder / name).unlink(missing_ok=True)
-            old = {}
-            print(f"{engine.name}: switched off until a build succeeds")
-    if old:
-        stamps_file.write_text(json.dumps(old) + "\n")
-    else:
-        stamps_file.unlink(missing_ok=True)
-
-
-def reference_calibration() -> dict | None:
-    """The primary engine's scope calibration — the others' thresholds are scaled from it."""
-    path = PRIMARY.folder / "scope.npz"
-    if not path.exists():
-        return None
-    with np.load(path) as data:
-        return {k: float(data[k]) for k in CALIBRATION}
-
-
 def main() -> None:
     chunks = chunk_pages()
     (DATA_DIR / "chunks.json").write_text(json.dumps(chunks, indent=1, ensure_ascii=False), encoding="utf-8")
-    build(PRIMARY, chunks, None)
-    reference = reference_calibration()
-    for engine in ENGINES[1:]:
-        build(engine, chunks, reference)
-    known = {e.name for e in ENGINES}
-    for folder in (DATA_DIR / "embeddings").iterdir():  # an engine removed from the list: drop its data
-        if folder.is_dir() and folder.name not in known:
-            shutil.rmtree(folder)
+    examples = IN_SCOPE + OUT_OF_SCOPE
+    stamp = hashlib.sha1(json.dumps([MODEL, chunks, examples]).encode()).hexdigest()[:16]
+    stamps = FOLDER / "stamps.json"
+    if stamps.exists() and json.loads(stamps.read_text()).get("data") == stamp:
+        print(f"Index and scope bank already up to date ({len(chunks)} chunks, {len(examples)} examples).")
+        return
+
+    local = ENGINES[0]
+    vectors = asyncio.run(local.embed([c["text"] for c in chunks], timeout=60))
+    index = faiss.IndexFlatIP(vectors.shape[1])  # inner product on unit vectors = cosine similarity
+    index.add(vectors)
+    faiss.write_index(index, str(FOLDER / "index.faiss"))
+    labels = np.array([1] * len(IN_SCOPE) + [0] * len(OUT_OF_SCOPE), dtype="int8")
+    np.savez(FOLDER / "scope.npz", vectors=asyncio.run(local.embed(examples, timeout=60)), labels=labels, texts=np.array(examples))
+    stamps.write_text(json.dumps({"model": MODEL, "data": stamp}) + "\n")
+    print(f"Indexed {len(chunks)} chunks + {len(examples)} scope examples with {MODEL} ({vectors.shape[1]}-dim) -> {FOLDER}")
 
 
 if __name__ == "__main__":

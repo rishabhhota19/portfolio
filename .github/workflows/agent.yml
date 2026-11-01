@@ -22,7 +22,7 @@ jobs:
     env:
       # No Groq key here on purpose: Groq's daily token cap is the site's best capacity, so CI uses Gemini + Cloudflare.
       GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # embeddings (EmbeddingGemma) + Cloudflare models
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # Cloudflare chat models (embeddings are built locally)
       CF_WORKERS_AI_TOKEN: ${{ secrets.CF_WORKERS_AI_TOKEN }}
     steps:
       - uses: actions/checkout@v4

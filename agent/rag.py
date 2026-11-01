@@ -3,8 +3,8 @@
     question ─┬─► FAISS  (meaning: embeddings) ─┐
               └─► BM25   (exact keywords)  ─────┴─► Reciprocal Rank Fusion ─► re-rank ─► top 4 chunks
 
-The chunks (agent/data/chunks.json) and one FAISS index per embedding engine (agent/data/embeddings/<engine>/) are
-built by `python -m agent.build_index`. Which engine embeds a question is decided in embeddings.py.
+The chunks (agent/data/chunks.json) and the FAISS index (agent/data/embeddings/) are built by
+`python -m agent.build_index`. How a question gets embedded (and what happens if it can't be) is in embeddings.py.
 """
 
 import json
@@ -18,7 +18,6 @@ from rank_bm25 import BM25Okapi
 
 from . import embeddings
 from .config import DATA_DIR, env
-from .embeddings import Engine
 
 STOPWORDS = set("a an and are about can did do does for from has have he him his how i in is it me of on or "
                 "rishabh tell than that the their this to was what when where which who why with would you your".split())
@@ -38,9 +37,9 @@ def load():
 
 
 @lru_cache
-def index_for(engine: Engine):
-    """That engine's FAISS index (inner product on unit vectors = cosine similarity), loaded once."""
-    return faiss.read_index(str(engine.folder / "index.faiss"))
+def index():
+    """The FAISS index of the chunks (inner product on unit vectors = cosine similarity), loaded once."""
+    return faiss.read_index(str(embeddings.FOLDER / "index.faiss"))
 
 
 def reciprocal_rank_fusion(rankings: list[list[int]], k: int = 60) -> list[int]:
@@ -52,19 +51,19 @@ def reciprocal_rank_fusion(rankings: list[list[int]], k: int = 60) -> list[int]:
     return sorted(scores, key=scores.get, reverse=True)
 
 
-async def search(query: str, engine: Engine | None = None, vector: np.ndarray | None = None, k: int = 8) -> tuple[list[dict], float]:
+async def search(query: str, vector: np.ndarray | None = None, k: int = 8) -> tuple[list[dict], float]:
     """Hybrid search: FAISS + BM25, fused with RRF. Returns up to k candidate chunks, and how close the best one is
-    in meaning (cosine 0–1; the scope check uses it). Pass `engine` + `vector` if the query is already embedded;
-    with no engine at all (every one down), it's keyword search only."""
+    in meaning (cosine 0–1; the scope check uses it). Pass `vector` if the query is already embedded; if it can't be
+    embedded at all, it's keyword search only."""
     chunks, bm25 = load()
     if vector is None:
-        engine, vectors = await embeddings.embed([query])
+        _, vectors = await embeddings.embed([query])
         vector = None if vectors is None else vectors[0]
 
     dense: list[int] = []
     relevance = 0.0
-    if vector is not None and engine is not None:
-        scores, ids = index_for(engine).search(vector.reshape(1, -1).astype("float32"), k)
+    if vector is not None:
+        scores, ids = index().search(vector.reshape(1, -1).astype("float32"), k)
         dense = [int(i) for i in ids[0] if i >= 0]
         relevance = float(scores[0][0]) if dense else 0.0
 

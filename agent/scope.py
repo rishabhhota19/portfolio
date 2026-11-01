@@ -3,9 +3,8 @@
 The question's embedding (already computed for retrieval, so this costs nothing) is compared with two small banks of
 example questions — recruiter questions about him, and things people ask chatbots that have nothing to do with him.
 If it sits clearly closer to the off-topic examples, and nothing on the site is a close match, it's refused before any
-LLM is called. Every embedding engine has its own copy of the banks (agent/data/embeddings/<engine>/scope.npz, built
-by `python -m agent.build_index`) and its own thresholds: the primary engine's were tuned and tested on
-evals/scope.json; the others are the same thresholds rescaled to how widely that engine spreads topics apart.
+LLM is called. The banks are embedded by `python -m agent.build_index` (agent/data/embeddings/scope.npz); every
+embedding route serves the same model, so one bank and one set of thresholds serve them all.
 
 The examples are deliberately different from the test prompts in evals/scope.json, which check this gate.
 """
@@ -15,6 +14,7 @@ from functools import lru_cache
 
 import numpy as np
 
+from .embeddings import FOLDER
 from .guard import ABOUT_HIM, names_a_page
 
 IN_SCOPE = [
@@ -74,56 +74,31 @@ OUT_OF_SCOPE = [
     "What are Rishabh's political views?", "Where does Rishabh's family live?",
 ]
 
-# The primary engine's thresholds (EmbeddingGemma; tuned on evals/scope.json, 0 false refusals on its held-out set):
-MARGIN = 0.03  # off-topic examples must be this much closer than in-scope ones (cosine) …
-ABOUT_HIM_MARGIN = 0.20  # … much closer if the question is about him ("who is Rishabh?") — Gates 3–4 still apply
-RELEVANT = 0.50  # … and nothing on the site may be this close (the best chunk's cosine similarity)
+# Tuned for bge-small-en-v1.5 on evals/scope.json: 0 false refusals on the tuned and held-out sets, 0 leaks end to end.
+MARGIN = 0.012  # off-topic examples must be this much closer than in-scope ones (cosine) …
+ABOUT_HIM_MARGIN = 0.08  # … much closer if the question is about him ("who is Rishabh?") — Gates 3–4 still apply
+RELEVANT = 0.72  # … and nothing on the site may be this close (the best chunk's cosine similarity)
 
 
 @lru_cache
-def bank(engine) -> tuple[np.ndarray, np.ndarray, tuple[float, float, float]] | None:
-    path = engine.folder / "scope.npz"
+def bank() -> tuple[np.ndarray, np.ndarray] | None:
+    path = FOLDER / "scope.npz"
     if not path.exists():
         return None
     with np.load(path) as data:  # labels: 1 = in scope, 0 = off topic
-        return data["vectors"], data["labels"], (float(data["margin"]), float(data["about_margin"]), float(data["relevant"]))
+        return data["vectors"], data["labels"]
 
 
-def gap(sims: np.ndarray, labels: np.ndarray) -> float:
-    """How much closer the 3 nearest off-topic examples are than the 3 nearest in-scope ones (mean cosine)."""
-    top = lambda label: float(np.sort(sims[labels == label])[-3:].mean())  # noqa: E731
-    return top(0) - top(1)
-
-
-def judge(question: str, engine, vector: np.ndarray | None, relevance: float, follow_up: bool = False) -> tuple[bool, float]:
-    """(in scope?, the gap). With no embedding, or an engine without a bank, it lets the question through — Gates 3
-    and 4 still apply. Questions naming one of his pages always pass; follow-ups ("and the results?") need twice the
-    margin: they're short and lean on the chat."""
-    loaded = bank(engine) if engine else None
+def judge(question: str, vector: np.ndarray | None, relevance: float, follow_up: bool = False) -> tuple[bool, float]:
+    """(in scope?, how much closer the off-topic examples are). Without an embedding it lets the question through —
+    Gates 3 and 4 still apply. Questions naming one of his pages always pass; follow-ups ("and the results?") need
+    twice the margin: they're short and lean on the chat."""
+    loaded = bank()
     if vector is None or loaded is None or names_a_page(question):
         return True, 0.0
-    vectors, labels, (margin, about_margin, relevant) = loaded
-    g = gap(vectors @ vector, labels)
-    m = (about_margin if re.search(ABOUT_HIM, question, re.I) else margin) * (2 if follow_up else 1)
-    return not (g > m and relevance < relevant), round(g, 3)
-
-
-def spread(vectors: np.ndarray, labels: np.ndarray) -> float:
-    """How widely an engine separates topics: the median gap of the off-topic examples, each left out in turn."""
-    gaps = []
-    for i in np.where(labels == 0)[0]:
-        others = np.arange(len(labels)) != i
-        gaps.append(gap((vectors @ vectors[i])[others], labels[others]))
-    return float(np.median(gaps))
-
-
-def calibrate(vectors: np.ndarray, labels: np.ndarray, relevance: np.ndarray, primary: dict | None) -> dict:
-    """One engine's thresholds. The primary keeps the tuned ones; another engine gets them scaled by its own spread,
-    and RELEVANT moved to the same percentile of its in-scope examples' relevance."""
-    own = spread(vectors, labels)
-    if primary is None:
-        return {"margin": MARGIN, "about_margin": ABOUT_HIM_MARGIN, "relevant": RELEVANT, "spread": own,
-                "relevant_pct": float((relevance[labels == 1] < RELEVANT).mean() * 100)}
-    scale = own / primary["spread"]
-    return {"margin": MARGIN * scale, "about_margin": ABOUT_HIM_MARGIN * scale, "spread": own,
-            "relevant": float(np.percentile(relevance[labels == 1], primary["relevant_pct"])), "relevant_pct": primary["relevant_pct"]}
+    vectors, labels = loaded
+    sims = vectors @ vector
+    top = lambda label: float(np.sort(sims[labels == label])[-3:].mean())  # noqa: E731 — mean of the 3 nearest
+    gap = top(0) - top(1)
+    margin = (ABOUT_HIM_MARGIN if re.search(ABOUT_HIM, question, re.I) else MARGIN) * (2 if follow_up else 1)
+    return not (gap > margin and relevance < RELEVANT), round(gap, 3)
