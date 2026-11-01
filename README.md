@@ -5,7 +5,7 @@
 A Next.js portfolio with an AI agent, **Dumbledore**, that answers recruiters' questions about Rishabh and takes them
 to the pages they want to see. The chat window is only its interface.
 The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, a **five-gate refusal
-pipeline**, page navigation, a **4-level routing web of 15 free LLMs** across Groq, Gemini, Cloudflare Workers AI and
+pipeline**, page navigation, **four embedding engines with fallbacks**, a **4-level routing web of 17 free LLMs** across Groq, Gemini, Cloudflare Workers AI and
 OpenRouter, and **RAGAS** evals. ₹0/month.
 
 ```
@@ -59,10 +59,21 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
   (it lives in the layout); on phones the full-screen chat steps aside. Answers get up to two "take me there" buttons.
   Targets are decided by rules over an allow-list of the site's pages (`agent/pages.py`), never by the model, and the
   browser only follows site-relative paths.
-- **Embeddings on Cloudflare.** EmbeddingGemma (`@cf/google/embeddinggemma-300m`, multilingual) on Workers AI: a
-  fraction of a neuron per question. It replaced Gemini's embedding API, whose free tier stops at 1,000 requests a day
-  (one per chat question). Picked on this site's evals: same retrieval hit rate as bge-m3 / Qwen3 / bge-base, and the
-  cleanest on-topic vs off-topic split (AUC 0.94).
+- **Embeddings that never stop (`agent/embeddings.py`).** Four engines, tried in order, then keyword search:
+  1. **EmbeddingGemma** on Cloudflare (multilingual; best on this site's evals: cleanest on-topic vs off-topic split,
+     AUC 0.94) — a sliver of the 10,000 free neurons a day;
+  2. **Gemini** `gemini-embedding-001` — another provider; its 1,000 free requests a day are counted in Redis;
+  3. **bge-m3** on Cloudflare — covers EmbeddingGemma (in beta) being changed or withdrawn;
+  4. **bge-small-en-v1.5**, open source from Hugging Face (int8 ONNX, 34 MB), run on the function's own CPU: no key,
+     no quota, ~4 ms a question, same retrieval hit rate (14/14) as EmbeddingGemma.
+
+  A vector only means something next to vectors from the same model, so each engine has its own index and scope bank
+  (`agent/data/embeddings/<engine>/`). Remote engines share the chat models' budget and breaker logic: a failing one is
+  paused, so visitors don't each wait for its timeout (measured in a real Cloudflare outage: 1.2 s for the first
+  question, then 7 ms). Gate 2 runs on every engine — the primary's thresholds were tuned on `evals/scope.json`, the
+  others are scaled to how widely each engine spreads topics apart (bge-small: 0 false refusals on the eval set); the
+  answer bank uses the primary only. Groq serves no embedding models, and Hugging Face's hosted API no longer has a
+  free tier, which is why the open model runs locally.
 - **Answering instantly.** Two L0 layers: an exact cache for repeated first questions, and an **answer bank**: common
   questions with ~8 paraphrases each, answered by the agent and kept only if the answer passes that question's eval
   checks. A new question is served from the bank only if its embedding is clearly nearest one intent (score ≥ 0.88 and
@@ -70,7 +81,12 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 - **A routing web of free models, by difficulty.** Questions get a level from plain rules (0 tokens): **L0**
   greetings/contact/repeats (no LLM), **L1** one fact (small fast models, 2 chunks), **L2** the usual question
   (4 chunks), **L3** reasoning such as role fit (strongest models, 6 chunks, longer answers). Each level has a pool of
-  free models across 4 providers; if a pool is busy the router spills to the neighbouring level.
+  free models across 4 providers; if a pool is busy the router spills to the neighbouring level. **Tiny models**
+  (Qwen3-30B-A3B, 3B active; IBM Granite 4.0 Micro, 3B) sit before the bigger Cloudflare models for easy questions:
+  Cloudflare's shared 10,000 neurons a day go 3–8× further. In the load simulator that adds answers under heavy load
+  (100 chatters: 40% → 44% answered, median 5.7 s → 4.9 s) and changes nothing at normal load. Running a model inside
+  the function instead isn't viable: one vCPU needs ~30–60 s for a 2,500-token prompt, and the 4 free CPU-hours a
+  month would last a few hundred answers. Check any new model with `python -m evals.model_bench <name>` first.
 - **Reserve, then call — safe under concurrency.** Before calling a model, one atomic Redis (Lua) script checks every
   limit that applies — requests/tokens per minute, per hour and per day, plus shared pools like Cloudflare's 10,000
   neurons/day — and books the call only if all have room. A load simulator (`npm run evals:load`) with the real free
@@ -95,6 +111,7 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 | `agent/guard.py` | Refusal pipeline: Gate 1 rules, canned replies, Gate 4 output guard (also while streaming) |
 | `agent/scope.py` | Gate 2: on-topic vs off-topic example banks, judged by embedding |
 | `agent/pages.py` | The site map: navigation ("take me to …") and "take me there" links |
+| `agent/embeddings.py` | Four embedding engines in order (budgets, pauses), then keyword search |
 | `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, optional cross-encoder re-ranking |
 | `agent/llm.py` | The model web: every free model, its limits, and the pool for each difficulty level |
 | `agent/difficulty.py` | L1 / L2 / L3 from plain rules (tested by `evals/difficulty.json`) |
@@ -102,7 +119,7 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 | `agent/usage.py` | Atomic budget reservations (Redis Lua), pacing, per-visit token totals |
 | `agent/cache.py` | L0 answers: exact cache (a day) and the answer bank |
 | `agent/prompts.py` | Dumbledore's system prompt (grounding + Gate 3) and the summary prompt |
-| `agent/build_index.py` | Chunks the content, embeds it (EmbeddingGemma on Cloudflare), saves the FAISS index + scope bank |
+| `agent/build_index.py` | Chunks the content; per embedding engine, its FAISS index + calibrated scope bank (skips unchanged) |
 | `agent/build_answers.py` | Builds the answer bank: paraphrases, checked answers, embeddings |
 | `api/index.py` | FastAPI: `/api/agent/chat` (NDJSON events), `/api/agent/summarize`, `/api/agent/health` |
 | `evals/run_evals.py` | Retrieval / fact / guardrail checks over `evals/questions.json` |
@@ -110,6 +127,8 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 | `evals/navigation_eval.py` | "Take me to …" lands on the right page (`evals/navigation.json`, no API calls) |
 | `evals/ragas_eval.py` | RAGAS: faithfulness, answer relevancy, context precision |
 | `evals/rerank_ab.py` | A/B: RRF order vs the cross-encoder re-ranker (hit@4, MRR@4) |
+| `evals/model_bench.py` | Is a free model good enough for a pool? Fact accuracy, latency, tokens |
+| `evals/groq_smoke.py` | CI: one real question per Groq model (a broken key or path fails) |
 | `app/api/*` | Next.js gateway: security checks, then calls the Python agent; logging + lead email |
 | `lib/visit.ts`, `app/api/visit` | The visit: tab session id, pages, clicks, active time → one Sessions row (sendBeacon) |
 | `lib/server/visitor.ts`, `session.ts` | Location, device, network (IPinfo), returning visitor; combining a visit's chats |
@@ -166,8 +185,9 @@ Google Sheets logging: follow the steps at the top of `integrations/google-sheet
 
 ## CI
 `.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
-FAISS index, scope bank and answer bank — committing them if they changed, which redeploys the site — then runs the
-difficulty, navigation, refusal-pipeline and fact/guardrail evals and uploads the results. RAGAS runs weekly and on
-manual runs only, because its judge shares the site's free Gemini quota. CI deliberately has no Groq key (Groq's daily
-token cap is the site's best capacity); it needs the `GOOGLE_GENERATIVE_AI_API_KEY`, `CF_ACCOUNT_ID` and
-`CF_WORKERS_AI_TOKEN` repository secrets.
+search data (every embedding engine's index and scope bank) and the answer bank — committing them if they changed,
+which redeploys the site — then runs the difficulty, navigation, refusal-pipeline and fact/guardrail evals and uploads
+the results. RAGAS runs weekly and on manual runs only, because its judge shares the site's free Gemini quota. Groq
+stays out of the full evals (they'd spend most of its 200,000 tokens per model per day, which visitors need); a
+two-question smoke test is the only step with the Groq key. Secrets: `GOOGLE_GENERATIVE_AI_API_KEY`, `CF_ACCOUNT_ID`,
+`CF_WORKERS_AI_TOKEN`, `GROQ_API_KEY`.

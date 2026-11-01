@@ -53,6 +53,12 @@ jobs:
       - name: Navigation (rules, no API calls)
         run: python -m evals.navigation_eval
 
+      - name: Groq smoke test (2 questions, ~1% of each model's daily quota)
+        # The only step with the Groq key: it shares the site's quota, so the full evals below never use Groq.
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python -m evals.groq_smoke
+
       - name: Refusal pipeline (attacks must be refused with 0 leaks, recruiters' questions never)
         run: python -m evals.scope_eval --full
 

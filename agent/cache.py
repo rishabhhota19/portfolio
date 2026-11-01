@@ -19,6 +19,7 @@ from functools import lru_cache
 import numpy as np
 
 from .config import DATA_DIR, KNOWLEDGE, env
+from .embeddings import PRIMARY, Engine
 from .usage import _client as redis_client
 
 TTL = 86_400
@@ -71,14 +72,15 @@ def bank() -> tuple[np.ndarray, np.ndarray, list[dict]] | None:
     info = json.loads(meta.read_text(encoding="utf-8"))
     if info["version"] != VERSION:
         return None  # built for older content: don't serve it
-    data = np.load(vecs)
-    return data["vectors"], data["intent"], info["intents"]
+    with np.load(vecs) as data:
+        return data["vectors"], data["intent"], info["intents"]
 
 
-def from_bank(vector: np.ndarray | None) -> dict | None:
-    """The bank's answer if the question is clearly one of its intents, else None."""
+def from_bank(engine: Engine | None, vector: np.ndarray | None) -> dict | None:
+    """The bank's answer if the question is clearly one of its intents, else None. Its vectors (and thresholds) are
+    the primary embedding engine's, so while a fallback engine is answering, every question goes to the LLM."""
     loaded = bank()
-    if vector is None or loaded is None:
+    if vector is None or loaded is None or engine != PRIMARY:
         return None
     vectors, owner, intents = loaded
     sims = vectors @ vector

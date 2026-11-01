@@ -1,1 +1,0 @@
-@cf/google/embeddinggemma-300m

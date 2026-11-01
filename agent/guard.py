@@ -29,6 +29,7 @@ CANNED = {
 # ── Gate 1: rules ───────────────────────────────────────────────────────────
 
 ABOUT_HIM = r"\b(he|his|him|rishabh'?s?)\b"
+ABOUT_HIM_OR_SITE = r"\b(he|his|him|rishabh'?s?|this (site|website|chat|chatbot|bot|agent|portfolio))\b"
 ABOUT = r"\b(he|his|him|rishabh'?s?|you|your|this (site|chat|bot|agent|portfolio))\b"  # the question is about him (or me)
 REQUEST = (r"(^|[.,;:!?]\s*|\b(can|could|would|will) you\s+|\bplease\s+)((now|then|ok|okay|so|also|and|cool),?\s+)?"
            r"(write|generate|create|build|make|give me|fix|debug|solve|compose|draft|code|implement|translate|calculate|"

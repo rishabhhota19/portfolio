@@ -96,6 +96,11 @@ M = {
     "cf-120b": FreeModel("cloudflare", "@cf/openai/gpt-oss-120b", 300, neurons=(31_818, 68_182), reasoning=True),
     "cf-mistral": FreeModel("cloudflare", "@cf/mistralai/mistral-small-3.1-24b-instruct", 300, neurons=(31_876, 50_488)),
     "cf-nemotron": FreeModel("cloudflare", "@cf/nvidia/nemotron-3-120b-a12b", 300, neurons=(45_455, 136_364)),
+    # Tiny models: the shared 10,000 neurons/day go 3–8x further (an easy answer costs ~4–13 neurons vs ~30), so they
+    # come before the bigger Cloudflare models for easy questions. Qwen3-30B-A3B runs only 3B parameters per token;
+    # Granite 4.0 Micro (3B) is built for RAG and tool use. evals/load_sim + model_bench measure the trade-off.
+    "cf-qwen3-a3b": FreeModel("cloudflare", "@cf/qwen/qwen3-30b-a3b-fp8", 300, neurons=(4_625, 30_475), extra=NO_THINKING),
+    "cf-granite": FreeModel("cloudflare", "@cf/ibm-granite/granite-4.0-h-micro", 300, neurons=(1_542, 10_158)),
     # OpenRouter: 20 req/min, 50 free requests/day shared — the last line of defence.
     "or-lightning": FreeModel("openrouter", "nvidia/nemotron-3.5-lightning:free", 20, extra=OR_DIRECT),
     "or-ultra": FreeModel("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free", 20, extra=OR_DIRECT),
@@ -117,10 +122,11 @@ class Tier:
 
 TIERS = {
     # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
-    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "gemini-lite-3.1", "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout"]),
+    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-granite", "cf-glm", "cf-20b",
+                                      "gemini-lite-3.5", "cf-scout"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
-    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-gemma", "cf-llama70b",
-                                      "gemini-lite-3.1", "cf-mistral", "or-lightning"]),
+    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-qwen3-a3b", "cf-gemma",
+                                      "cf-llama70b", "gemini-lite-3.1", "cf-mistral", "or-lightning"]),
     # L3 — reasoning (role fit, comparisons, "why"): the strongest models, more context, longer answers.
     "L3": Tier(6, 12, 600, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
                                           "sn-120b", "or-ultra", "gemini-lite-3.5"]),

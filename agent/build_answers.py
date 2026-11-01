@@ -23,7 +23,7 @@ from langchain_core.messages import HumanMessage  # noqa: E402
 from . import guard, llm, pages  # noqa: E402
 from .cache import VERSION  # noqa: E402
 from .config import DATA_DIR  # noqa: E402
-from .rag import embedder, normalize  # noqa: E402
+from .embeddings import PRIMARY  # noqa: E402 — the bank's vectors come from the primary engine
 
 ROOT = Path(__file__).parent.parent
 META, VECTORS = DATA_DIR / "answers.json", DATA_DIR / "answers.npz"
@@ -87,7 +87,7 @@ async def main() -> None:
             await asyncio.sleep(3)  # stay inside the free per-minute limits
         bank.append(entry)
 
-    if bank == old["intents"] and old["version"] == VERSION and old.get("model") == embedder().model and VECTORS.exists():
+    if bank == old["intents"] and old["version"] == VERSION and old.get("model") == PRIMARY.model and VECTORS.exists():
         print(f"Answer bank already up to date ({len(bank)} intents).")
         return
     texts, owner = [], []
@@ -95,9 +95,9 @@ async def main() -> None:
         for t in [entry["q"], *entry["paraphrases"]]:
             texts.append(t)
             owner.append(n)
-    vectors = normalize(np.array(embedder().embed_documents(texts)))
+    vectors = await PRIMARY.embed(texts, timeout=60)
     np.savez(VECTORS, vectors=vectors, intent=np.array(owner, dtype="int16"))
-    META.write_text(json.dumps({"version": VERSION, "model": embedder().model, "intents": bank}, indent=1, ensure_ascii=False) + "\n",
+    META.write_text(json.dumps({"version": VERSION, "model": PRIMARY.model, "intents": bank}, indent=1, ensure_ascii=False) + "\n",
                     encoding="utf-8")
     print(f"Answer bank: {len(bank)} intents, {len(texts)} phrasings (content version {VERSION}) -> {META.name}")
 

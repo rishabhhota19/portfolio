@@ -22,10 +22,10 @@ import sentry_sdk
 from langchain_core.messages import AIMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph, add_messages
 
-from . import cache, guard, llm, pages, router, scope as gate2
+from . import cache, embeddings, guard, llm, pages, router, scope as gate2
 from .difficulty import difficulty
 from .prompts import system_prompt
-from .rag import embed, rerank, search
+from .rag import rerank, search
 
 
 class State(TypedDict, total=False):
@@ -34,6 +34,7 @@ class State(TypedDict, total=False):
     why: str  # which gate refused, or what the output guard removed
     level: str  # L1 / L2 / L3 — how hard the question is (difficulty.py)
     docs: list[dict]  # retrieved chunks
+    engine: Any  # the embedding engine that answered (embeddings.py), or None: keyword search only
     vector: Any  # the question's embedding (scope check + answer bank)
     context_vector: Any  # follow-ups: the previous + this question together (what retrieval searched with)
     relevance: float  # how close the best chunk is in meaning, 0–1
@@ -89,25 +90,26 @@ async def route(state: State) -> dict:
 async def retrieve(state: State) -> dict:
     started = time.perf_counter()
     query, question = last_question(state, turns=2), last_question(state)  # previous question helps with follow-ups
-    vectors = await embed([query] if query == question else [query, question])  # one API call for both
-    docs, relevance = await search(query, None if vectors is None else vectors[0])
+    engine, vectors = await embeddings.embed([query] if query == question else [query, question])  # one call for both
+    docs, relevance = await search(query, engine, None if vectors is None else vectors[0])
     vector = None if vectors is None else vectors[-1]
     context_vector = None if vectors is None or query == question else vectors[0]
-    return {"docs": docs, "vector": vector, "context_vector": context_vector, "relevance": relevance,
-            "trace": step("retrieve", started, found=[d["id"] for d in docs], relevance=round(relevance, 3))}
+    return {"docs": docs, "engine": engine, "vector": vector, "context_vector": context_vector, "relevance": relevance,
+            "trace": step("retrieve", started, found=[d["id"] for d in docs], relevance=round(relevance, 3),
+                          embeddings=engine.name if engine else "none (keywords only)")}
 
 
 async def scope(state: State) -> dict:
     started = time.perf_counter()
-    relevance = state.get("relevance", 0.0)
-    in_scope, gap = gate2.judge(last_question(state), state.get("vector"), relevance, not first_turn(state))
+    engine, relevance = state.get("engine"), state.get("relevance", 0.0)
+    in_scope, gap = gate2.judge(last_question(state), engine, state.get("vector"), relevance, not first_turn(state))
     if not in_scope and state.get("context_vector") is not None:
         # A follow-up ("give me the link of the paper") leans on the chat: refuse it only if it's off-topic on its
         # own AND together with the previous question.
-        in_scope, gap = gate2.judge(last_question(state, turns=2), state["context_vector"], relevance, follow_up=True)
+        in_scope, gap = gate2.judge(last_question(state, turns=2), engine, state["context_vector"], relevance, follow_up=True)
     if not in_scope:
         return say(guard.REFUSAL, "refused", started, "scope", why=f"scope:{gap}")
-    if first_turn(state) and (hit := cache.from_bank(state.get("vector"))):
+    if first_turn(state) and (hit := cache.from_bank(engine, state.get("vector"))):
         links = link_actions(hit["links"], skip=state.get("actions", []))
         return say(hit["text"], "bank", started, "scope", model="bank", actions=state.get("actions", []) + links)
     return {"trace": step("scope", started, gap=gap)}
@@ -141,7 +143,7 @@ async def respond(state: State) -> dict:
         return None
 
     answers = [await router.run(llm.candidates(level), tier, prompt_for)]
-    if answers[0] and guard.is_refusal(answers[0].text) and re.search(guard.ABOUT_HIM, last_question(state), re.I):
+    if answers[0] and guard.is_refusal(answers[0].text) and re.search(guard.ABOUT_HIM_OR_SITE, last_question(state), re.I):
         # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?").
         # The question already passed Gates 1–2, so ask a *different* model once, with a note; Gate 4 still applies.
         others = [m for m in llm.candidates(level) if m.name != answers[0].model]

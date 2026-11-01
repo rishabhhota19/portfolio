@@ -40,8 +40,8 @@ PROFILE
 {KNOWLEDGE["core"]}"""
 
 
-SECOND_OPINION = """NOTE: the visitor's last message is about Rishabh. Answer it from PROFILE and CONTEXT, and say so if
-the site doesn't cover it. Use the refusal sentence only if it asks for something unrelated to him."""
+SECOND_OPINION = """NOTE: the visitor's last message is about Rishabh or this site. Answer it from PROFILE and CONTEXT, and
+say so if the site doesn't cover it. Use the refusal sentence only if it asks for something unrelated to him."""
 
 
 def system_prompt(docs: list[dict], second_opinion: bool = False) -> str:
