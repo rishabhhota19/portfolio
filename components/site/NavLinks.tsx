@@ -3,14 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import site from "@/content/site.json";
 
-const links = [
-  { href: "/projects", label: "Projects" },
-  { href: "/publications", label: "Research" },
-  { href: "/experience", label: "Experience" },
-  { href: "/blog", label: "Writing" },
-  { href: "/resume", label: "Résumé" },
-];
+// One list of sections for the nav, the sitemap and the agent's navigation: content/site.json.
+const links = site.sections.filter((s) => "nav" in s && s.nav).map((s) => ({ href: s.path, label: s.label }));
 
 export function NavLinks() {
   const pathname = usePathname();

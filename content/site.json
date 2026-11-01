@@ -7,5 +7,14 @@
   "linkedin": "https://www.linkedin.com/in/rishabh-hota-4138b31b3",
   "github": "https://github.com/rishabhhota19",
   "resume": "/resume.pdf",
-  "url": "https://rishabh-hota.vercel.app"
+  "url": "https://rishabh-hota.vercel.app",
+  "sections": [
+    { "path": "/", "label": "Home", "words": ["home", "homepage", "main page", "landing page"] },
+    { "path": "/projects", "label": "Projects", "nav": true, "kind": "project", "words": ["projects", "project", "things he built", "things he made", "case study", "case studies"] },
+    { "path": "/publications", "label": "Research", "nav": true, "kind": "publication", "words": ["publications", "publication", "papers", "paper", "research", "journal", "journals"] },
+    { "path": "/experience", "label": "Experience", "nav": true, "kind": "experience", "words": ["experience", "work history", "career", "job", "jobs", "role", "roles", "employment", "skills", "skill", "tech stack", "education", "degree", "timeline"] },
+    { "path": "/blog", "label": "Writing", "nav": true, "kind": "blog", "words": ["blog", "post", "posts", "article", "articles", "writing", "write-up", "write-ups"] },
+    { "path": "/resume", "label": "Résumé", "nav": true, "words": ["resume", "résumé", "cv", "curriculum vitae"] },
+    { "path": "/privacy", "label": "Privacy", "words": ["privacy", "data policy", "cookies"] }
+  ]
 }

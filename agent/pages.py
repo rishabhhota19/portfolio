@@ -4,24 +4,22 @@ Two kinds of action, both decided by rules — no LLM call, so they're instant a
   - navigate: the visitor asks to go somewhere ("take me to his projects", "open the LCSNet paper") → the chat moves
     the page there. A pure "take me to X" is answered by the router alone (L0).
   - links: after an answer, up to two "take me there" buttons for the pages it was about.
+
+Nothing here lists pages by hand, so it grows with the site: sections come from content/site.json (the same list the
+header nav and the sitemap use), and every project, paper, role and post from content/. A new section with a "kind"
+brings its content pages along. evals/navigation_eval.py fails CI if a route in app/ isn't a section, and generates a
+"take me to …" test for every section and page.
 """
 
 import re
 from collections import Counter
 
-from .config import KNOWLEDGE
+from .config import KNOWLEDGE, SITE
 
-# Sections of the site, and the words that name them.
-SECTIONS = {
-    "/": ("Home", r"home|homepage|main page|landing page"),
-    "/projects": ("Projects", r"projects?|things he (built|made)|case stud(y|ies)"),
-    "/experience": ("Experience", r"experience|work history|career|jobs?|roles?|employment|skills?|tech stack|education|degree|timeline"),
-    "/publications": ("Publications", r"publications?|papers?|research|journals?"),
-    "/blog": ("Blog", r"blog|posts?|articles?|write-?ups?"),
-    "/resume": ("Résumé", r"r[eé]sum[eé]|\bcv\b|curriculum vitae"),
-    "/privacy": ("Privacy", r"privacy|data policy|cookies"),
-}
-KIND_OF_SECTION = {"/projects": "project", "/experience": "experience", "/publications": "publication", "/blog": "blog"}
+# Sections of the site (content/site.json), and the words that name them: path → (label, regex).
+SECTIONS = {s["path"]: (s["label"], "|".join(re.escape(w.lower()) for w in [s["label"], *s.get("words", [])]))
+            for s in SITE["sections"]}
+KIND_OF_SECTION = {s["path"]: s["kind"] for s in SITE["sections"] if s.get("kind")}  # whose pages live under it
 
 # "take me to …", "open …", "I'd like to see …", "where can I find …" (not "is he open to relocating?").
 NAVIGATE = re.compile(
@@ -41,14 +39,15 @@ def _label(title: str) -> str:
 
 
 def _pages() -> list[dict]:
-    """Every specific page an answer can be about. Publications and roles share a page, so they get an #anchor."""
-    docs = [d for d in KNOWLEDGE["docs"] if d["kind"] in ("project", "publication", "experience", "blog")]
+    """Every specific page an answer can be about. Items that share their section's page (papers, roles) get an
+    #anchor (their list item's id); items with a page of their own (projects, posts) don't."""
+    docs = [d for d in KNOWLEDGE["docs"] if d["kind"] in KIND_OF_SECTION.values()]
     common = {kw for kw, n in Counter(kw.lower() for d in docs for kw in set(d["keywords"])).items() if n > 4}  # rag, faiss…
     section_words = "|".join(words for _, words in SECTIONS.values())
     pages = []
     for d in docs:
         slug = d["id"].split(":", 1)[1]
-        anchor = f"#{slug}" if d["kind"] in ("publication", "experience") else ""
+        anchor = f"#{slug}" if d["url"] in SECTIONS else ""
         label = _label(d["title"])
         words = {kw.lower() for kw in d["keywords"]  # words that point at this page (not "rag", not "blog")
                  if len(kw) > 2 and kw.lower() not in common and not re.fullmatch(section_words, kw.lower())}
@@ -74,11 +73,17 @@ def find_page(text: str) -> dict | None:
     t = text.lower()
     section = next((path for path, (_, words) in SECTIONS.items() if re.search(rf"\b({words})\b", t)), None)
     kind = KIND_OF_SECTION.get(section)
+    named = {p["id"]: [n for n in p["names"] if _mentions(t, n)] for p in PAGES}
+    longest = max((n for ns in named.values() for n in ns), key=len, default="")
+    if len(owners := [p for p in PAGES if longest in named[p["id"]]]) == 1:
+        return {"path": owners[0]["path"], "label": owners[0]["label"]}  # a page's own name beats section words
     scored = []
     for p in PAGES:
         if kind and p["kind"] != kind:
             continue  # "the osteoarthritis *paper*" isn't the project
-        score = 2 * sum(_mentions(t, n) for n in p["names"]) + sum(_mentions(t, w) for w in p["words"])
+        if named[p["id"]] and all(n != longest and n in longest for n in named[p["id"]]):
+            continue  # "Sr. AI Researcher at Simplilearn" also contains the junior role's name: the longer one wins
+        score = 2 * len(named[p["id"]]) + sum(_mentions(t, w) for w in p["words"])
         if score:
             scored.append((score, p))
     if scored:

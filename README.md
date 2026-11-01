@@ -124,6 +124,15 @@ npm run dev        # site on :3000           (terminal 2)
 ```
 Keys live in `.env.local` (template: `.env.example`). Without LLM keys the chat shows its "taking a short break" message.
 
+## Adding a page
+- **A project, paper, role or post:** add a Markdown file in `content/`. Dumbledore can take visitors to it at once
+  (by its title or keywords), and CI generates a "take me to …" test for it.
+- **A new section** (e.g. `/talks`): create the route in `app/` and add one entry to `sections` in
+  `content/site.json` — label, the words people use for it, `"nav": true` to show it in the header, and `"kind"` if
+  content pages live under it. That one entry feeds the header nav, the sitemap, the agent's navigation and the output
+  guard's list of allowed links. CI (`npm run evals:nav`) fails if a route in `app/` is missing from `sections`, or
+  if a page whose items share it (like `/publications`) renders no `id` anchors to land on.
+
 ## After editing content
 Just push — CI rebuilds the FAISS index and redeploys. To rebuild it locally instead:
 ```bash

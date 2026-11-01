@@ -8,7 +8,106 @@
     "linkedin": "https://www.linkedin.com/in/rishabh-hota-4138b31b3",
     "github": "https://github.com/rishabhhota19",
     "resume": "/resume.pdf",
-    "url": "https://rishabh-hota.vercel.app"
+    "url": "https://rishabh-hota.vercel.app",
+    "sections": [
+      {
+        "path": "/",
+        "label": "Home",
+        "words": [
+          "home",
+          "homepage",
+          "main page",
+          "landing page"
+        ]
+      },
+      {
+        "path": "/projects",
+        "label": "Projects",
+        "nav": true,
+        "kind": "project",
+        "words": [
+          "projects",
+          "project",
+          "things he built",
+          "things he made",
+          "case study",
+          "case studies"
+        ]
+      },
+      {
+        "path": "/publications",
+        "label": "Research",
+        "nav": true,
+        "kind": "publication",
+        "words": [
+          "publications",
+          "publication",
+          "papers",
+          "paper",
+          "research",
+          "journal",
+          "journals"
+        ]
+      },
+      {
+        "path": "/experience",
+        "label": "Experience",
+        "nav": true,
+        "kind": "experience",
+        "words": [
+          "experience",
+          "work history",
+          "career",
+          "job",
+          "jobs",
+          "role",
+          "roles",
+          "employment",
+          "skills",
+          "skill",
+          "tech stack",
+          "education",
+          "degree",
+          "timeline"
+        ]
+      },
+      {
+        "path": "/blog",
+        "label": "Writing",
+        "nav": true,
+        "kind": "blog",
+        "words": [
+          "blog",
+          "post",
+          "posts",
+          "article",
+          "articles",
+          "writing",
+          "write-up",
+          "write-ups"
+        ]
+      },
+      {
+        "path": "/resume",
+        "label": "Résumé",
+        "nav": true,
+        "words": [
+          "resume",
+          "résumé",
+          "cv",
+          "curriculum vitae"
+        ]
+      },
+      {
+        "path": "/privacy",
+        "label": "Privacy",
+        "words": [
+          "privacy",
+          "data policy",
+          "cookies"
+        ]
+      }
+    ]
   },
   "core": "Rishabh Hota — AI/ML Researcher & Engineer (Bengaluru, India)\n\nNow: Sr. AI Researcher at Simplilearn (on-site, Bengaluru), since Mar 2026. Works on automating complex workflows, agentic orchestration, open source, and hands-on research into new AI tech. Before that, AI Researcher at Simplilearn (Mar 2025 – Mar 2026).\n\nExperience: 3+ years turning AI research into production prototypes and AWS-hosted pipelines.\n- Simplilearn — Sr. AI Researcher (Mar 2026 – present), AI Researcher (Mar 2025 – Mar 2026).\n- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.\n- Smartknower (Bangalore) — Data Science & ML Intern (Nov 2020 – Jan 2021).\n\nEducation: B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).\n\nHeadline wins:\n- Built an N8N-based multi-agent \"Collaterals Agent\" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).\n- His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).\n- Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.\n\nCore strengths: agentic AI and multi-agent orchestration, MCP, RAG in production, Graph RAG, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.\n\nRoles he fits: AI Engineer, GenAI / LLM Engineer, Agentic AI Engineer, Forward Deployed Engineer, Applied / Research Engineer (ML, medical imaging, efficient attention).\n\nInterests: AI research, competitive football, poetry.\n\nContact policy\n- Share: email rishabhhota19@gmail.com, LinkedIn https://www.linkedin.com/in/rishabh-hota-4138b31b3, and the resume at /resume.pdf.\n- Never share a phone number, home address or anything not written in this knowledge base.\n- Recruiters can leave their details with the \"Share your details\" button in the chat; Rishabh gets them by email.\n\nFAQ (answer only what is filled in)\n\n- Notice period: not shared publicly — best discussed directly.\n- Open to relocation / remote: not shared publicly — best discussed directly.\n- Work authorization outside India: not shared publicly — best discussed directly.\n- Salary expectations: happy to discuss directly with the recruiter.\n- Availability for interviews: suggest sharing details via the button or emailing him.",
   "docs": [
