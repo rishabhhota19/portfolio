@@ -98,7 +98,14 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
   and ends with what changes (date, context), so Groq's automatic prompt cache covers the fixed part.
 - **Security in the gateway, AI in Python.** Bot checks, rate limits and the daily budget sit in front of the agent;
   the Python service only accepts calls carrying a shared secret, and stays small and testable. A Vercel Firewall rule
-  adds a per-IP limit at the edge.
+  adds a per-IP limit at the edge. Every page sends a strict CSP, HSTS, `nosniff`, frame-deny and permissions headers
+  (`next.config.ts`). The browser's chat history is untrusted: every turn and the total are capped, and tokens are
+  estimated so non-English padding can't pass as small. Chat answers and chat summaries have separate daily budgets
+  (`DAILY_LLM_BUDGET`, `DAILY_SUMMARY_BUDGET`); replies that used no model give the budget back.
+- **Fails soft.** If Upstash errors (an outage or the free plan's monthly cap), limits fall back to each server's memory
+  and the site keeps working; the dashboard shows "Reconnecting". Sheet writes that fail are queued and removed only
+  after they were sent. Visitor text never becomes a Sheet formula. A model that rejects one oversized request is
+  skipped for that request only, never paused for everyone.
 - **Grounded answers, measured.** The prompt forbids guessing or embellishing; the evals check facts and guardrails on
   every content change, and RAGAS scores faithfulness.
 
@@ -175,7 +182,8 @@ Google Sheets logging: follow the steps at the top of `integrations/google-sheet
 ## Private dashboard (`/admin`)
 Realtime analytics for the owner, fed **directly** by the site (`lib/server/events.ts` → Upstash Redis), in parallel
 with the Google Sheet (which stays a copy to read on the go):
-- **On the site now**: an open, visible tab pings every 30 s (`/api/visit/live`); page views count on each page change.
+- **On the site now**: an open, visible tab in use pings every 30 s (`/api/visit/live`), and stops after 3 idle
+  minutes; page views count on each page change. Paths that aren't pages count as "other".
 - **Today and 7 days**: visits, page views, questions, leads and tokens with sparklines; top pages, sources, countries,
   networks (company or ISP) and devices.
 - **Dumbledore**: how each question was handled (answered, refused, cache, answer bank, navigated), difficulty level,
@@ -183,8 +191,9 @@ with the Google Sheet (which stays a copy to read on the go):
   so visitors never see model names. No chat text is stored, only the AI summary when a chat ends.
 - **Leads** and the **model web** (today's budget per model and the embedding lineup, loaded only while open).
 
-Every write is one Lua script (one Upstash command) and each 5 s poll reads everything in one command, so it fits the
-free tier. Sign-in: `ADMIN_PASSWORD` + `ADMIN_SESSION_SECRET` → a signed, HttpOnly, SameSite=Strict `__Host-` cookie
+Every write is one Lua script (one Upstash command, rate limits included) and each poll (every 10 s, paused after 5
+idle minutes) reads everything in one command, so it fits the free tier. A day's counters are capped at 600 fields, so
+made-up pages or sources can't grow Redis. Sign-in: `ADMIN_PASSWORD` + `ADMIN_SESSION_SECRET` → a signed, HttpOnly, SameSite=Strict `__Host-` cookie
 (7 days, nothing stored server-side); BotID and rate limits on the login; noindex, disallowed in robots, and never in
 the nav, sitemap or the agent's site map (`content/site.json` → `private`).
 
@@ -196,6 +205,17 @@ the nav, sitemap or the agent's site map (`content/site.json` → `private`).
   `chat_paused`, `chat_ended`, `agent_navigate`, `lead_submitted`, `resume_download`, `linkedin_click`, `github_click`, `email_click`,
   `paper_click`. Never the visitor's words.
 - **Cloudflare Web Analytics** (`NEXT_PUBLIC_CF_BEACON_TOKEN`): cookieless traffic overview.
+
+## Capacity (free tiers, measured 1 Nov 2026)
+| | |
+|---|---|
+| People chatting at once | ~40 (~55 model answers a minute at full speed) |
+| AI answers a day | ~1,950: Gemini ~1,000 · Groq ~500 · Workers AI ~400 · OpenRouter 50, plus free replies (greetings, cache, answer bank, refusals, page jumps) |
+| Visits a month | ~20,000, set by Upstash (500K commands, ~24 a visit); then Vercel edge requests ~22,700, Active CPU ~60,000, function calls ~85,000, bandwidth ~220,000 |
+| Readers at once | thousands: pages are static files on the CDN |
+
+One visit = 3 pages, 2.5 minutes; 1 visitor in 5 asks 3 questions. Every limit is a hard free-tier cap, so busier
+months slow the chat or the dashboard down; they never cost money.
 
 ## CI
 `.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
