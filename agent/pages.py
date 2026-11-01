@@ -31,7 +31,8 @@ NAVIGATE = re.compile(
     r"|\bwhere (can|do|should) i (find|see|read|get|download)\b|\b(link|links) to\b",
     re.I,
 )
-ASKS_MORE = re.compile(r"\b(what|how|why|when|which|who|explain|tell|summari[sz]e|describe|compare|walk me|is he|does he|did he|has he)\b", re.I)
+ASKS_MORE = re.compile(r"\b(what|how|why|when|which|who|explain|tell|summari[sz]e|describe|compare|walk me|is he|does he|did he|has he|"
+                       r"links?|urls?)\b", re.I)  # "links to his papers" → go there AND answer with the links
 
 
 def _label(title: str) -> str:

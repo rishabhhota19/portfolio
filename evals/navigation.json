@@ -19,6 +19,7 @@
   { "q": "show me the privacy policy", "path": "/privacy", "pure": true },
   { "q": "show me the collaterals agent and tell me what it achieved", "path": "/projects/collaterals-agent", "pure": false },
   { "q": "can you show me what projects he has done?", "path": "/projects", "pure": false },
+  { "q": "give me the links to his papers", "path": "/publications", "pure": false },
   { "q": "Is he open to relocating?", "path": null },
   { "q": "Would he be open to a remote role?", "path": null },
   { "q": "What did the Collaterals Agent achieve?", "path": null },
