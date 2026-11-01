@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-// Minimal, safe renderer for model output: paragraphs, "- " lists, **bold**, `code` and links.
+// Minimal, safe renderer for model output: paragraphs, "- " lists, **bold**, `code`, links and bare URLs.
 // Builds React nodes (no innerHTML). Site-relative links use <Link> so the chat survives navigation.
-const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\))/g;
+const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\)|https?:\/\/[^\s)<]*[^\s)<.,;:!?])/g;
 
 function inline(text: string, keyPrefix: string): ReactNode[] {
   return text.split(INLINE).map((part, i) => {
@@ -30,6 +30,12 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
         </a>
       );
     }
+    if (/^https?:\/\//.test(part))
+      return (
+        <a key={key} href={part} target="_blank" rel="noreferrer" className="break-all text-accent underline underline-offset-2">
+          {part.replace(/^https?:\/\/(www\.)?/, "")}
+        </a>
+      );
     return <Fragment key={key}>{part}</Fragment>;
   });
 }

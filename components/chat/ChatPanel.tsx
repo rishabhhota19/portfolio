@@ -357,7 +357,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
           ) : (
             <div
               key={m.id}
-              className={`max-w-[92%] text-[0.93rem] leading-relaxed ${
+              className={`max-w-[92%] text-[0.93rem] leading-relaxed [overflow-wrap:anywhere] ${
                 m.kind === "notice" ? "rounded-sm border border-dashed border-rule px-3.5 py-2.5 text-muted" : "px-0.5"
               }`}
             >

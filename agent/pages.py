@@ -103,13 +103,13 @@ def navigation(text: str) -> dict | None:
 
 
 def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> list[dict]:
-    """Up to two "take me there" buttons: pages the answer names, then the page of the best evidence.
+    """Up to two "take me there" buttons: the pages the answer names, or else the page of the best evidence.
     The page the visitor is already being taken to is skipped."""
     text = answer.lower()
     named = [p for p in PAGES if any(_mentions(text, n) for n in p["names"])]
     best_doc = [p for d in docs[:1] for p in PAGES if p["id"] == d["id"].split("#")[0]]
     out: list[dict] = []
-    for p in named + best_doc:
+    for p in named or best_doc:
         base = p["path"].split("#")[0]
         if p["path"] in skip or base in skip:
             continue
@@ -122,5 +122,5 @@ def site_map() -> str:
     """The page list in the system prompt, so answers link real pages (fixed text → cached by Groq)."""
     lines = [f"{path} — {label}" for path, (label, _) in SECTIONS.items() if path != "/privacy"]
     lines += [f"{p['path']} — {p['label']}{': ' + p['summary'] if p['summary'] else ''}"
-              f"{' (paper: ' + p['paper'] + ')' if p['paper'] else ''}" for p in PAGES]
+              f"{' — [read the paper](' + p['paper'] + ')' if p['paper'] else ''}" for p in PAGES]  # copied as a link
     return "\n".join(lines)
