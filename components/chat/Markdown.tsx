@@ -8,7 +8,8 @@ const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s
 function inline(text: string, keyPrefix: string): ReactNode[] {
   return text.split(INLINE).map((part, i) => {
     const key = `${keyPrefix}-${i}`;
-    if (part.startsWith("**") && part.endsWith("**")) return <strong key={key}>{part.slice(2, -2)}</strong>;
+    // Bold can wrap a link ("**[Page](/x)**"), so its inside is parsed too.
+    if (part.startsWith("**") && part.endsWith("**")) return <strong key={key}>{inline(part.slice(2, -2), key)}</strong>;
     if (part.startsWith("`") && part.endsWith("`"))
       return (
         <code key={key} className="rounded border border-rule px-1 font-mono text-[0.85em]">
@@ -17,7 +18,8 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
       );
     const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (link) {
-      const [, label, href] = link;
+      const [, text, href] = link;
+      const label = inline(text, key); // e.g. "[**Name**](/x)"
       return href.startsWith("/") ? (
         <Link key={key} href={href} className="text-accent underline underline-offset-2">
           {label}
