@@ -5,7 +5,7 @@
 A Next.js portfolio with an AI agent, **Dumbledore**, that answers recruiters' questions about Rishabh and takes them
 to the pages they want to see. The chat window is only its interface.
 The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, a **five-gate refusal
-pipeline**, page navigation, **one open-source embedding model served two ways**, a **4-level routing web of 17 free LLMs** across Groq, Gemini, Cloudflare Workers AI and
+pipeline**, page navigation, **one open-source embedding model served two ways**, a **4-level routing web of 17 free LLMs** (+2 optional SambaNova) across Groq, Gemini, Cloudflare Workers AI and
 OpenRouter, and **RAGAS** evals. ₹0/month.
 
 ```

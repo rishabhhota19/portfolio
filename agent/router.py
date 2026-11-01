@@ -20,6 +20,7 @@ from . import llm, usage
 from .llm import FreeModel, Tier
 
 MAX_WAIT = 20  # seconds we'll wait for per-minute limits to reset before giving up
+MIN_CALL = 5  # seconds a model call needs at least; with less time left before the deadline, stop trying
 NONE_LEFT_FOR = 60  # once no model in a pool could be booked for a caller, answer them "busy" this long without asking again
 _none_left: dict[tuple, float] = {}  # (pool, caller) → until when; this instance only, costs no Redis commands to check
 
@@ -85,17 +86,28 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
     if _none_left.get(pool, 0) > time.time():
         return None  # everything was used up a moment ago: don't spend ~2 Redis commands per model finding that out again
     tried: list[str] = []
+    failed: set[str] = set()  # models that errored on this question: later passes don't try them again
+    out_of_time = False
     # Pass 1 keeps every model within its hourly pace (so the best ones last all day); pass 2 ignores the pace
     # (still within the real per-minute and per-day limits); pass 3 waits for the per-minute limits to reset.
     for attempt, paced in enumerate((True, False, False)):
+        if out_of_time:
+            break
         if attempt == 2:
             wait = 60 - time.time() % 60 + 0.5
-            if not minute_limited or wait > MAX_WAIT:
+            left = usage.time_left()
+            if not minute_limited or wait > MAX_WAIT or (left is not None and wait > left - MIN_CALL):
                 break
             print(f"[router] every model is at its per-minute limit — waiting {wait:.0f}s")
             await asyncio.sleep(wait)
         minute_limited = False
         for depth, m in enumerate(models):
+            if m.name in failed:
+                continue
+            left = usage.time_left()
+            if left is not None and left < MIN_CALL:
+                out_of_time = True  # answer "busy" in time rather than be cut off by the platform
+                break
             built = prompt_for(m)
             if built is None:
                 continue  # the conversation can't fit this model at all
@@ -109,16 +121,21 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             tried.append(m.name)
             reply = None  # chunks added up: the text and the response headers
             tokens_in = tokens_out = cached = 0  # largest count seen: providers repeat or accumulate usage across chunks
+            timeout = tier.timeout if left is None else max(MIN_CALL, min(tier.timeout, left - 2))
             try:
-                async for chunk in m.client(tier.max_tokens, tier.effort, tier.timeout).astream(prompt):
+                async for chunk in m.client(tier.max_tokens, tier.effort, timeout).astream(prompt):
                     reply = chunk if reply is None else reply + chunk
                     chunk_in, chunk_out, chunk_cached = llm.tokens_used(chunk)
                     tokens_in, tokens_out, cached = max(tokens_in, chunk_in), max(tokens_out, chunk_out), max(cached, chunk_cached)
             except Exception as err:
+                failed.add(m.name)
                 if reply is None or not reply.text.strip():  # failed before answering: give the budget back, move on
                     await usage.refund(reservation)
-                    await on_error(m, err)
-                    continue
+                else:  # broke off mid-answer: the tokens were spent, but a cut-off answer is never returned
+                    counted = tokens_in - (cached if m.provider == "groq" else 0) + tokens_out
+                    await usage.settle(reservation, counted or booked, m.neurons_for(tokens_in or prompt_tokens, tokens_out))
+                await on_error(m, err)
+                continue
             if reply is None:  # the stream ended without a single chunk
                 await usage.refund(reservation)
                 continue

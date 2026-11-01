@@ -40,14 +40,6 @@ jobs:
       - name: Rebuild knowledge, FAISS index, scope bank and answer bank (each skips itself if nothing changed)
         run: npm run content && python -m agent.build_index && python -m agent.build_answers
 
-      - name: Commit the agent data if it changed (Vercel then redeploys)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add agent/data
-          # Rebase first: a push to main can land while this job runs (the push would otherwise be rejected).
-          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git pull --rebase origin main && git push)
-
       - name: Difficulty levels (rules, no API calls)
         run: python -m evals.difficulty_eval
 
@@ -65,6 +57,15 @@ jobs:
 
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
+
+      - name: Commit the agent data if it changed (Vercel then redeploys)
+        # Only after every eval above passed: a failing eval keeps the new index and answer bank off the site.
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add agent/data
+          # Rebase first: a push to main can land while this job runs (the push would otherwise be rejected).
+          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git pull --rebase origin main && git push)
 
       - name: RAGAS (faithfulness, answer relevancy, context precision)
         # Weekly / manual only: the judge shares the site's free Gemini quota, so don't spend it on every push.

@@ -134,12 +134,13 @@ def clean(answer: str) -> str:
     """Things that are removed, keeping the rest: unknown links (made-up pages too), long numbers, IDs, other emails."""
     def link(m: re.Match) -> str:
         label, url = (m.group(1), m.group(2)) if m.group(1) else (None, m.group(0))
-        if _allowed(url):
-            return m.group(0)
-        return label or ""
+        if label is None:  # a bare URL
+            return url if _allowed(url) else ""
+        # A link's label is visible text, so it is redacted like any other ("[9876543210](…)" can't smuggle a number).
+        return f"[{_redact(label)}]({url})" if _allowed(url) else _redact(label)
 
     parts, last = [], 0
-    for m in URL.finditer(answer):  # numbers inside allowed links (DOIs, IDs in URLs) are left alone
+    for m in URL.finditer(answer):  # numbers inside allowed URLs (DOIs, IDs) are left alone
         parts.append(_redact(answer[last:m.start()]))
         parts.append(link(m))
         last = m.end()

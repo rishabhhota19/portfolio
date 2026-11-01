@@ -12,7 +12,7 @@ The agent is a small **LangGraph** graph written in Python:
 
 1. **route:** simple messages (hi, "how do I contact him?", "take me to his projects") get an instant reply without calling an LLM. That saves the free quota for real questions.
 2. **retrieve:** hybrid search over this site's own content.
-   - **FAISS** finds chunks with similar *meaning*, using EmbeddingGemma embeddings on Cloudflare Workers AI.
+   - **FAISS** finds chunks with similar *meaning*, using one open-source embedding model, BAAI bge-small-en-v1.5: it runs inside the server itself (an 8-bit ONNX build, about 3 ms a question), with the same model on Cloudflare Workers AI as the backup, so every route gives the same vectors.
    - **BM25** finds exact *keywords*.
    - **Reciprocal Rank Fusion** merges the two rankings.
 3. **scope:** checks the question is about my work before any LLM sees it (more below).

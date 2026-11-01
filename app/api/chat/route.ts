@@ -4,12 +4,12 @@ import { askAgent, splitMeta } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import * as events from "@/lib/server/events";
 import { ipHash, issueChatToken } from "@/lib/server/request";
-import { allow, refundDailyBudget, spendDailyBudget } from "@/lib/server/store";
+import { allow, envNumber, refundDailyBudget, spendDailyBudget } from "@/lib/server/store";
 import { chatRequest, json } from "@/lib/server/validate";
 
 export const maxDuration = 60;
 
-const DAILY_BUDGET = Number(process.env.DAILY_LLM_BUDGET ?? 3000);
+const DAILY_BUDGET = envNumber("DAILY_LLM_BUDGET", 3000);
 
 const offline = (message: string) => json({ error: "offline", message }, 503);
 

@@ -53,6 +53,13 @@ def last_question(state: State, turns: int = 1) -> str:
     return "\n".join(questions[-turns:])
 
 
+def fresh(state: State) -> bool:
+    """Nothing before this question but starter quick answers (the browser shows those itself): the question still
+    starts the conversation, so the cache, the answer bank and the first-turn rules apply. Writing to the cache stays
+    first-turn only, because the answer was written with the starters in view."""
+    return all(m.additional_kwargs.get("starter") for m in state["messages"][:-1])
+
+
 def first_turn(state: State) -> bool:
     return len(state["messages"]) == 1
 
@@ -68,7 +75,7 @@ def say(text: str, intent: str, started: float, name: str, **extra) -> dict:
 async def route(state: State) -> dict:
     started = time.perf_counter()
     question = last_question(state)
-    intent = guard.classify(question, first_turn(state))
+    intent = guard.classify(question, fresh(state))
     if intent in guard.REFUSED:
         return say(guard.reply_for(intent), "refused", started, "route", why=f"rules:{intent}")
     if intent != "question":
@@ -79,7 +86,7 @@ async def route(state: State) -> dict:
     actions = [{"type": "navigate", "path": nav["path"], "label": nav["label"], "focus": nav["pure"]}] if nav else []
     if nav and nav["pure"]:  # "take me to his projects" — nothing else to answer
         return say(f"Taking you to **{nav['label']}**. Ask me anything about it.", "navigate", started, "route", actions=actions)
-    if first_turn(state) and (hit := await cache.get(question)):
+    if fresh(state) and (hit := await cache.get(question)):
         return say(hit["text"], "cached", started, "route", model="cache", actions=actions or link_actions(hit["links"]))
     level = difficulty(question, len(state["messages"]) - 1)
     return {"intent": "question", "level": level, "actions": actions, "trace": step("route", started, intent=intent, level=level)}
@@ -102,14 +109,14 @@ async def retrieve(state: State) -> dict:
 async def scope(state: State) -> dict:
     started = time.perf_counter()
     relevance = state.get("relevance", 0.0)
-    in_scope, gap = gate2.judge(last_question(state), state.get("vector"), relevance, not first_turn(state))
+    in_scope, gap = gate2.judge(last_question(state), state.get("vector"), relevance, not fresh(state))
     if not in_scope and state.get("context_vector") is not None:
         # A follow-up ("give me the link of the paper") leans on the chat: refuse it only if it's off-topic on its
         # own AND together with the previous question.
         in_scope, gap = gate2.judge(last_question(state, turns=2), state["context_vector"], relevance, follow_up=True)
     if not in_scope:
         return say(guard.REFUSAL, "refused", started, "scope", why=f"scope:{gap}")
-    if first_turn(state) and (hit := cache.from_bank(state.get("vector"))):
+    if fresh(state) and (hit := cache.from_bank(state.get("vector"))):
         links = link_actions(hit["links"], skip=state.get("actions", []))
         return say(hit["text"], "bank", started, "scope", model="bank", actions=state.get("actions", []) + links)
     return {"trace": step("scope", started, gap=gap)}

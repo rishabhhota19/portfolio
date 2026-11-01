@@ -44,6 +44,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 class Message(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(max_length=4000)
+    starter: bool = False  # a starter quick answer the browser showed itself
 
 
 class ChatRequest(BaseModel):
@@ -78,7 +79,11 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
     check_secret(x_agent_secret)
     usage.CALLER.set((x_caller or "")[:64])  # the visitor's network (hashed): fair shares and failure counting
-    history = [HumanMessage(m.content) if m.role == "user" else AIMessage(m.content) for m in req.messages]
+    usage.DEADLINE.set(time.monotonic() + 45)  # the function is stopped at 60 s; leave time to finish the stream
+    # Starter quick answers (shown by the browser, not written by the agent) are marked, so a question typed after
+    # them still counts as the start of the conversation (graph.fresh).
+    history = [(HumanMessage if m.role == "user" else AIMessage)(m.content, additional_kwargs={"starter": True} if m.starter else {})
+               for m in req.messages]
     started = time.perf_counter()
     result: dict = {"trace": []}
     line = lambda event: json.dumps(event, ensure_ascii=False) + "\n"  # noqa: E731
@@ -86,16 +91,21 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
     async def events():
         output = StreamGuard()
         call = None  # the LLM call being streamed
+        live = True  # False once a call broke off mid-answer: the next model's answer is then sent whole, at the end
         final = None  # the answer as the graph finished it (after the output guard)
         async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"]):
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
-                    if chunk.id != call:  # a second opinion: the held-back refusal is dropped, nothing was shown
+                    if chunk.id != call:  # another call: a second opinion (nothing shown yet) or a replacement model
                         call = chunk.id
-                        output = output if output.sent else StreamGuard()
-                    for kind, text in output.push(chunk.text):
-                        yield line({"type": kind, "text": text})
+                        if output.sent:
+                            live = False  # the earlier model broke off mid-answer: "replace" sends the new one whole
+                        else:
+                            output = StreamGuard()
+                    if live:
+                        for kind, text in output.push(chunk.text):
+                            yield line({"type": kind, "text": text})
             else:  # "updates": what each node returned
                 for update in data.values():
                     update = update or {}
@@ -106,8 +116,10 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
         print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}, default=str))
         if result.get("model") == "none":
+            if output.sent:  # a model broke off mid-answer and no other could finish it: don't leave half an answer
+                yield line({"type": "replace", "text": "That answer broke off part-way. Please ask again in a moment."})
             return  # every model is out of budget → nothing streamed → 503 below
-        for kind, text in output.finish():
+        for kind, text in output.finish() if live else []:
             yield line({"type": kind, "text": text})
         if final is not None and final != output.sent:  # canned replies, or the graph's guard changed the answer
             yield line({"type": "replace" if output.sent else "text", "text": final})
@@ -143,6 +155,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
 async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Header(None), x_caller: str | None = Header(None)):
     check_secret(x_agent_secret)
     usage.CALLER.set((x_caller or "")[:64])
+    usage.DEADLINE.set(time.monotonic() + 25)  # the gateway waits 30 s for a summary
     return await summarize([m.model_dump() for m in req.messages], req.lead, req.session_id)
 
 

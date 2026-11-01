@@ -74,7 +74,11 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const transcript = (list: UiMessage[]): ChatMessage[] =>
     list
       .filter((m) => m.kind !== "notice" && m.content.trim())
-      .map(({ role, content }) => ({ role, content: content.slice(0, role === "user" ? LIMITS.maxMessageChars : LIMITS.maxAnswerChars) }));
+      .map(({ role, content, kind }) => ({
+        role,
+        content: content.slice(0, role === "user" ? LIMITS.maxMessageChars : LIMITS.maxAnswerChars),
+        ...(kind === "starter" ? { starter: true } : {}),
+      }));
 
   const endPayload = useCallback((reason: EndReason): EndRequest => {
     const convo = currentConversation();

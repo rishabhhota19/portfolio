@@ -23,6 +23,13 @@ from .llm import PACE, PROVIDER_LIMITS, FreeModel
 DAY_TTL, HOUR_TTL, MINUTE_TTL, SESSION_TTL = 2 * 86400, 7200, 120, 2 * 86400
 FAIR_SHARE = 0.1  # of each daily limit, per network per day: one visitor can never use up a model for everyone
 CALLER: contextvars.ContextVar[str] = contextvars.ContextVar("caller", default="")  # set per request in api/index.py
+DEADLINE: contextvars.ContextVar[float] = contextvars.ContextVar("deadline", default=0.0)  # monotonic; 0 = none
+
+
+def time_left() -> float | None:
+    """Seconds left before this request must be answered (the function is stopped at 60 s), or None without a deadline."""
+    deadline = DEADLINE.get()
+    return deadline - time.monotonic() if deadline else None
 
 # Reserve: KEYS[1] model pause flag, KEYS[2] provider pause flag, KEYS[3..] counters; ARGV = amount, limit, ttl per counter.
 # Returns 1 = reserved, 0 = paused, n >= 3 = the counter (1-based key index) that had no room.

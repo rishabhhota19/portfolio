@@ -1,7 +1,7 @@
 """Retrieval (the "R" in RAG).
 
     question ─┬─► FAISS  (meaning: embeddings) ─┐
-              └─► BM25   (exact keywords)  ─────┴─► Reciprocal Rank Fusion ─► re-rank ─► top 4 chunks
+              └─► BM25   (exact keywords)  ─────┴─► Reciprocal Rank Fusion ─► re-rank ─► top 6 (the tier uses 2 / 4 / 6)
 
 The chunks (agent/data/chunks.json) and the FAISS index (agent/data/embeddings/) are built by
 `python -m agent.build_index`. How a question gets embedded (and what happens if it can't be) is in embeddings.py.

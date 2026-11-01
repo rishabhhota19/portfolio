@@ -3,16 +3,16 @@ import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import { sendLeadEmail } from "@/lib/server/email";
 import * as events from "@/lib/server/events";
-import { ipHash, requestMeta } from "@/lib/server/request";
+import { ipHash, requestMeta, verifyChatToken } from "@/lib/server/request";
 import { addChat } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
-import { allow, firstTime, spendDailyBudget } from "@/lib/server/store";
+import { allow, envNumber, firstTime, spendDailyBudget } from "@/lib/server/store";
 import { json, leadRequest } from "@/lib/server/validate";
 import { networkOf, whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
-const SUMMARY_BUDGET = Number(process.env.DAILY_SUMMARY_BUDGET ?? 400);
+const SUMMARY_BUDGET = envNumber("DAILY_SUMMARY_BUDGET", 400);
 const SUMMARIES_PER_CHAT = 3;
 
 const settled = <T,>(r: PromiseSettledResult<T>, fallback: T): T => {
@@ -49,6 +49,8 @@ export async function POST(req: Request) {
   after(async () => {
     const s =
       data.messages.length &&
+      // The lead is always kept; the model summary only for a chat that went through /api/chat (signed token).
+      verifyChatToken(data.conversationId, data.token) &&
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"))
         ? await summarizeChat(req, sessionId, data.messages, data.lead)

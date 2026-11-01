@@ -4,13 +4,13 @@ import * as events from "@/lib/server/events";
 import { ipHash, verifyChatToken } from "@/lib/server/request";
 import { addChat } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
-import { allow, allowNearby, firstTime, spendDailyBudget } from "@/lib/server/store";
+import { allow, allowNearby, envNumber, firstTime, spendDailyBudget } from "@/lib/server/store";
 import { endRequest, json } from "@/lib/server/validate";
 import { whereAndDevice } from "@/lib/server/visitor";
 
 export const maxDuration = 60;
 
-const SUMMARY_BUDGET = Number(process.env.DAILY_SUMMARY_BUDGET ?? 400);
+const SUMMARY_BUDGET = envNumber("DAILY_SUMMARY_BUDGET", 400);
 const SUMMARIES_PER_CHAT = 3; // later ends of the same chat get the plain summary
 
 const REASON_LABEL = {

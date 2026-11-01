@@ -161,6 +161,13 @@ export async function allow(key: string, max: number, windowSeconds: number) {
   return n <= max;
 }
 
+/** A whole number from the environment; blank, missing or invalid means `fallback` (Number("") would be 0). */
+export function envNumber(name: string, fallback: number) {
+  const raw = process.env[name]?.trim();
+  const n = raw ? Number(raw) : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : fallback;
+}
+
 type Budget = "budget" | "budget-summary"; // chat answers and chat summaries are counted separately
 const budgetKey = (name: Budget) => `${name}:${new Date().toISOString().slice(0, 10)}`; // per UTC day
 

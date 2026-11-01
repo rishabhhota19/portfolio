@@ -1,7 +1,7 @@
 // Shared between the chat widget and the API routes.
 export type ChatRole = "user" | "assistant";
 
-export type ChatMessage = { role: ChatRole; content: string };
+export type ChatMessage = { role: ChatRole; content: string; starter?: boolean }; // starter: a quick answer the panel showed itself
 
 export type EndReason = "closed_chat" | "left_site" | "tab_hidden" | "lead_submitted";
 

@@ -5,7 +5,7 @@ import { LIMITS } from "@/lib/chat-types";
 // History is written by the browser, so nothing in it is trusted: every turn and the whole is capped (padded fake
 // history used to be a way to make requests too big for the models).
 const message = z
-  .object({ role: z.enum(["user", "assistant"]), content: z.string().max(LIMITS.maxAnswerChars) })
+  .object({ role: z.enum(["user", "assistant"]), content: z.string().max(LIMITS.maxAnswerChars), starter: z.boolean().optional() })
   .refine((m) => m.role === "assistant" || m.content.length <= LIMITS.maxMessageChars, "message too long");
 const totalChars = (list: { content: string }[]) => list.reduce((n, m) => n + m.content.length, 0);
 
