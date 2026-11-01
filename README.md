@@ -5,7 +5,7 @@
 A Next.js portfolio with an AI agent, **Dumbledore**, that answers recruiters' questions about Rishabh and takes them
 to the pages they want to see. The chat window is only its interface.
 The AI pipeline is **Python** (LangGraph + LangChain): hybrid RAG with **FAISS + BM25**, a **five-gate refusal
-pipeline**, page navigation, **four embedding engines with fallbacks**, a **4-level routing web of 17 free LLMs** across Groq, Gemini, Cloudflare Workers AI and
+pipeline**, page navigation, **one open-source embedding model served two ways**, a **4-level routing web of 17 free LLMs** across Groq, Gemini, Cloudflare Workers AI and
 OpenRouter, and **RAGAS** evals. ₹0/month.
 
 ```
@@ -59,25 +59,23 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
   (it lives in the layout); on phones the full-screen chat steps aside. Answers get up to two "take me there" buttons.
   Targets are decided by rules over an allow-list of the site's pages (`agent/pages.py`), never by the model, and the
   browser only follows site-relative paths.
-- **Embeddings that never stop (`agent/embeddings.py`).** Four engines, tried in order, then keyword search:
-  1. **EmbeddingGemma** on Cloudflare (multilingual; best on this site's evals: cleanest on-topic vs off-topic split,
-     AUC 0.94) — a sliver of the 10,000 free neurons a day;
-  2. **Gemini** `gemini-embedding-001` — another provider; its 1,000 free requests a day are counted in Redis;
-  3. **bge-m3** on Cloudflare — covers EmbeddingGemma (in beta) being changed or withdrawn;
-  4. **bge-small-en-v1.5**, open source from Hugging Face (int8 ONNX, 34 MB), run on the function's own CPU: no key,
-     no quota, ~4 ms a question, same retrieval hit rate (14/14) as EmbeddingGemma.
+- **One embedding model, served two ways (`agent/embeddings.py`).** Vectors only compare within one model, so instead
+  of several models (each needing its own index) the site serves **one** open-source model from two places, behind
+  **one** index, scope bank and answer bank:
+  1. **bge-small-en-v1.5** (BAAI, int8 ONNX from Hugging Face, 34 MB) on the function's own CPU — ~3 ms a question,
+     no key, no quota, no daily limit;
+  2. **the same model on Cloudflare Workers AI** (with the same [CLS] pooling) if the local copy can't run;
+  3. keyword search (BM25) if both are down — the chat still answers.
 
-  A vector only means something next to vectors from the same model, so each engine has its own index and scope bank
-  (`agent/data/embeddings/<engine>/`). Remote engines share the chat models' budget and breaker logic: a failing one is
-  paused, so visitors don't each wait for its timeout (measured in a real Cloudflare outage: 1.2 s for the first
-  question, then 7 ms). Gate 2 runs on every engine — the primary's thresholds were tuned on `evals/scope.json`, the
-  others are scaled to how widely each engine spreads topics apart (bge-small: 0 false refusals on the eval set); the
-  answer bank uses the primary only. Groq serves no embedding models, and Hugging Face's hosted API no longer has a
-  free tier, which is why the open model runs locally.
+  Chosen on this site's evals: same retrieval hit rate as EmbeddingGemma (14/14), scope separation AUC 0.93 vs 0.94
+  (bge-base: no better, 3× the size and 7× the CPU), and ~100× faster than a network call. A failing route is paused, so
+  visitors don't each wait for its timeout (measured in a real Cloudflare outage: 1.2 s for the first question, then
+  7 ms). Groq serves no embedding models, and Hugging Face's hosted API has no free tier any more, which is why the
+  open model runs locally.
 - **Answering instantly.** Two L0 layers: an exact cache for repeated first questions, and an **answer bank**: common
   questions with ~8 paraphrases each, answered by the agent and kept only if the answer passes that question's eval
-  checks. A new question is served from the bank only if its embedding is clearly nearest one intent (score ≥ 0.88 and
-  0.06 ahead of the next): 65% of held-out paraphrases served, 0 wrong.
+  checks. A new question is served from the bank only if its embedding is clearly nearest one intent (score ≥ 0.90 and
+  0.05 ahead of the next): 56% of held-out paraphrases served, 0 wrong.
 - **A routing web of free models, by difficulty.** Questions get a level from plain rules (0 tokens): **L0**
   greetings/contact/repeats (no LLM), **L1** one fact (small fast models, 2 chunks), **L2** the usual question
   (4 chunks), **L3** reasoning such as role fit (strongest models, 6 chunks, longer answers). Each level has a pool of
@@ -111,7 +109,7 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 | `agent/guard.py` | Refusal pipeline: Gate 1 rules, canned replies, Gate 4 output guard (also while streaming) |
 | `agent/scope.py` | Gate 2: on-topic vs off-topic example banks, judged by embedding |
 | `agent/pages.py` | The site map: navigation ("take me to …") and "take me there" links |
-| `agent/embeddings.py` | Four embedding engines in order (budgets, pauses), then keyword search |
+| `agent/embeddings.py` | One embedding model: local ONNX, then Cloudflare, then keyword search |
 | `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, optional cross-encoder re-ranking |
 | `agent/llm.py` | The model web: every free model, its limits, and the pool for each difficulty level |
 | `agent/difficulty.py` | L1 / L2 / L3 from plain rules (tested by `evals/difficulty.json`) |
@@ -119,7 +117,7 @@ lives only in the tab. When a recruiter shares their details, the same row gets 
 | `agent/usage.py` | Atomic budget reservations (Redis Lua), pacing, per-visit token totals |
 | `agent/cache.py` | L0 answers: exact cache (a day) and the answer bank |
 | `agent/prompts.py` | Dumbledore's system prompt (grounding + Gate 3) and the summary prompt |
-| `agent/build_index.py` | Chunks the content; per embedding engine, its FAISS index + calibrated scope bank (skips unchanged) |
+| `agent/build_index.py` | Chunks the content; embeds it (locally, free) into the FAISS index + scope bank (skips unchanged) |
 | `agent/build_answers.py` | Builds the answer bank: paraphrases, checked answers, embeddings |
 | `api/index.py` | FastAPI: `/api/agent/chat` (NDJSON events), `/api/agent/summarize`, `/api/agent/health` |
 | `evals/run_evals.py` | Retrieval / fact / guardrail checks over `evals/questions.json` |
@@ -174,6 +172,22 @@ Push to `main`; Vercel builds the site and the Python function (`requirements.tx
 Set the variables from `.env.example` in Vercel (except `AGENT_URL`).
 Google Sheets logging: follow the steps at the top of `integrations/google-sheets/Code.gs`.
 
+## Private dashboard (`/admin`)
+Realtime analytics for the owner, fed **directly** by the site (`lib/server/events.ts` → Upstash Redis), in parallel
+with the Google Sheet (which stays a copy to read on the go):
+- **On the site now**: an open, visible tab pings every 30 s (`/api/visit/live`); page views count on each page change.
+- **Today and 7 days**: visits, page views, questions, leads and tokens with sparklines; top pages, sources, countries,
+  networks (company or ISP) and devices.
+- **Dumbledore**: how each question was handled (answered, refused, cache, answer bank, navigated), difficulty level,
+  model, tokens and latency. The agent sends these on a final `meta` stream line that the gateway records and strips,
+  so visitors never see model names. No chat text is stored, only the AI summary when a chat ends.
+- **Leads** and the **model web** (today's budget per model and the embedding lineup, loaded only while open).
+
+Every write is one Lua script (one Upstash command) and each 5 s poll reads everything in one command, so it fits the
+free tier. Sign-in: `ADMIN_PASSWORD` + `ADMIN_SESSION_SECRET` → a signed, HttpOnly, SameSite=Strict `__Host-` cookie
+(7 days, nothing stored server-side); BotID and rate limits on the login; noindex, disallowed in robots, and never in
+the nav, sitemap or the agent's site map (`content/site.json` → `private`).
+
 ## Monitoring
 - **Sentry** (`NEXT_PUBLIC_SENTRY_DSN`): errors from the browser, the Next.js gateway and the Python agent in one project,
   plus warnings for failed lead emails / Sheets logging and an alert when every free model is used up. No chat text is
@@ -185,7 +199,7 @@ Google Sheets logging: follow the steps at the top of `integrations/google-sheet
 
 ## CI
 `.github/workflows/agent.yml` runs on every change to `content/`, `agent/` or `evals/` (and weekly): it rebuilds the
-search data (every embedding engine's index and scope bank) and the answer bank — committing them if they changed,
+search data (the index and scope bank, embedded locally) and the answer bank — committing them if they changed,
 which redeploys the site — then runs the difficulty, navigation, refusal-pipeline and fact/guardrail evals and uploads
 the results. RAGAS runs weekly and on manual runs only, because its judge shares the site's free Gemini quota. Groq
 stays out of the full evals (they'd spend most of its 200,000 tokens per model per day, which visitors need); a
