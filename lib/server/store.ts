@@ -22,8 +22,10 @@ class RedisStore implements Store {
   }
 
   async get(key: string) {
-    const v = await this.redis.get<string | number>(key);
-    return v == null ? null : String(v);
+    // The Upstash client turns stored JSON back into objects; callers expect the string they saved
+    // (String() would give "[object Object]" — that broke a visit's second chat summary and its lead).
+    const v = await this.redis.get<unknown>(key);
+    return v == null ? null : typeof v === "string" ? v : JSON.stringify(v);
   }
 
   async set(key: string, value: string, ttlSeconds: number) {
