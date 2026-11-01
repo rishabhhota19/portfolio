@@ -18,9 +18,11 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
                                                                         token-tracked; switches are invisible
 ```
 
-Chat memory lives only in the browser tab. When a chat ends, only an AI summary goes to a Google Sheet (never the transcript).
-When a recruiter shares their details, the same sheet row gets them and you get an email (Resend if `RESEND_API_KEY` is
-set, otherwise the Sheet's Apps Script sends it from your own Google account).
+**Visit analytics.** Every visit (one browser tab) gets one row in the Google Sheet's *Sessions* tab: pages, active time,
+source/UTM, clicks, city-level location, network (company or ISP), device — and, if they chat, the **real token counts**
+the providers report (in/out, models, latency, summary tokens) plus an AI summary (never the transcript). Chat memory
+lives only in the tab. When a recruiter shares their details, the same row gets them and you get an email (Resend if
+`RESEND_API_KEY` is set, otherwise the Sheet's Apps Script sends it). IPs are blanked after 90 days; see `/privacy`.
 
 ## Why it's built this way
 - **Hybrid retrieval.** Embeddings understand paraphrases but can miss exact names ("LCSNet", "RBKnee"); BM25 is the
@@ -56,6 +58,8 @@ set, otherwise the Sheet's Apps Script sends it from your own Google account).
 | `evals/ragas_eval.py` | RAGAS: faithfulness, answer relevancy, context precision |
 | `evals/rerank_ab.py` | A/B: RRF order vs the cross-encoder re-ranker (hit@4, MRR@4) |
 | `app/api/*` | Next.js gateway: security checks, then calls the Python agent; logging + lead email |
+| `lib/visit.ts`, `app/api/visit` | The visit: tab session id, pages, clicks, active time → one Sessions row (sendBeacon) |
+| `lib/server/visitor.ts`, `session.ts` | Location, device, network (IPinfo), returning visitor; combining a visit's chats |
 | `content/` | All site text. The same files feed the pages and the agent |
 
 ## Run locally
