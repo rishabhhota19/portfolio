@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
+import { warmAgent } from "@/lib/visit";
 import { useEffect, useState } from "react";
 import { OPEN_AGENT_EVENT, type OpenAgentDetail } from "./events";
 
@@ -28,6 +29,10 @@ export function ChatLauncher() {
     window.addEventListener(OPEN_AGENT_EVENT, onOpen);
     return () => window.removeEventListener(OPEN_AGENT_EVENT, onOpen);
   }, []);
+
+  useEffect(() => {
+    if (open) warmAgent(); // someone who read for a while before opening the chat: wake the agent if it's been 3+ min
+  }, [open]);
 
   if (pathname.startsWith("/admin")) return null; // the private dashboard has no visitor chat
 

@@ -97,6 +97,28 @@ export function ping() {
   fetch("/api/visit/live", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
 }
 
+const WARM_KEY = "agentWarmAt";
+const WARM_EVERY = 3 * 60_000; // the warm reply stays in the CDN for 3 minutes: sooner would only reach the cache
+const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview/i; // the same list as /api/visit
+let warmedAt = 0; // fallback when localStorage is blocked
+
+/** Wakes the agent before the visitor asks, so the first answer doesn't wait for Python to load its models. At most
+ * once per browser every 3 minutes; inside that window the CDN answers for every visitor, so a warm agent isn't woken. */
+export function warmAgent() {
+  if (document.visibilityState !== "visible" || BOT_UA.test(navigator.userAgent)) return;
+  if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+  let last = warmedAt;
+  try {
+    last = Math.max(last, Number(localStorage.getItem(WARM_KEY)) || 0);
+  } catch {}
+  if (Date.now() - last < WARM_EVERY) return;
+  warmedAt = Date.now();
+  try {
+    localStorage.setItem(WARM_KEY, String(warmedAt));
+  } catch {}
+  fetch("/api/agent/warm", { priority: "low" }).catch(() => {});
+}
+
 /** Reports the visit (called when the tab is hidden or closed). Skipped if nothing much changed. */
 export function sendVisit() {
   const { activeMs, ...rest } = currentVisit();

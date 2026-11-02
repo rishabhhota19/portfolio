@@ -6,6 +6,7 @@ Browsers never call this directly: the Next.js gateway (app/api/chat/route.ts) r
 Run locally:  npm run agent   →  http://127.0.0.1:8000
 """
 
+import asyncio
 import hmac
 import json
 import re
@@ -39,6 +40,7 @@ if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs
     )
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+BOOTED = time.time()  # when this server instance started (the warm-up log shows how fresh it was)
 
 
 class Message(BaseModel):
@@ -67,6 +69,46 @@ def check_secret(secret: str | None) -> None:
         raise HTTPException(401, "unauthorized")
 
 
+def loaded() -> bool:
+    """Whether this instance already holds what a first answer loads: the chunks, the scope and answer banks and, when
+    built in, the FAISS index and the local embedding model. Each sits in an lru_cache once loaded."""
+    from agent import cache, embeddings, rag, scope
+
+    parts = [rag.load, scope.bank, cache.bank] + ([rag.index, embeddings._session] if embeddings.ENGINES[0].ready else [])
+    return all(part.cache_info().currsize for part in parts)
+
+
+def load() -> None:
+    from agent import cache, embeddings, rag, scope
+
+    rag.load()
+    scope.bank()
+    cache.bank()
+    if embeddings.ENGINES[0].ready:
+        rag.index()
+
+
+@app.get("/api/agent/warm")
+async def warm():
+    """Public. Wakes the agent before a visitor asks, so the first answer doesn't wait for Python to load the index,
+    the banks and the embedding model. Never calls an LLM: no tokens, no quota. Already warm: returns at once.
+    The CDN keeps the reply for 3 minutes, so visitors in that window don't reach the function at all."""
+    from agent import embeddings
+
+    started = time.perf_counter()
+    was_cold = not loaded()
+    if was_cold:
+        try:
+            await asyncio.to_thread(load)
+            if (local := embeddings.ENGINES[0]).ready:
+                await local.embed(["warm"])  # loads the ONNX model and runs it once
+        except Exception as err:  # best-effort: a chat still loads anything missing itself
+            print(f"[warm] failed: {type(err).__name__}")
+    ms = round((time.perf_counter() - started) * 1000)
+    print(json.dumps({"event": "warm", "was_cold": was_cold, "ms": ms, "instance_age_s": round(time.time() - BOOTED)}))
+    return JSONResponse({"ok": True, "was_cold": was_cold, "ms": ms}, headers={"Cache-Control": "public, max-age=0, s-maxage=180"})
+
+
 @app.post("/api/agent/chat")
 async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_caller: str | None = Header(None)):
     """Streams the answer as NDJSON events, one JSON object per line:
@@ -85,7 +127,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
     history = [(HumanMessage if m.role == "user" else AIMessage)(m.content, additional_kwargs={"starter": True} if m.starter else {})
                for m in req.messages]
     started = time.perf_counter()
-    result: dict = {"trace": []}
+    result: dict = {"trace": [], "cold": not loaded()}  # cold: this turn met an instance that hadn't loaded yet
     line = lambda event: json.dumps(event, ensure_ascii=False) + "\n"  # noqa: E731
 
     async def events():
