@@ -1,0 +1,15 @@
+{
+  // Typecheck: npx wrangler@4 types --config cloudflare/analytics/wrangler.jsonc cloudflare/analytics/worker-configuration.d.ts
+  //            && npx tsc -p cloudflare/analytics
+  "compilerOptions": {
+    "target": "es2024",
+    "module": "es2022",
+    "moduleResolution": "bundler",
+    "lib": ["es2024"],
+    "types": [],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["*.ts", "../../lib/traffic.ts"]
+}

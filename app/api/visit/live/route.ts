@@ -3,8 +3,7 @@ import { ipHash } from "@/lib/server/request";
 import { allowNearby } from "@/lib/server/store";
 import { json, liveRequest } from "@/lib/server/validate";
 import { networkOf, sourceOf, whereAndDevice } from "@/lib/server/visitor";
-
-const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|curl|wget|python-requests/i;
+import { BOT_UA } from "@/lib/traffic";
 
 /**
  * Presence heartbeat for the admin dashboard's "on the site now": an open, visible tab pings every 30 s and on

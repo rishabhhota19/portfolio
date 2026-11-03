@@ -1,0 +1,31 @@
+# Deploys the dashboard's analytics Worker (cloudflare/analytics/) when it changes. Uses the repo secrets
+# CLOUDFLARE_API_TOKEN (Workers Scripts: Edit) and CF_ACCOUNT_ID; until the token exists the job only leaves a note,
+# and `npm run analytics:deploy` deploys by hand. The Worker's own secrets are set once with `wrangler secret put`.
+name: Analytics Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ["cloudflare/analytics/**", "lib/traffic.ts"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: analytics
+  cancel-in-progress: true
+
+jobs:
+  analytics:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+    steps:
+      - if: env.CLOUDFLARE_API_TOKEN == ''
+        run: echo "::notice::CLOUDFLARE_API_TOKEN isn't set, so the analytics Worker wasn't deployed. Run npm run analytics:deploy."
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        uses: actions/checkout@v4
+      - if: env.CLOUDFLARE_API_TOKEN != ''
+        run: npx --yes wrangler@4 deploy --config cloudflare/analytics/wrangler.jsonc

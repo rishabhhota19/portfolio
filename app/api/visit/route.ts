@@ -6,10 +6,9 @@ import { logSession } from "@/lib/server/sheets";
 import { allow, allowNearby } from "@/lib/server/store";
 import { json, visitRequest } from "@/lib/server/validate";
 import { countActions, networkOf, returning, sourceOf, whereAndDevice } from "@/lib/server/visitor";
+import { BOT_UA } from "@/lib/traffic";
 
 export const maxDuration = 30;
-
-const BOT_UA = /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|preview|curl|wget|python-requests/i;
 
 /**
  * The visit beacon: the browser reports pages and clicks when the tab is hidden or closed.

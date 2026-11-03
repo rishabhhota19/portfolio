@@ -4,13 +4,16 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 
 // Security headers on every page. The CSP lists exactly what the site loads: its own code (pages are prerendered, so
 // Next's inline bootstrap needs 'unsafe-inline' — nonces would need every page rendered per request — and BotID's
-// challenge needs 'unsafe-eval'), Cloudflare + Umami analytics, Sentry, and the media host (lib/media.ts). Framing,
-// plugins, <base> hijacking, foreign form targets and every other network origin are blocked.
-const media = process.env.NEXT_PUBLIC_MEDIA_BASE ? ` ${new URL(process.env.NEXT_PUBLIC_MEDIA_BASE).origin}` : "";
+// challenge needs 'unsafe-eval'), Cloudflare + Umami analytics, Sentry, the media host (lib/media.ts) and the
+// dashboard's analytics Worker. Framing, plugins, <base> hijacking, foreign form targets and every other network
+// origin are blocked.
+const origin = (url?: string) => (url ? ` ${new URL(url).origin}` : "");
+const media = origin(process.env.NEXT_PUBLIC_MEDIA_BASE);
+const analytics = origin(process.env.NEXT_PUBLIC_ANALYTICS_URL); // the dashboard's heartbeats (cloudflare/analytics/)
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://cloud.umami.is",
-  `connect-src 'self' https://*.ingest.us.sentry.io https://cloudflareinsights.com https://*.umami.is https://*.umami.dev${media}`,
+  `connect-src 'self' https://*.ingest.us.sentry.io https://cloudflareinsights.com https://*.umami.is https://*.umami.dev${media}${analytics}`,
   `img-src 'self' data: blob:${media}`,
   `media-src 'self'${media}`,
   "style-src 'self' 'unsafe-inline'",

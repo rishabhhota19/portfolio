@@ -1,0 +1,15 @@
+// The admin dashboard's analytics: a Worker plus one SQLite Durable Object (free plan). See worker.ts.
+// Deploy: npm run analytics:deploy
+{
+  "name": "rishabh-analytics",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "durable_objects": {
+    "bindings": [{ "name": "STATS", "class_name": "Stats" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Stats"] }],
+  "vars": { "SITE_ORIGIN": "https://rishabh-hota.vercel.app" },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false }
+}

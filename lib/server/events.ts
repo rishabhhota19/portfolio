@@ -14,6 +14,10 @@ import { redis } from "@/lib/server/store";
 //
 // Every write is ONE Lua script, so one Upstash command (the free plan counts commands), and atomic.
 // No chat text is ever stored here: turns carry level, model and tokens; chats only their AI summary.
+//
+// With NEXT_PUBLIC_ANALYTICS_URL and ANALYTICS_SECRET set, all of this lives in a Cloudflare Durable Object instead
+// (cloudflare/analytics/: the same rules and the same Snapshot), and browsers send their heartbeats to it directly.
+// Unset either to switch back to Upstash.
 
 const FEED = 2000;
 const DAY_TTL = 40 * 86_400;
@@ -94,14 +98,34 @@ const bump = (d: string, c: Counts) => {
   mem.stats.set(d, s);
 };
 
-async function run(script: string, keys: string[], args: string[], fallback: () => void): Promise<unknown> {
-  if (!redis) return fallback();
+const WORKER = (process.env.NEXT_PUBLIC_ANALYTICS_URL ?? "").replace(/\/+$/, "");
+const SECRET = process.env.ANALYTICS_SECRET ?? "";
+const onWorker = Boolean(WORKER && SECRET);
+
+async function worker<T>(path: string, body?: object): Promise<T> {
+  const res = await fetch(`${WORKER}${path}`, {
+    method: body ? "POST" : "GET",
+    headers: { "x-events-secret": SECRET, ...(body ? { "content-type": "application/json" } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(4000),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`analytics worker answered ${res.status}`);
+  return (await res.json()) as T;
+}
+
+/** One write: to the Worker (`op`), else one Upstash script, else memory. */
+async function run(script: string, keys: string[], args: string[], fallback: () => void, op: object): Promise<unknown> {
   try {
+    if (onWorker) return await worker("/event", op);
+    if (!redis) return fallback();
     return await redis.eval(script, keys, args);
   } catch (err) {
     console.error("[events] write failed:", err); // the dashboard is best-effort: never break the visitor's request
   }
 }
+
+const nonZero = (c: Counts) => Object.fromEntries(Object.entries(c).filter(([, n]) => n));
 
 // ── Writers ─────────────────────────────────────────────────────────────────
 
@@ -114,7 +138,7 @@ export async function record(event: Record<string, unknown> | null, counts: Coun
     if (json) mem.feed = [json, ...mem.feed].slice(0, FEED);
     if (isLead) mem.leads = [json, ...mem.leads].slice(0, 200);
     bump(d, counts);
-  });
+  }, { op: "push", event: json, counts: nonZero(counts), lead: isLead });
 }
 
 type Turn = { sessionId: string; page: string; intent: string; why: string; level: string; model: string; tokens_in: number; tokens_out: number; ms: number };
@@ -142,13 +166,14 @@ export async function visit(v: Visit) {
     }
     if (v.activeSeconds > (before ?? 0)) bump(d, { active_s: v.activeSeconds - (before ?? 0) });
     mem.visits.set(v.sessionId, Math.max(before ?? 0, v.activeSeconds));
-  });
+  }, { op: "visit", sessionId: v.sessionId, activeSeconds: v.activeSeconds, event, counts: nonZero(firsts) });
 }
 
 type Presence = { sessionId: string; page: string; ipHash: string; city?: string; country?: string; device?: string; network?: string; source?: string };
 
 /** Heartbeat from an open, visible tab (every 30 s and on each page change). Returns false when one network is
- * pinging too fast (the route answers 429). */
+ * pinging too fast (the route answers 429). With the Worker on, browsers ping it directly; this path then only
+ * serves heartbeats that couldn't reach it (an extension blocking workers.dev, say). */
 export async function live(p: Presence) {
   const now = Date.now();
   const page = sitePaths.has(p.page) ? p.page : "other"; // a 404 or a made-up path
@@ -163,8 +188,8 @@ export async function live(p: Presence) {
     const entry: Record<string, string> = { ...before, since: before?.since ?? String(now), last: String(now) };
     for (let i = 0; i < fields.length; i += 2) entry[fields[i]] = fields[i + 1];
     mem.live.set(p.sessionId, entry);
-  });
-  return result !== -1;
+  }, { op: "live", presence: { sessionId: p.sessionId, page, ipHash: p.ipHash, city: p.city, country: p.country, device: p.device, network: p.network, source: p.source } });
+  return onWorker ? (result as { ok?: boolean } | undefined)?.ok !== false : result !== -1;
 }
 
 // ── Reader (admin only) ─────────────────────────────────────────────────────
@@ -184,6 +209,7 @@ export async function snapshot(feed = 80): Promise<Snapshot> {
   const now = Date.now();
   const dayNames = Array.from({ length: 7 }, (_, i) => day(now - (6 - i) * 86_400_000));
   const parse = (rows: string[]) => rows.flatMap((r) => { try { return [JSON.parse(r)]; } catch { return []; } });
+  if (onWorker) return worker<Snapshot>(`/snapshot?feed=${feed}`);
   if (!redis) {
     return {
       now,

@@ -2,6 +2,8 @@ import "server-only";
 import { clientIp, ipHash, requestMeta } from "@/lib/server/request";
 import { store } from "@/lib/server/store";
 
+export { sourceOf } from "@/lib/traffic";
+
 // What we can tell about a visitor without asking: where they are (city-level), their device, their network
 // (a company or an ISP), whether they've been here before and where they came from.
 // Name, email and phone only ever come from the "Share your details" form.
@@ -69,24 +71,6 @@ export async function returning(req: Request, sessionId: string) {
   }
   remember(key, firstVisit);
   return firstVisit === sessionId ? "No" : "Yes";
-}
-
-const SOURCES: [RegExp, string][] = [
-  [/linkedin|lnkd\.in/, "LinkedIn"],
-  [/google\./, "Google"],
-  [/bing\.|duckduckgo|yahoo\./, "Search (other)"],
-  [/chatgpt|openai|perplexity|claude\.ai|gemini\.google/, "AI assistant"],
-  [/github/, "GitHub"],
-  [/naukri|indeed|wellfound|instahyre/, "Job board"],
-  [/^t\.co$|twitter|x\.com/, "X / Twitter"],
-  [/mail\.|outlook/, "Email"],
-];
-
-/** Where the visit came from: a campaign tag if the link had one, else the referring site, else "Direct". */
-export function sourceOf(referrer: string, utm: string) {
-  if (utm) return `Campaign: ${utm.split(" / ")[0]}`;
-  if (!referrer) return "Direct";
-  return SOURCES.find(([pattern]) => pattern.test(referrer))?.[1] ?? referrer;
 }
 
 /** ["chat_open", "chat_question", "chat_question"] → "chat_open, chat_question ×2" */

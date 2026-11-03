@@ -86,6 +86,7 @@ export function setVisible(visible: boolean) {
 }
 
 let pinged = false;
+const ANALYTICS = (process.env.NEXT_PUBLIC_ANALYTICS_URL ?? "").replace(/\/+$/, ""); // cloudflare/analytics/
 
 /** Presence for the admin dashboard ("on the site now"): on each page change and every 30 s, only while visible. */
 export function ping() {
@@ -94,7 +95,13 @@ export function ping() {
   if (!page || document.visibilityState !== "visible") return;
   const body = JSON.stringify({ sessionId: v.sessionId, page, first: !pinged, referrer: v.referrer, utm: v.utm });
   pinged = true;
-  fetch("/api/visit/live", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+  const viaSite = () => {
+    fetch("/api/visit/live", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+  };
+  if (!ANALYTICS) return viaSite();
+  // Straight to the analytics Worker, as text/plain so the browser sends no CORS preflight. If it can't be reached
+  // (an extension blocking workers.dev, say), the site's own route passes the ping on.
+  fetch(`${ANALYTICS}/live`, { method: "POST", body, keepalive: true }).catch(viaSite);
 }
 
 const WARM_KEY = "agentWarmAt";

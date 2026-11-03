@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
+import { deviceType as deviceOf } from "@/lib/traffic";
 
 const devSecret = randomBytes(32).toString("hex");
 
@@ -40,7 +41,7 @@ export function verifyChatToken(conversationId: string, token: string | null | u
 export function requestMeta(req: Request) {
   const ua = req.headers.get("user-agent") ?? "";
   const header = (name: string) => decodeURIComponent(req.headers.get(`x-vercel-ip-${name}`) ?? "");
-  const deviceType = /iPad|Tablet/i.test(ua) ? "Tablet" : /Mobi|Android|iPhone/i.test(ua) ? "Mobile" : "Desktop";
+  const deviceType = deviceOf(ua);
   const browser =
     /Edg\//.test(ua) ? "Edge" : /OPR\//.test(ua) ? "Opera" : /Chrome\//.test(ua) ? "Chrome" : /Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "Other";
   const os =
