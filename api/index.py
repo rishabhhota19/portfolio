@@ -88,11 +88,31 @@ def load() -> None:
         rag.index()
 
 
+def preload() -> None:
+    """Loads what a first answer needs as this instance starts, whatever request started it. Vercel runs several
+    instances: one started by a summary or a session lookup used to stay half-loaded, and the visitor whose question
+    landed there waited for the load. Best-effort: a chat still loads anything missing itself."""
+    from agent import embeddings
+
+    started = time.perf_counter()
+    try:
+        load()
+        if embeddings.ENGINES[0].ready:
+            embeddings._local(("warm",))  # loads the ONNX model and runs it once
+    except Exception as err:
+        print(f"[boot] preload failed: {type(err).__name__}")
+    print(json.dumps({"event": "boot", "ms": round((time.perf_counter() - started) * 1000)}))
+
+
+preload()
+
+
 @app.get("/api/agent/warm")
-async def warm():
-    """Public. Wakes the agent before a visitor asks, so the first answer doesn't wait for Python to load the index,
-    the banks and the embedding model. Never calls an LLM: no tokens, no quota. Already warm: returns at once.
-    The CDN keeps the reply for 3 minutes, so visitors in that window don't reach the function at all."""
+async def warm(src: str = ""):
+    """Public. Wakes the agent before a visitor asks: an instance that starts loads everything (preload), so this only
+    has to start one. Never calls an LLM: no tokens, no quota. Already warm: returns at once. The CDN keeps the reply
+    for 3 minutes, so visitors in that window don't reach the function at all; the Cloudflare cron that keeps the agent
+    awake (cloudflare/warm/) asks with a fresh URL each time, src=cron."""
     from agent import embeddings
 
     started = time.perf_counter()
@@ -105,7 +125,8 @@ async def warm():
         except Exception as err:  # best-effort: a chat still loads anything missing itself
             print(f"[warm] failed: {type(err).__name__}")
     ms = round((time.perf_counter() - started) * 1000)
-    print(json.dumps({"event": "warm", "was_cold": was_cold, "ms": ms, "instance_age_s": round(time.time() - BOOTED)}))
+    print(json.dumps({"event": "warm", "src": src[:16] or "site", "was_cold": was_cold, "ms": ms,
+                      "instance_age_s": round(time.time() - BOOTED)}))
     return JSONResponse({"ok": True, "was_cold": was_cold, "ms": ms}, headers={"Cache-Control": "public, max-age=0, s-maxage=180"})
 
 
