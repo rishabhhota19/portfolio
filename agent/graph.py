@@ -109,7 +109,7 @@ async def retrieve(state: State) -> dict:
 async def scope(state: State) -> dict:
     started = time.perf_counter()
     relevance = state.get("relevance", 0.0)
-    in_scope, gap = gate2.judge(last_question(state), state.get("vector"), relevance, not fresh(state))
+    in_scope, gap = gate2.judge(last_question(state), state.get("vector"), relevance)  # the question on its own, normal margin
     if not in_scope and state.get("context_vector") is not None:
         # A follow-up ("give me the link of the paper") leans on the chat: refuse it only if it's off-topic on its
         # own AND together with the previous question.

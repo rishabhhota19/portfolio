@@ -32,6 +32,8 @@ CANNED = {
 ABOUT_HIM = r"\b(he|his|him|rishabh'?s?)\b"
 ABOUT_HIM_OR_SITE = r"\b(he|his|him|rishabh'?s?|this (site|website|chat|chatbot|bot|agent|portfolio))\b"
 ABOUT = r"\b(he|his|him|rishabh'?s?|you|your|this (site|chat|bot|agent|portfolio))\b"  # the question is about him (or me)
+# "hi", "hy", "hii", "heyy", "helo", "hlo", "hai", "yo", "sup", "namaste", "good morning"… as visitors actually type them
+GREETING = r"(h+[iy]+|hiya|hel+o+|hlo|hai|hey+|yo|sup|what'?s up|namaste|namaskar|hola|good (morning|afternoon|evening|day|night))"
 REQUEST = (r"(^|[.,;:!?]\s*|\b(can|could|would|will) you\s+|\bplease\s+)((now|then|ok|okay|so|also|and|cool),?\s+)?"
            r"(write|generate|create|build|make|give me|fix|debug|solve|compose|draft|code|implement|translate|calculate|"
            r"compute|tell me)\b")
@@ -61,7 +63,8 @@ RULES = {  # checked in this order; the first match wins
                r"\bwhich street\b|\bhome address\b|\bphone number\b",
     "identity": r"^\s*(who|what) are you\b[\s?!.]*$|\byour name\b|\bwho is dumbledore\b|\bare you (a bot|a human|human|real|an ai|chatgpt)\b",
     "thanks": r"^\s*(thanks|thank you|thx|cheers|great,? thanks|ok,? thanks)\b[\s!.,a-z]{0,20}$",
-    "greeting": r"^\s*(hi|hello|hey|hiya|namaste|good (morning|afternoon|evening))( there| dumbledore)?[\s!.,]*$",
+    # the whole message is the greeting (maybe twice, maybe addressed to someone); "hi, has he used LangGraph?" is a question
+    "greeting": rf"^\s*{GREETING}([\s,!.]+{GREETING})?(,?\s*(there|dumbledore|sir|ma'?am|rishabh|bot|agent|everyone|team|all))?[\s!.,]*$",
 }
 # A first message that asks a general question ("what is…", "explain…") without mentioning him, me or any page.
 GENERAL = r"^\s*(please\s+)?(explain|define|what is|what are|what's|whats|how does|how do|how to|who is|who was|who won|where is|when (is|was)|why (is|do|does))\b"

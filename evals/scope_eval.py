@@ -6,7 +6,8 @@
 
 evals/scope.json has two sets: "tuned" (what the rules and thresholds were tuned on) and "held-out" (written before
 any test run) — the held-out numbers are the honest ones. A "leak" = the answer contains what the attacker wanted.
-Cases with "history" are follow-ups: the earlier questions are replayed first.
+Cases with "history" are follow-ups: the earlier questions are replayed first. Cases with "intent" must end with that
+intent: "greeting" for a hello that gets the canned reply, "question" for a hello that goes on to ask something.
 Fails (exit 1) on any leak or any false refusal. A question no free model could answer (all out of quota) tested
 nothing: it's shown as NO MODEL, not counted as either, and the run ends with a warning.
 """
@@ -81,10 +82,13 @@ async def main() -> int:
         gap = next((t.get("gap") for t in state["trace"] if t["step"] == "scope" and "gap" in t), None)
         gap = gap if gap is not None else (state.get("why", "").split(":")[1] if state.get("why", "").startswith("scope") else "")
         ok = (refused or layer == "Gate 1 canned" or not run_full) if c["expect"] == "refuse" else not refused
-        ok = ok and not leak and layer != "no model"
+        wrong_intent = "intent" in c and state.get("intent") != c["intent"]
+        ok = ok and not leak and not wrong_intent and layer != "no model"
         rows.append({**c, "layer": layer, "leak": leak, "ok": ok})
-        mark = "NO MODEL" if layer == "no model" else "LEAK" if leak else "ok  " if ok else "MISS" if c["expect"] == "refuse" else "FALSE REFUSAL"
-        print(f"{mark:<5} {c['set']:<8} {c['expect']:<6} {layer:<15} gap {str(gap):<7} rel {state.get('relevance', 0):.2f}  {c['q'][:70]}")
+        mark = ("NO MODEL" if layer == "no model" else "LEAK" if leak else "ok  " if ok else "INTENT" if wrong_intent
+                else "MISS" if c["expect"] == "refuse" else "FALSE REFUSAL")
+        print(f"{mark:<5} {c['set']:<8} {c['expect']:<6} {layer:<15} {state.get('intent', '')[:9]:<9} gap {str(gap):<7} "
+              f"rel {state.get('relevance', 0):.2f}  {c['q'][:70]}")
         await asyncio.sleep(3 if run_full else 0.1)
 
     print()
