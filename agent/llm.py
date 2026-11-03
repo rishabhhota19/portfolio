@@ -7,21 +7,111 @@ pauses when every free model in every pool has used up its daily quota.
 
 All providers speak the OpenAI chat format, so one LangChain class (ChatOpenAI) talks to all of them.
 Limits are the providers' published free tiers (Groq's are confirmed by its response headers), rounded down.
+
+Calls go through Cloudflare AI Gateway (one dashboard of every model call) when it's set up: same models, same
+requests, only the address changes. Nothing is logged or cached there. If the gateway itself fails, calls go straight
+to the provider for a minute; AI_GATEWAY=off sends everything direct.
 """
 
+import time
 from dataclasses import dataclass, field
+from typing import Any
 
+import httpx
+import openai
 from langchain_openai import ChatOpenAI
+from pydantic import Field
 
 from .config import env
 
-PROVIDERS = {  # base URL, API key variable
-    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
-    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "GOOGLE_GENERATIVE_AI_API_KEY"),
-    "cloudflare": ("https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1", "CF_WORKERS_AI_TOKEN"),
-    "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
-    "sambanova": ("https://api.sambanova.ai/v1", "SAMBANOVA_API_KEY"),  # optional: models switch on when the key is set
+GATEWAY = "https://gateway.ai.cloudflare.com/v1/{CF_ACCOUNT_ID}/{CF_GATEWAY_ID}"
+
+PROVIDERS = {  # direct base URL, API key variable, AI Gateway base URL (None: the gateway has no route for it)
+    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY", GATEWAY + "/groq"),
+    "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai/", "GOOGLE_GENERATIVE_AI_API_KEY",
+               GATEWAY + "/google-ai-studio/v1beta/openai"),  # the gateway forwards Gemini's own REST path
+    "cloudflare": ("https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1", "CF_WORKERS_AI_TOKEN",
+                   GATEWAY + "/workers-ai/v1"),
+    "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", GATEWAY + "/openrouter"),
+    "sambanova": ("https://api.sambanova.ai/v1", "SAMBANOVA_API_KEY", None),  # optional: models switch on when the key is set
 }
+
+GATEWAY_DOWN_FOR = 60  # seconds this instance skips the gateway after the gateway itself failed
+MIN_RETRY = 3  # seconds a direct retry needs at least; with less left, the router moves on to the next model
+_gateway_down_until = 0.0  # this instance only: checking it costs no network call
+
+
+def gateway_on() -> bool:
+    """Use AI Gateway? Only when it's configured (it's an authenticated gateway, so it needs CF_AIG_TOKEN), not switched
+    off with AI_GATEWAY=off, and not seen failing in the last minute."""
+    return (env("AI_GATEWAY").lower() != "off" and bool(env("CF_GATEWAY_ID") and env("CF_AIG_TOKEN"))
+            and time.time() >= _gateway_down_until)
+
+
+def gateway_fault(err: Exception) -> str | None:
+    """Why a failed call was the gateway's own fault, or None if the provider (or the request) caused it. The gateway is
+    at fault when it gave no reply at all, or wrote the error itself: AI Gateway's JSON error, or a Cloudflare error page.
+    A provider's own errors come back through the gateway as the provider's JSON, and are handled as today."""
+    if isinstance(err, openai.APITimeoutError):  # a slow model isn't the gateway's fault; not reaching the gateway is
+        return "connect timeout" if isinstance(err.__cause__, httpx.ConnectTimeout) else None
+    if isinstance(err, openai.APIConnectionError):  # no reply at all (DNS, refused, TLS, reset)
+        return type(err.__cause__ or err).__name__
+    response = getattr(err, "response", None)
+    if not isinstance(response, httpx.Response):
+        return None
+    try:
+        body = response.json()
+    except ValueError:  # not JSON: Cloudflare's own error page
+        return f"{response.status_code} error page" if response.status_code >= 500 else None
+    if isinstance(body, dict) and (body.get("name") == "AiGatewayError"
+                                   or (body.get("success") is False and isinstance(body.get("error"), list))):
+        return f"{response.status_code} AiGatewayError {body.get('internalCode', '')}".strip()
+    return None
+
+
+def gateway_failed(why: str) -> None:
+    global _gateway_down_until
+    _gateway_down_until = time.time() + GATEWAY_DOWN_FOR
+    print(f"[llm] AI Gateway failed ({why}): calls go direct for {GATEWAY_DOWN_FOR}s")
+
+
+class GatewayChat(ChatOpenAI):
+    """A ChatOpenAI that goes through AI Gateway. If the gateway itself fails before the answer starts, it's skipped
+    for a minute and the same call goes straight to the provider in the time left: a gateway outage costs a moment,
+    never a model (the router never sees it)."""
+
+    direct: Any = Field(default=None, exclude=True)  # timeout → the same client without the gateway
+
+    def _direct_after(self, err: Exception, started: float) -> ChatOpenAI | None:
+        """The direct client to retry with, or None to let the error through (the provider's fault, or no time left)."""
+        why = gateway_fault(err)
+        if why is None:
+            return None
+        gateway_failed(why)
+        left = self.request_timeout - (time.monotonic() - started)
+        return self.direct(int(left)) if left >= MIN_RETRY else None
+
+    async def _astream(self, *args, **kwargs):
+        started, answering = time.monotonic(), False
+        try:
+            async for chunk in super()._astream(*args, **kwargs):
+                answering = True
+                yield chunk
+            return
+        except Exception as err:
+            if answering or not (direct := self._direct_after(err, started)):
+                raise  # a cut-off answer is never retried: the router handles it as today
+        async for chunk in direct._astream(*args, **kwargs):
+            yield chunk
+
+    async def _agenerate(self, *args, **kwargs):
+        started = time.monotonic()
+        try:
+            return await super()._agenerate(*args, **kwargs)
+        except Exception as err:
+            if not (direct := self._direct_after(err, started)):
+                raise
+        return await direct._agenerate(*args, **kwargs)
 
 # Free budgets shared by all of a provider's models.
 PROVIDER_LIMITS = {
@@ -54,21 +144,42 @@ class FreeModel:
         return bool(env(PROVIDERS[self.provider][1]))
 
     def client(self, max_tokens: int, effort: str = "low", timeout: float = 15) -> ChatOpenAI:
-        base_url, key_name = PROVIDERS[self.provider]
+        direct_url, key_name, gateway_url = PROVIDERS[self.provider]
         extra = dict(self.extra)
         if self.reasoning:
             extra["reasoning_effort"] = effort
-        return ChatOpenAI(
+        ids = {"CF_ACCOUNT_ID": env("CF_ACCOUNT_ID"), "CF_GATEWAY_ID": env("CF_GATEWAY_ID")}
+        options = dict(
             model=self.model,
             api_key=env(key_name),
-            base_url=base_url.format(CF_ACCOUNT_ID=env("CF_ACCOUNT_ID")),
             max_tokens=max_tokens + (250 if self.reasoning else 0),  # headroom for hidden reasoning tokens
             temperature=0.3,
-            timeout=timeout,  # a slow provider shouldn't stall the chat — move on
             max_retries=0,  # no retries: switching to the next model is faster
             stream_usage=True,  # real token counts arrive at the end of the stream
             include_response_headers=True,  # Groq sends its exact remaining quota
             extra_body=extra or None,
+        )
+
+        def direct(seconds: float) -> ChatOpenAI:
+            # a slow provider shouldn't stall the chat — move on
+            return ChatOpenAI(base_url=direct_url.format(**ids), timeout=seconds, **options)
+
+        if gateway_url is None or not gateway_on():
+            return direct(timeout)
+        headers = {
+            "cf-aig-authorization": f"Bearer {env('CF_AIG_TOKEN')}",
+            "cf-aig-collect-log": "false",  # no prompt or answer is ever stored (the privacy page promises it)
+            "cf-aig-skip-cache": "true",  # every answer stays a real call to the model, as without the gateway
+            "cf-aig-no-wholesale": "true",  # never let Cloudflare pay for (and bill) a model call: our keys only, ₹0
+        }
+        if self.provider == "gemini":  # the gateway sees Gemini's key only in Google's own header (no-wholesale needs it)
+            headers["x-goog-api-key"] = env(key_name)
+        return GatewayChat(
+            base_url=gateway_url.format(**ids),
+            timeout=timeout,
+            default_headers=headers,
+            direct=direct,
+            **options,
         )
 
     def neurons_for(self, tokens_in: int, tokens_out: int) -> int:
