@@ -1,0 +1,15 @@
+// The site's heavy media (video loops, 3D models, large images), served by Cloudflare: free, unlimited bandwidth,
+// so it never counts against Vercel's 100 GB a month. Static files only, no code.
+// The files live once, in public/media/: Vercel serves the same folder as the fallback (lib/media.ts).
+// Deploy: npm run media:deploy
+{
+  "name": "rishabh-media",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "../../public/media",
+    "not_found_handling": "none"
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false }
+}

@@ -18,7 +18,8 @@
     "evals:difficulty": "python -m evals.difficulty_eval",
     "evals:load": "python -m evals.load_sim",
     "evals:scope": "python -m evals.scope_eval --full",
-    "evals:nav": "python -m evals.navigation_eval"
+    "evals:nav": "python -m evals.navigation_eval",
+    "media:deploy": "npx --yes wrangler@4 deploy --config cloudflare/media/wrangler.jsonc"
   },
   "dependencies": {
     "@sentry/nextjs": "^11.10.0",

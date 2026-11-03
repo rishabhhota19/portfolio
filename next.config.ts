@@ -4,13 +4,15 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 
 // Security headers on every page. The CSP lists exactly what the site loads: its own code (pages are prerendered, so
 // Next's inline bootstrap needs 'unsafe-inline' — nonces would need every page rendered per request — and BotID's
-// challenge needs 'unsafe-eval'), Cloudflare + Umami analytics, and Sentry. Framing, plugins, <base> hijacking,
-// foreign form targets and every other network origin are blocked.
+// challenge needs 'unsafe-eval'), Cloudflare + Umami analytics, Sentry, and the media host (lib/media.ts). Framing,
+// plugins, <base> hijacking, foreign form targets and every other network origin are blocked.
+const media = process.env.NEXT_PUBLIC_MEDIA_BASE ? ` ${new URL(process.env.NEXT_PUBLIC_MEDIA_BASE).origin}` : "";
 const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://cloud.umami.is",
-  "connect-src 'self' https://*.ingest.us.sentry.io https://cloudflareinsights.com https://*.umami.is https://*.umami.dev",
-  "img-src 'self' data: blob:",
+  `connect-src 'self' https://*.ingest.us.sentry.io https://cloudflareinsights.com https://*.umami.is https://*.umami.dev${media}`,
+  `img-src 'self' data: blob:${media}`,
+  `media-src 'self'${media}`,
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "worker-src 'self' blob:",

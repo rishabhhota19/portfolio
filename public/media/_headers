@@ -1,0 +1,7 @@
+# Read by Cloudflare (cloudflare/media/wrangler.jsonc). File names carry a content hash, so they can be cached for a
+# year. CORS lets the site's 3D loaders fetch files; nothing here is private.
+/*
+  Cache-Control: public, max-age=31536000, immutable
+  Access-Control-Allow-Origin: https://rishabh-hota.vercel.app
+  Cross-Origin-Resource-Policy: cross-origin
+  X-Content-Type-Options: nosniff
