@@ -7,9 +7,11 @@ import { DurableObject } from "cloudflare:workers";
 //   feed     the activity feed, newest last, capped at 2,000      → the live activity feed
 //   leads    newest last, capped at 200, 90 days                  → the leads table
 //   visits   visit id → active seconds reported (2 days)          → count a visit once, add only new time
-//   live     memory only: visit id → page, city, network…         → who is on the site right now
+//   live     visit id → page, city, network… (10 minutes)         → who is on the site right now
 //
-// Writes stay far under the free 100,000 rows a day: one row per event, plus one per page view (the day's counters).
+// The object leaves memory after a few idle seconds, so everything that must survive is in SQLite; memory only
+// caches it. Writes stay far under the free 100,000 rows a day: one row per event, one per heartbeat (its tab's
+// presence) and one per page view (the day's counters).
 // No chat text is ever stored: turns carry level, model and tokens; chats only their AI summary.
 
 export type Counts = Record<string, number>;
@@ -28,8 +30,8 @@ const parse = (rows: Row[]) => rows.flatMap((r) => { try { return [JSON.parse(St
 
 export class Stats extends DurableObject<Env> {
   private sql = this.ctx.storage.sql;
-  private present = new Map<string, Record<string, string>>(); // presence: lost if the object sleeps, like a 10-min TTL
-  private pings = new Map<string, number>(); // network + minute → pings
+  private present = new Map<string, Record<string, string>>(); // the live table, cached
+  private pings = new Map<string, number>(); // network + minute → pings (memory only: a soft limit)
   private today?: { day: string; counts: Counts };
   private paths?: { set: Set<string>; at: number };
 
@@ -40,6 +42,10 @@ export class Stats extends DurableObject<Env> {
     this.sql.exec("CREATE TABLE IF NOT EXISTS leads (id INTEGER PRIMARY KEY AUTOINCREMENT, json TEXT NOT NULL, at INTEGER NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS visits (id TEXT PRIMARY KEY, active INTEGER NOT NULL, at INTEGER NOT NULL)");
     this.sql.exec("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)");
+    this.sql.exec("CREATE TABLE IF NOT EXISTS live (id TEXT PRIMARY KEY, data TEXT NOT NULL, last INTEGER NOT NULL)");
+    for (const r of this.sql.exec("SELECT id, data FROM live WHERE last > ?", Date.now() - 600_000)) {
+      this.present.set(String(r.id), JSON.parse(String(r.data)));
+    }
   }
 
   // ── counters ──────────────────────────────────────────────────────────────
@@ -74,6 +80,7 @@ export class Stats extends DurableObject<Env> {
     this.sql.exec("DELETE FROM days WHERE day < ?", day(now - KEEP_DAYS * 86_400_000));
     this.sql.exec("DELETE FROM visits WHERE at < ?", now - 2 * 86_400_000);
     this.sql.exec("DELETE FROM leads WHERE at < ?", now - 90 * 86_400_000);
+    this.sql.exec("DELETE FROM live WHERE last < ?", now - 600_000);
   }
 
   // ── writers (called by the Worker) ────────────────────────────────────────
@@ -110,7 +117,11 @@ export class Stats extends DurableObject<Env> {
    * (returns -1 → 429). */
   async live(p: Presence): Promise<number> {
     const now = Date.now();
-    for (const [id, v] of this.present) if (now - Number(v.last) > 600_000) this.present.delete(id);
+    let stale = false;
+    for (const [id, v] of this.present) {
+      if (now - Number(v.last) > 600_000) stale = this.present.delete(id);
+    }
+    if (stale) this.sql.exec("DELETE FROM live WHERE last < ?", now - 600_000);
     const page = (await this.sitePaths()).has(p.page) ? p.page : "other"; // a 404 or a made-up path
     const before = this.present.get(p.sessionId);
     if (before?.page === page && now - Number(before.last) < 10_000) return 0;
@@ -124,24 +135,32 @@ export class Stats extends DurableObject<Env> {
         .filter(([, v]) => v)
         .map(([k, v]) => [k, clip(v)]),
     );
-    this.present.set(p.sessionId, { ...before, ...fields, since: before?.since ?? String(now), last: String(now) });
+    const entry = { ...before, ...fields, since: before?.since ?? String(now), last: String(now) };
+    this.present.set(p.sessionId, entry);
+    this.sql.exec("INSERT INTO live (id, data, last) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET data = excluded.data, last = excluded.last",
+      p.sessionId, JSON.stringify(entry), now);
     if (before?.page !== page) this.count(day(now), { pv: 1, [`page:${page}`]: 1 });
     return 1;
   }
 
   /** The site's pages, from the site itself (app/site-paths.json): new projects or posts count by name at once. */
   private async sitePaths(): Promise<Set<string>> {
-    if (this.paths && Date.now() - this.paths.at < PATHS_EVERY) return this.paths.set;
-    let list: string[] | null = null;
+    if (!this.paths) {
+      const saved = this.sql.exec("SELECT value FROM meta WHERE key = 'paths'").toArray()[0];
+      const { list = ["/"], at = 0 } = saved ? (JSON.parse(String(saved.value)) as { list?: string[]; at?: number }) : {};
+      this.paths = { set: new Set(list), at };
+    }
+    if (Date.now() - this.paths.at < PATHS_EVERY) return this.paths.set;
     try {
       const res = await fetch(`${this.env.SITE_ORIGIN}/site-paths.json`, { signal: AbortSignal.timeout(2000) });
-      if (res.ok) list = ((await res.json()) as unknown[]).filter((p): p is string => typeof p === "string").slice(0, 500);
-    } catch {}
-    const fetched = list !== null;
-    if (fetched) this.sql.exec("INSERT INTO meta (key, value) VALUES ('paths', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify(list));
-    else list = JSON.parse(String(this.sql.exec("SELECT value FROM meta WHERE key = 'paths'").toArray()[0]?.value ?? '["/"]')) as string[];
-    // A failed fetch keeps the last known list and is retried in a minute, not an hour.
-    this.paths = { set: new Set(list), at: fetched ? Date.now() : Date.now() - PATHS_EVERY + 60_000 };
+      if (!res.ok) throw new Error(String(res.status));
+      const list = ((await res.json()) as unknown[]).filter((p): p is string => typeof p === "string").slice(0, 500);
+      this.paths = { set: new Set(list), at: Date.now() };
+      this.sql.exec("INSERT INTO meta (key, value) VALUES ('paths', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        JSON.stringify({ list, at: this.paths.at }));
+    } catch {
+      this.paths.at = Date.now() - PATHS_EVERY + 60_000; // keep the last known list; try again in a minute
+    }
     return this.paths.set;
   }
 
