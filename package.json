@@ -20,7 +20,8 @@
     "evals:scope": "python -m evals.scope_eval --full",
     "evals:nav": "python -m evals.navigation_eval",
     "media:deploy": "npx --yes wrangler@4 deploy --config cloudflare/media/wrangler.jsonc",
-    "analytics:deploy": "npx --yes wrangler@4 deploy --config cloudflare/analytics/wrangler.jsonc"
+    "analytics:deploy": "npx --yes wrangler@4 deploy --config cloudflare/analytics/wrangler.jsonc",
+    "warm:deploy": "npx --yes wrangler@4 deploy --config cloudflare/warm/wrangler.jsonc"
   },
   "dependencies": {
     "@sentry/nextjs": "^11.10.0",
