@@ -182,5 +182,19 @@
     "teddy",
     "visa",
     "years"
+  ],
+  "advocacy": [
+    "bio",
+    "compare",
+    "jd-agentic",
+    "jd-fde",
+    "jd-frontend",
+    "jd-mlops",
+    "jd-research",
+    "lead-team",
+    "shipped",
+    "too-junior",
+    "weaknesses",
+    "why-hire"
   ]
 }

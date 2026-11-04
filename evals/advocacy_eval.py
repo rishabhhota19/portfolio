@@ -12,8 +12,9 @@ follow-up. Each answer is checked by rules (no judge model, no extra quota):
   - proof      names the work the case expects and, where asked, links one of his pages
   - next step  hiring questions end with a way to act: his résumé, "Share your details", email
   - honest     a role he doesn't fit isn't sold as a fit
-Exit 1 if any case fails. A case no free model could answer is NO MODEL, not a failure. The answer cache is off, so
-each run asks the live agent.
+Exit 1 on more than one failing case, on any case that passed on the last green full run and fails now (the baseline
+in evals/baseline.json, which a green full run extends), or on a question no model answered (EVALS_ALLOW_UNANSWERED=1
+makes that a warning locally). The answer cache is off, so each run asks the live agent.
 """
 
 import asyncio
@@ -30,6 +31,7 @@ from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
 from agent import graph  # noqa: E402
 from agent.config import KNOWLEDGE  # noqa: E402
+from evals import baseline  # noqa: E402
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 20  # hard questions are ~5k tokens and Groq allows 8k a minute per model: don't spill to paid-for quotas
@@ -57,11 +59,14 @@ def numbers_not_on_site(answer: str, question: str) -> list[str]:
     return sorted({n for n in found if (len(n) >= 2 or "." in n) and n not in SITE_TEXT and n not in question})
 
 
-def check(case: dict, answer: str) -> list[str]:
+def check(case: dict, answer: str, links: list[dict] = ()) -> list[str]:
+    """links: the "Take me to …" chips the visitor gets under the answer — they are links too, so a case that wants a
+    page link is satisfied by them as much as by a link in the text."""
     text = answer.translate(SMART_QUOTES)
+    shown = text + "\n" + "\n".join(f"[{l['label']}]({l['path']})" for l in links)  # what the visitor actually sees
     why = [f"made-up number {n}" for n in numbers_not_on_site(text, case["q"])]
     why += [f"{name}: /{p}/" for name, p in TRIVIA.items() if name not in case.get("allow", []) and re.search(p, text, re.I)]
-    why += [f"missing /{p}/" for p in case.get("include", []) if not re.search(p, text, re.I)]
+    why += [f"missing /{p}/" for p in case.get("include", []) if not re.search(p, shown, re.I)]
     why += [f"contains /{p}/" for p in case.get("exclude", []) if re.search(p, text, re.I)]
     if case.get("next_step") and not re.search(NEXT_STEP, text, re.I):
         why.append("no next step")
@@ -81,7 +86,8 @@ async def main() -> int:
         last = state["messages"][-1]
         answer = last.content if last.type == "ai" else ""
         no_model = state.get("model") == "none"
-        why = [] if no_model else check(case, answer)
+        links = [l for a in state.get("actions", []) if a.get("type") == "links" for l in a.get("links", [])]
+        why = [] if no_model else check(case, answer, links)
         steps = [t for t in state.get("trace", []) if t["step"] in ("research", "respond")]
         rows.append({"id": case["id"], "kind": case["kind"], "q": case["q"], "answer": answer, "ok": not why and not no_model,
                      "why": why, "model": state.get("model", ""), "level": state.get("level", ""),
@@ -93,7 +99,17 @@ async def main() -> int:
     failed = sum(not r["ok"] and r["model"] != "none" for r in rows)
     unanswered = sum(r["model"] == "none" for r in rows)
     print(f"\nadvocacy: {len(rows) - failed - unanswered}/{len(rows)} passed" + (f", {unanswered} no model" if unanswered else ""))
-    return 1 if failed else 0
+    # Same bar as the other evals (baseline.py): at most one miss, never a case that passed on the last green run.
+    regressed = baseline.regressions("advocacy", {r["id"] for r in rows if not r["ok"] and r["model"] != "none"}) if not ids else []
+    if regressed:
+        print(f"::error::Regression — passed before, fail now: {', '.join(regressed)}")
+    if unanswered:
+        print(f"::{'warning' if os.environ.get('EVALS_ALLOW_UNANSWERED') else 'error'}::{unanswered} questions got no answer — they tested nothing.")
+    bad = bool(regressed) or failed > 1 or (unanswered and not os.environ.get("EVALS_ALLOW_UNANSWERED"))
+    if not bad and not ids and not unanswered:
+        if new := baseline.ratchet("advocacy", {r["id"] for r in rows if r["ok"]}):
+            print(f"baseline: {new} more case(s) must keep passing from now on")
+    return 1 if bad else 0
 
 
 if __name__ == "__main__":
