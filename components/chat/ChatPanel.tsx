@@ -39,14 +39,30 @@ type Props = {
   onMinimize: () => void;
   pendingQuestion: PendingQuestion | null;
   onPendingHandled: () => void;
+  /** Inside the 3D page (components/chat/EmbeddedAgent.tsx): the panel fills its frame, and instead of changing this
+   * page it tells the page that hosts it where Dumbledore wants to go. */
+  embedded?: boolean;
+  /** The page the visitor is really on, when this chat is embedded in it (logged with each turn, never shown). */
+  pagePath?: string;
 };
+
+/** What the embedded chat tells the page that hosts it (same origin only). */
+export type EmbeddedChatMessage =
+  | { source: "dumbledore"; type: "navigate"; path: string }
+  | { source: "dumbledore"; type: "minimize" }
+  | { source: "dumbledore"; type: "ready" };
+
+export function tellHost(message: EmbeddedChatMessage) {
+  if (window.parent !== window) window.parent.postMessage(message, window.location.origin);
+}
 
 const newId = () => crypto.randomUUID();
 
 // Temporary memory: everything below lives in React state only — no localStorage, no server copy.
 // Closing the chat (×) or leaving the site wipes it; only a summary is logged via /api/chat/end.
-export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled }: Props) {
+export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled, embedded = false, pagePath }: Props) {
   const router = useRouter();
+  const currentPage = () => pagePath ?? window.location.pathname;
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [input, setInput] = useState("");
@@ -92,7 +108,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       startedAt: convo.startedAt,
       endedAt: new Date().toISOString(),
       reason,
-      page: window.location.pathname,
+      page: currentPage(),
       messages: newestWithin(
         transcript(messagesRef.current)
           .slice(-LIMITS.maxLoggedMessages)
@@ -167,15 +183,17 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   useEffect(() => wake, []);
 
   // Dumbledore taking the visitor somewhere. The chat lives in the layout, so it survives the navigation.
+  // Embedded in the 3D page, the page that hosts the chat does the travelling (it warps to the matching chamber).
   const goTo = useCallback(
     (path: string, source: "agent" | "button", focus = true) => {
       if (!SITE_PATH.test(path)) return;
       track("agent_navigate", { path, source }); // our own page path, never visitor text
+      if (embedded) return tellHost({ source: "dumbledore", type: "navigate", path });
       if (path !== window.location.pathname) router.push(path);
       // Phones show the chat full-screen: step aside so the visitor sees the page they asked for.
       if (focus && window.matchMedia("(max-width: 639px)").matches) onMinimize();
     },
-    [router, onMinimize],
+    [router, onMinimize, embedded],
   );
 
   const ask = useCallback(
@@ -199,7 +217,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         updateMessage(retryOf, { kind: undefined, content: "", retry: undefined });
       } else {
         append({ role: "user", content: text });
-        track("chat_question", { page: window.location.pathname }); // never the question text
+        track("chat_question", { page: currentPage() }); // never the question text
       }
       setInput("");
       wake(); // a retry while resting: this answer decides the status now
@@ -213,7 +231,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ sessionId: sessionId(), conversationId: currentConversation().id, messages: history, page: window.location.pathname }),
+          body: JSON.stringify({ sessionId: sessionId(), conversationId: currentConversation().id, messages: history, page: currentPage() }),
           signal: controller.signal,
         });
         const issued = res.headers.get(CHAT_TOKEN_HEADER);
@@ -368,7 +386,11 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
       onKeyDown={(e) => {
         if (e.key === "Escape") onMinimize();
       }}
-      className="fixed inset-0 z-50 flex flex-col bg-paper sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[min(660px,calc(100dvh-2.5rem))] sm:w-[410px] sm:rounded-sm sm:border sm:border-rule sm:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"
+      className={
+        embedded
+          ? "fixed inset-0 z-50 flex flex-col bg-paper" // the host page draws the frame
+          : "fixed inset-0 z-50 flex flex-col bg-paper sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[min(660px,calc(100dvh-2.5rem))] sm:w-[410px] sm:rounded-sm sm:border sm:border-rule sm:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"
+      }
     >
       {/* Header */}
       <header className="flex items-center gap-3 border-b border-rule px-4 py-3">

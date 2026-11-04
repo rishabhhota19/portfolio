@@ -6,6 +6,7 @@ import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { ChatLauncher } from "@/components/chat/ChatLauncher";
 import { VisitTracker } from "@/components/site/VisitTracker";
+import { SiteChrome } from "@/components/site/SiteChrome";
 import { site } from "@/lib/content";
 
 const display = Instrument_Serif({
@@ -92,13 +93,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <Header />
+        <SiteChrome>
+          <Header />
+        </SiteChrome>
         <main id="main" className="relative z-10 flex-1">
           {children}
         </main>
-        <Footer />
-        <ChatLauncher />
-        <VisitTracker />
+        <SiteChrome>
+          <Footer />
+          <ChatLauncher />
+          <VisitTracker />
+        </SiteChrome>
         {/* Analytics load when the browser is idle, so they never compete with the page itself. */}
         {beaconToken ? (
           <Script

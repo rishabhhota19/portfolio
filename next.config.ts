@@ -49,6 +49,7 @@ const landingCsp = [
   "style-src 'self' https://fonts.googleapis.com",
   "font-src https://fonts.gstatic.com",
   "worker-src 'none'",
+  "frame-src 'self'", // Dumbledore's small window: /agent-embed in an iframe
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -59,7 +60,15 @@ const landingPaths = { "/3d": "/", "/assets/:path*": "/assets/:path*", "/models/
 const landingHeaders = securityHeaders.map((h) => (h.key === "Content-Security-Policy" ? { ...h, value: landingCsp } : h));
 
 // /resume previews the PDF in an <object>: that one page may embed this site's files, and only this site may embed the PDF.
+// /agent-embed is the chat for the 3D page's small window: only this site may frame it.
 const resumeRules = [
+  {
+    source: "/agent-embed",
+    headers: [
+      { key: "Content-Security-Policy", value: csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'") },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+    ],
+  },
   { source: "/resume", headers: [{ key: "Content-Security-Policy", value: csp.replace("object-src 'none'", "object-src 'self'") }] },
   {
     source: "/resume.pdf",

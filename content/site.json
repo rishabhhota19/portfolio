@@ -8,7 +8,7 @@
   "github": "https://github.com/rishabhhota19",
   "resume": "/resume.pdf",
   "url": "https://rishabh-hota.vercel.app",
-  "private": ["/admin"],
+  "private": ["/admin", "/agent-embed"],
   "sections": [
     { "path": "/", "label": "Home", "words": ["home", "homepage", "main page", "landing page"] },
     { "path": "/3d", "label": "Into the Agent", "words": ["3d", "3d version", "3d site", "3d page", "3d demo", "the descent", "3d experience", "interactive version"] },
