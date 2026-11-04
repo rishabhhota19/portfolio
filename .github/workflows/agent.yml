@@ -64,14 +64,18 @@ jobs:
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
 
-      - name: Commit the agent data if it changed (Vercel then redeploys)
-        # Only after every eval above passed: a failing eval keeps the new index and answer bank off the site.
+      - name: Recruiter cases (he is sold, honestly — proof, links, a next step, no invented gaps)
+        run: python -m evals.advocacy_eval
+
+      - name: Commit the agent data and the eval baseline if they changed (Vercel then redeploys)
+        # Only after every eval above passed: a failing eval keeps the new index and answer bank off the site, and the
+        # baseline (evals/baseline.json: the cases that must keep passing) only ever grows on a green run.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add agent/data
+          git add agent/data evals/baseline.json
           # Rebase first: a push to main can land while this job runs (the push would otherwise be rejected).
-          git diff --cached --quiet || (git commit -m "Rebuild agent index" && git pull --rebase origin main && git push)
+          git diff --cached --quiet || (git commit -m "Rebuild agent index, extend the eval baseline" && git pull --rebase origin main && git push)
 
       - name: RAGAS (faithfulness, answer relevancy, context precision)
         # Weekly / manual only, and only with the CI-only Gemini key: the judge is a Gemini model.

@@ -258,8 +258,10 @@ class Tier:
 
 TIERS = {
     # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
-    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-granite",
-                                      "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
+    # (Granite 4.0 Micro, 3B, left the pool: it answered a "notice period" question instead of saying the site doesn't
+    # share it, and Nemotron Lightning now covers the cheap end with no daily cap.)
+    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-glm",
+                                      "cf-20b", "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
     "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "nv-nemotron-super", "nv-nemotron-lightning", "gemini-lite-3.5", "groq-qwen",
                                       "cf-qwen3-a3b", "cf-gemma", "cf-llama70b", "gemini-lite-3.1", "cf-mistral",
