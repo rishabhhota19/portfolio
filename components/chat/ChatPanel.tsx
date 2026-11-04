@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { track } from "@/lib/analytics";
 import { sessionId } from "@/lib/visit";
+import site from "@/content/site.json";
 import starters from "@/content/starters.json";
 import {
   CHAT_TOKEN_HEADER,
@@ -25,10 +26,17 @@ type PageLink = { path: string; label: string };
 type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string; retry?: string };
 type Status = "idle" | "waiting" | "streaming" | "offline";
 
+// A command about where the visitor already is, with no page named (agent/pages.py MOVES).
+type UiMove = "back" | "next" | "previous" | "top" | "bottom" | "down" | "up" | "written";
+
+// "next" and "previous" walk the pages in the order the header shows them, from Home.
+const PAGE_ORDER = site.sections.filter((s) => s.path === "/" || ("nav" in s && s.nav)).map((s) => s.path);
+
 // What the agent streams (one JSON object per line) — see api/index.py.
 type AgentEvent =
   | { type: "text" | "replace"; text: string }
   | { type: "navigate"; path: string; label: string; focus?: boolean }
+  | { type: "ui"; move: UiMove }
   | { type: "links"; links: PageLink[] }
   | { type: "usage"; tokens: number };
 
@@ -49,7 +57,8 @@ type Props = {
 
 /** What the embedded chat tells the page that hosts it (same origin only). */
 export type EmbeddedChatMessage =
-  | { source: "dumbledore"; type: "navigate"; path: string }
+  | { source: "dumbledore"; type: "navigate"; path: string; focus?: boolean }
+  | { source: "dumbledore"; type: "ui"; move: UiMove }
   | { source: "dumbledore"; type: "minimize" }
   | { source: "dumbledore"; type: "ready" };
 
@@ -191,12 +200,43 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
     (path: string, source: "agent" | "button", focus = true) => {
       if (!SITE_PATH.test(path)) return;
       track("agent_navigate", { path, source }); // our own page path, never visitor text
-      if (embedded) return tellHost({ source: "dumbledore", type: "navigate", path });
+      if (embedded) return tellHost({ source: "dumbledore", type: "navigate", path, focus });
       if (path !== window.location.pathname) router.push(path);
       // Phones show the chat full-screen: step aside so the visitor sees the page they asked for.
       if (focus && window.matchMedia("(max-width: 639px)").matches) onMinimize();
     },
     [router, onMinimize, embedded],
+  );
+
+  // How many pages of this site the visitor has seen: "go back" must never send them off the site.
+  const pathname = usePathname();
+  const pagesSeen = useRef(0);
+  useEffect(() => {
+    pagesSeen.current += 1;
+  }, [pathname]);
+
+  // Dumbledore doing what was asked where the visitor already is. Embedded, the 3D page does it, in chambers.
+  const moveUi = useCallback(
+    (what: UiMove) => {
+      track("agent_move", { what });
+      if (embedded) return tellHost({ source: "dumbledore", type: "ui", move: what });
+      if (what === "written") return goTo("/", "agent");
+      if (what === "next" || what === "previous") {
+        const at = PAGE_ORDER.indexOf(`/${window.location.pathname.split("/")[1] ?? ""}`);
+        const step = what === "next" ? 1 : -1;
+        return goTo(PAGE_ORDER[(at + step + PAGE_ORDER.length) % PAGE_ORDER.length], "agent");
+      }
+      if (what === "back") {
+        if (pagesSeen.current < 2) return goTo("/", "agent");
+        router.back();
+      } else {
+        const page = window.innerHeight * 0.8;
+        const top = what === "top" ? 0 : what === "bottom" ? document.documentElement.scrollHeight : window.scrollY + (what === "down" ? page : -page);
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+      if (window.matchMedia("(max-width: 639px)").matches) onMinimize(); // the chat covers a phone: step aside
+    },
+    [embedded, goTo, router, onMinimize],
   );
 
   const ask = useCallback(
@@ -278,7 +318,10 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
               goTo(first.path, "agent", false); // the answer stays in view; on a phone the visitor steps out to the page
             } else updateMessage(replyId, { links: [first, ...rest].filter(Boolean) });
           } else if (event.type === "usage") setTokens((t) => t + (Number(event.tokens) || 0));
-          else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
+          else if (event.type === "ui") {
+            navigated = true;
+            moveUi(event.move);
+          } else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
             navigated = true;
             updateMessage(replyId, { opened: event.label });
             goTo(event.path, "agent", event.focus);
@@ -308,7 +351,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         abortRef.current = null;
       }
     },
-    [status, goTo],
+    [status, goTo, moveUi],
   );
 
   // Questions from "Ask the agent" buttons elsewhere on the site. The id guard makes this

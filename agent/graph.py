@@ -104,6 +104,8 @@ async def route(state: State) -> dict:
     if intent != "question":
         return say(guard.reply_for(intent), intent, started, "route")
 
+    if moved := pages.move(question):  # "go back", "next", "scroll down": the chat does it where the visitor is
+        return say(pages.MOVE_REPLY[moved], "navigate", started, "route", actions=[{"type": "ui", "move": moved}])
     nav = pages.navigation(question)
     # focus = the visitor only wants to see the page (phones then step the full-screen chat aside)
     actions = [{"type": "navigate", "path": nav["path"], "label": nav["label"], "focus": nav["pure"]}] if nav else []

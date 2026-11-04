@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 from agent.config import SITE
-from agent.pages import KIND_OF_SECTION, PAGES, SECTIONS, navigation
+from agent.pages import KIND_OF_SECTION, PAGES, SECTIONS, navigation, move
 
 ROOT = Path(__file__).parent.parent
 
@@ -65,7 +65,7 @@ def main() -> int:
         for c in cases:
             nav = navigation(c["q"])
             got = nav["path"] if nav else None
-            ok = got == c["path"] and (nav is None or nav["pure"] == c.get("pure", nav["pure"]))
+            ok = got == c["path"] and (nav is None or nav["pure"] == c.get("pure", nav["pure"])) and move(c["q"]) == c.get("move")
             bad += not ok
             if not ok or title == "hand-written":
                 print(f"{'PASS' if ok else 'FAIL'}  {c['q']:<62} → {got}{'' if ok else '  (expected ' + str(c['path']) + ')'}")

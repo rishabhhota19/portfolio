@@ -171,6 +171,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         {"type": "text", "text": "…"}        more of the answer
         {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
         {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
+        {"type": "ui", "move": "back"}                     do it where the visitor is (pages.MOVES): back, next, scroll…
         {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
         {"type": "usage", "tokens": 123}                   tokens this turn counted against free limits (chat shows a total)
         {"type": "meta", "model": …, "level": …, …}        for the admin dashboard; the gateway strips it

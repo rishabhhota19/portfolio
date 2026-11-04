@@ -60,7 +60,8 @@ RULES = {  # checked in this order; the first match wins
     "contact": r"\b(his|rishabh'?s) (e-?mail|linkedin|github|phone|number|mobile|whatsapp|address|contact)\b|"
                r"\b(contact|reach|call|email|e-mail|message|ping) (him|rishabh)\b|\bget in touch\b|\bcontact (details|info)|"
                r"\bhow (do|can|should) i (contact|reach|email|get hold of)\b|\bwhere does (he|rishabh) live\b|\blive on\b|"
-               r"\bwhich street\b|\bhome address\b|\bphone number\b",
+               r"\bwhich street\b|\bhome address\b|\bphone number\b|"
+               r"^\s*((take|bring|get) me to |go to |open |show( me)? )?(the |his )?contact( page| section| him)?[\s!.?]*$",
     "identity": r"^\s*(who|what) are you\b[\s?!.]*$|\byour name\b|\bwho is dumbledore\b|\bare you (a bot|a human|human|real|an ai|chatgpt)\b",
     "thanks": r"^\s*(thanks|thank you|thx|cheers|great,? thanks|ok,? thanks)\b[\s!.,a-z]{0,20}$",
     # the whole message is the greeting (maybe twice, maybe addressed to someone); "hi, has he used LangGraph?" is a question

@@ -1,8 +1,10 @@
 """The site's pages: the only places Dumbledore links to or takes a visitor (built from knowledge.json).
 
-Two kinds of action, both decided by rules — no LLM call, so they're instant and can't be talked into a strange URL:
-  - navigate: the visitor asks to go somewhere ("take me to his projects", "open the LCSNet paper") → the chat moves
-    the page there. A pure "take me to X" is answered by the router alone (L0).
+Three kinds of action, all decided by rules — no LLM call, so they're instant and can't be talked into a strange URL:
+  - navigate: the visitor asks to go somewhere ("take me to his projects", "open the LCSNet paper", or just "projects")
+    → the chat moves the page there. A pure "take me to X" is answered by the router alone (L0).
+  - move: a command about where the visitor already is ("go back", "next", "scroll down", "leave the 3D page") → the
+    chat does it on the page it's on; on the 3D page, the page hosting the chat does it, with chambers for pages.
   - links: after an answer, up to two "take me there" buttons for the pages it was about.
 
 Nothing here lists pages by hand, so it grows with the site: sections come from content/site.json (the same list the
@@ -23,7 +25,9 @@ KIND_OF_SECTION = {s["path"]: s["kind"] for s in SITE["sections"] if s.get("kind
 
 # "take me to …", "open …", "I'd like to see …", "where can I find …" (not "is he open to relocating?").
 NAVIGATE = re.compile(
-    r"\b(take|bring|send|get) me\b|\b(go|navigate|jump|head|skip|redirect me) (to|back)\b|^\s*(please )?(open|show|display|load)\b"
+    r"\b(take|bring|send|get) me\b|\b(go|navigate|jump|head|skip|redirect me) (over )?(to|back)\b|\bgo home\b"
+    r"|^\s*(please )?(open|show|display|load|visit|view|see|browse|download)\b"
+    r"|^\s*(please )?(move|switch|return|come)( back| over)? to\b|\blet'?s (see|go|look|check|visit|view|open)\b"
     r"|\bshow me\b|\b(open|pull up|bring up|display)\b (the|his|rishabh'?s|a|an|up|me)\b|\blet me see\b"
     r"|\b(i'?d|i would|i want|i wanna|can i|could i|may i)( like)? (to )?(see|view|read|check out|look at|visit|browse|explore|download)\b"
     r"|\bwhere (can|do|should) i (find|see|read|get|download)\b|\b(link|links) to\b",
@@ -102,9 +106,45 @@ def find_page(text: str) -> dict | None:
     return None
 
 
+_FILLER = re.compile(r"\b(please|pls|plz|the|his|rishabh'?s|page|pages|section|tab|now|ok|okay)\b")
+_NAMES = {w.lower() for s in SITE["sections"] for w in [s["label"], *s.get("words", [])]} | {n for p in PAGES for n in p["names"]}
+
+
+def is_page_name(text: str) -> bool:
+    """The whole message is just a page's name ("projects", "his resume please"): in this chat that means "go there"."""
+    plain = re.sub(r"[^\w\s'&.-]", " ", text.lower())
+    return " ".join(plain.split()).strip(" .") in _NAMES or " ".join(_FILLER.sub(" ", plain).split()).strip(" .") in _NAMES
+
+
+# Commands about where the visitor already is. The whole message has to be the command ("what's next for him?" isn't).
+_TO = r"(?:go |scroll |jump |move |head |take me |bring me |get me |back |up |down )*(?:to )?(?:the )?"
+MOVES = {name: re.compile(pattern) for name, pattern in {
+    "back": r"(?:go |take me |get me |bring me |head )?back(?: a page)?|(?:go |take me )?(?:to )?(?:the )?(?:last|previous) page",
+    "next": r"(?:go |move |take me |show me |open |on )?(?:to )?(?:the )?next(?: page| section| chamber| room| one)?",
+    "previous": r"(?:go |move |take me |show me |open )?(?:to )?(?:the )?(?:previous|prev)(?: section| chamber| room| one)?",
+    "top": _TO + r"top(?: of (?:the|this) page)?",
+    "bottom": _TO + r"(?:bottom(?: of (?:the|this) page)?|end of (?:the|this) page)",
+    "down": r"scroll(?: down)?(?: a bit| more)?|(?:go|move) down(?: a bit| more)?|keep (?:going|scrolling)(?: down)?",
+    "up": r"scroll up(?: a bit| more)?|(?:go|move) up(?: a bit| more)?",
+    "written": r"(?:(?:go|take me|bring me|get me|switch|move|head)(?: back)?(?: to)? )?(?:the )?"
+               r"(?:(?:normal|written|regular|plain|classic|2d|text|flat|simple) (?:site|page|version|website|portfolio)"
+               r"|main (?:site|website|portfolio))|(?:leave|exit|quit|close|get out of)(?: the)? (?:3d|descent)(?: page| site| version)?",
+}.items()}
+MOVE_REPLY = {"back": "Going back.", "next": "On to the next one.", "previous": "Back one.", "top": "Up to the top.",
+              "bottom": "Down to the bottom.", "down": "Scrolling down.", "up": "Scrolling up.",
+              "written": "Taking you to the written site."}
+
+
+def move(text: str) -> str | None:
+    """Which move the message is, if it's one (see MOVES)."""
+    t = " ".join(re.sub(r"[.,!?]+", " ", text.lower()).split())
+    t = re.sub(r"\s+(?:please|pls|now)$", "", re.sub(r"^(?:please|pls|can you|could you|now|ok|okay)\s+", "", t))
+    return next((name for name, pattern in MOVES.items() if pattern.fullmatch(t)), None)
+
+
 def navigation(text: str) -> dict | None:
     """A navigate action if the visitor asks to go somewhere we have. `pure` = nothing else to answer."""
-    if not NAVIGATE.search(text) or not (page := find_page(text)):
+    if not (NAVIGATE.search(text) or is_page_name(text)) or not (page := find_page(text)):
         return None
     pure = len(text.split()) <= 9 and not ASKS_MORE.search(text)
     return {"type": "navigate", **page, "pure": pure}
@@ -116,13 +156,14 @@ KIND_ORDER = {"project": 0, "publication": 1, "blog": 2, "experience": 3}  # tim
 def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> list[dict]:
     """Up to two "take me there" buttons, only for pages the answer names — any other page would be a guess (the
     retrieval's top hit can be off even when the answer is right). If one name contains another ("Sr. AI Researcher
-    at Simplilearn" / "AI Researcher at Simplilearn"), the longer wins. Projects and papers come first, then pages the
-    evidence came from. The page the visitor is already being taken to is skipped."""
+    at Simplilearn" / "AI Researcher at Simplilearn"), the longer wins. Projects and papers come first, each kind in the
+    order the answer names them: the first link is where Dumbledore goes by itself, so it has to be what the answer
+    leads with. The page the visitor is already being taken to is skipped."""
     text = answer.lower()
     found = {p["id"]: n for p in PAGES for n in p["names"] if _mentions(text, n)}
     named = [p for p in PAGES if p["id"] in found and not any(found[p["id"]] != m and found[p["id"]] in m for m in found.values())]
     evidence = {d["id"].split("#")[0] for d in docs}
-    named.sort(key=lambda p: (KIND_ORDER.get(p["kind"], 9), p["id"] not in evidence))
+    named.sort(key=lambda p: (KIND_ORDER.get(p["kind"], 9), text.find(found[p["id"]]), p["id"] not in evidence))
     out: list[dict] = []
     for p in named:
         base = p["path"].split("#")[0]
