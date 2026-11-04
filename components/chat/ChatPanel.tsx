@@ -236,6 +236,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let pending = ""; // a line that hasn't fully arrived yet
+        let navigated = false; // this turn already took the visitor somewhere
         const handle = (line: string) => {
           if (!line.trim()) return;
           let event: AgentEvent;
@@ -246,9 +247,18 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
           }
           if (event.type === "text") full += event.text;
           else if (event.type === "replace") full = event.text; // the output guard changed what was shown
-          else if (event.type === "links") updateMessage(replyId, { links: event.links.filter((l) => SITE_PATH.test(l.path)) });
-          else if (event.type === "usage") setTokens((t) => t + (Number(event.tokens) || 0));
+          else if (event.type === "links") {
+            // The pages the answer was about arrive after the answer. Dumbledore goes to the first one by itself, no
+            // button to click (unless this turn navigated already); the others stay as "take me there" buttons.
+            const [first, ...rest] = event.links.filter((l) => SITE_PATH.test(l.path));
+            if (first && !navigated) {
+              navigated = true;
+              updateMessage(replyId, { opened: first.label, links: rest });
+              goTo(first.path, "agent", false); // the answer stays in view; on a phone the visitor steps out to the page
+            } else updateMessage(replyId, { links: [first, ...rest].filter(Boolean) });
+          } else if (event.type === "usage") setTokens((t) => t + (Number(event.tokens) || 0));
           else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
+            navigated = true;
             updateMessage(replyId, { opened: event.label });
             goTo(event.path, "agent", event.focus);
           }
