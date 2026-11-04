@@ -11,7 +11,8 @@ export const maxDuration = 60;
 
 const DAILY_BUDGET = envNumber("DAILY_LLM_BUDGET", 3000);
 
-const offline = (message: string) => json({ error: "offline", message }, 503);
+// retryAfter: how long the chat panel rests (input off, "Try again" on the failed turn) before it tries by itself.
+const offline = (message: string, retryAfter: number) => json({ error: "offline", message, retryAfter }, 503);
 
 /**
  * Security gateway for the chat. Checks bots, input, rate limits and the daily budget,
@@ -34,13 +35,15 @@ export async function POST(req: Request) {
     return json({ error: "rate_limited", message: "That's the limit for one chat. Leave your details and Rishabh will take it from here." }, 429);
   }
   if (!(await spendDailyBudget(DAILY_BUDGET))) {
-    return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
+    // Today's model calls are spent: a retry won't help for a while
+    return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.", 300);
   }
 
   const answer = await askAgent(req, conversationId, sessionId, messages);
   if (!answer) {
     await refundDailyBudget();
-    return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.");
+    // The agent is restarting or every model is paused: a retry in half a minute usually works
+    return offline("I'm taking a short break. The quick answers below still work — or share your details and Rishabh will reply.", 30);
   }
 
   const { stream, meta } = splitMeta(answer, req.signal);

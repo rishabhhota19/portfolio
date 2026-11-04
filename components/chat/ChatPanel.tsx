@@ -20,7 +20,8 @@ import { LeadForm } from "./LeadForm";
 import { Markdown } from "./Markdown";
 
 type PageLink = { path: string; label: string };
-type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string };
+// retry: the question a failed turn can send again (shown as "Try again" on the last message)
+type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string; retry?: string };
 type Status = "idle" | "waiting" | "streaming" | "offline";
 
 // What the agent streams (one JSON object per line) — see api/index.py.
@@ -60,6 +61,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const restTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -147,6 +149,22 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const updateMessage = (id: string, patch: Partial<UiMessage>) =>
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
 
+  // A 503 (budget spent, agent restarting, every model paused) rests the chat for a moment, not until End chat:
+  // the input comes back on its own, and the failed turn offers "Try again" meanwhile.
+  const rest = (seconds: number) => {
+    if (restTimer.current) clearTimeout(restTimer.current);
+    setStatus("offline");
+    restTimer.current = setTimeout(() => {
+      restTimer.current = null;
+      setStatus("idle");
+    }, seconds * 1000);
+  };
+  const wake = () => {
+    if (restTimer.current) clearTimeout(restTimer.current);
+    restTimer.current = null;
+  };
+  useEffect(() => wake, []);
+
   // Dumbledore taking the visitor somewhere. The chat lives in the layout, so it survives the navigation.
   const goTo = useCallback(
     (path: string, source: "agent" | "button", focus = true) => {
@@ -160,23 +178,32 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   );
 
   const ask = useCallback(
-    async (raw: string) => {
+    // retryOf: a failed reply's id — the same question goes again and that reply is reused, so nothing shows twice.
+    async (raw: string, retryOf?: string) => {
       const text = raw.trim().slice(0, LIMITS.maxMessageChars);
       if (!text || status === "waiting" || status === "streaming") return;
 
       const userCount = messagesRef.current.filter((m) => m.role === "user").length;
-      if (userCount >= LIMITS.maxSessionMessages) {
+      if (!retryOf && userCount >= LIMITS.maxSessionMessages) {
         append({ role: "assistant", kind: "notice", content: "That's the limit for one chat. Leave your details and Rishabh will pick it up from here." });
         setShowLead(true);
         return;
       }
 
-      const history = newestWithin([...transcript(messagesRef.current), { role: "user" as const, content: text }].slice(-LIMITS.maxHistory), LIMITS.maxHistoryChars);
-      append({ role: "user", content: text });
-      track("chat_question", { page: window.location.pathname }); // never the question text
+      // On a retry the question is already the last message in the transcript.
+      const asked = retryOf ? transcript(messagesRef.current) : [...transcript(messagesRef.current), { role: "user" as const, content: text }];
+      const history = newestWithin(asked.slice(-LIMITS.maxHistory), LIMITS.maxHistoryChars);
+      if (retryOf) {
+        track("chat_retry");
+        updateMessage(retryOf, { kind: undefined, content: "", retry: undefined });
+      } else {
+        append({ role: "user", content: text });
+        track("chat_question", { page: window.location.pathname }); // never the question text
+      }
       setInput("");
+      wake(); // a retry while resting: this answer decides the status now
       setStatus("waiting");
-      const replyId = append({ role: "assistant", content: "" });
+      const replyId = retryOf ?? append({ role: "assistant", content: "" });
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -191,16 +218,16 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         if (issued) token.current = issued;
 
         if (!res.ok || !res.body) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-          if (data.error === "offline") {
-            setStatus("offline");
+          const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string; retryAfter?: number };
+          const paused = data.error === "offline";
+          if (paused) {
             track("chat_paused");
-          }
-          else setStatus("idle");
+            rest(Math.min(Math.max(Number(data.retryAfter) || 30, 10), 600)); // the route says how long; 30 s otherwise
+          } else setStatus("idle");
           setMessages((prev) =>
             prev.map((m) =>
               m.id === replyId
-                ? { ...m, kind: "notice", content: data.message ?? "Something went wrong. Try again in a moment." }
+                ? { ...m, kind: "notice", content: data.message ?? "Something went wrong. Try again in a moment.", retry: paused ? text : undefined }
                 : m,
             ),
           );
@@ -242,7 +269,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         setStatus("idle");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          updateMessage(replyId, { content: "Connection hiccup. Please try again." });
+          updateMessage(replyId, { content: "Connection hiccup. Please try again.", retry: text });
         }
         setStatus("idle");
       } finally {
@@ -272,6 +299,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const endChat = () => {
     track("chat_ended", { messages: messagesRef.current.length });
     abortRef.current?.abort();
+    wake();
     logEnd("closed_chat");
     setMessages([]);
     setStatus("idle");
@@ -345,7 +373,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
               className={`inline-block size-1.5 rounded-full ${status === "offline" ? "bg-muted" : "bg-accent pulse-dot"}`}
               aria-hidden
             />
-            {status === "offline" ? "Resting · quick answers below" : "Answers from his real work · takes you to any page"}
+            {status === "offline" ? "Resting a moment · quick answers below" : "Answers from his real work · takes you to any page"}
           </p>
         </div>
         <button type="button" onClick={onMinimize} className="label rounded px-2 py-1 hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Minimize — keeps the chat while you browse">
@@ -384,6 +412,16 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
                 </span>
               )}
               {m.opened ? <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p> : null}
+              {m.retry && m.id === messages[messages.length - 1]?.id ? (
+                <button
+                  type="button"
+                  onClick={() => ask(m.retry ?? "", m.id)}
+                  disabled={busy}
+                  className="mt-2 rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent transition-colors hover:bg-accent hover:text-paper disabled:opacity-40"
+                >
+                  Try again
+                </button>
+              ) : null}
               {m.links?.length ? (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {m.links.map((l) => (
@@ -458,7 +496,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
               }
             }}
             rows={1}
-            placeholder={status === "offline" ? "Dumbledore is resting — try the quick answers" : "Ask about his work, or “take me to…”"}
+            placeholder={status === "offline" ? "Dumbledore is resting a moment — try again shortly" : "Ask about his work, or “take me to…”"}
             disabled={status === "offline"}
             className="max-h-32 min-h-[2.6rem] flex-1 resize-none rounded-sm border border-rule bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-60"
           />
