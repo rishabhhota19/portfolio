@@ -195,9 +195,17 @@ M = {
     "groq-120b": FreeModel("groq", "openai/gpt-oss-120b", 30, 1000, 8000, 200_000, reasoning=True),
     "groq-20b": FreeModel("groq", "openai/gpt-oss-20b", 30, 1000, 8000, 200_000, reasoning=True),
     "groq-qwen": FreeModel("groq", "qwen/qwen3.8-27b", 30, 1000, 8000, 200_000, extra={"reasoning_format": "hidden"}),
-    # Gemini: big daily quotas (Google no longer publishes free limits; ~500/day measured by others).
+    # Gemini: big daily quotas (Google no longer publishes free limits; ~500/day measured by others). Each model is
+    # its own daily quota, reset at midnight Pacific.
     "gemini-lite-3.5": FreeModel("gemini", "gemini-3.5-flash-lite", 15, 500, 250_000),
     "gemini-lite-3.1": FreeModel("gemini", "gemini-3.1-flash-lite", 15, 500, 250_000),
+    # The free tier of the bigger Flash models and Gemma 4 sheds load often (503 "high demand", 429 at ~5 req/min,
+    # timeouts; benched Nov 2026: right on every fact they did answer), so they come late in the pools, as extra
+    # daily capacity when the leaders are out. Gemma 4 31B never answered through this endpoint and isn't listed.
+    "gemini-flash-3.6": FreeModel("gemini", "gemini-3.6-flash", 5, 250, 250_000, reasoning=True),
+    "gemini-flash-3": FreeModel("gemini", "gemini-3-flash-preview", 5, 250, 250_000, reasoning=True),
+    "gemini-flash-3.8": FreeModel("gemini", "gemini-3.8-flash", 5, 250, 250_000, reasoning=True),
+    "gemini-gemma-26b": FreeModel("gemini", "gemma-4-26b-a4b-it", 5, 1000, 15_000),
     # Cloudflare Workers AI: 300 req/min per model, all models share 10,000 neurons/day.
     "cf-20b": FreeModel("cloudflare", "@cf/openai/gpt-oss-20b", 300, neurons=(18_182, 27_273), reasoning=True),
     "cf-glm": FreeModel("cloudflare", "@cf/zai-org/glm-4.7-flash", 300, neurons=(5_500, 36_400), extra=NO_THINKING),
@@ -234,13 +242,15 @@ class Tier:
 TIERS = {
     # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
     "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-granite", "cf-glm", "cf-20b",
-                                      "gemini-lite-3.5", "cf-scout"]),
+                                      "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
     "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-qwen3-a3b", "cf-gemma",
-                                      "cf-llama70b", "gemini-lite-3.1", "cf-mistral", "or-lightning"]),
+                                      "cf-llama70b", "gemini-lite-3.1", "cf-mistral", "gemini-flash-3", "gemini-flash-3.6",
+                                      "or-lightning"]),
     # L3 — reasoning (role fit, comparisons, "why"): the strongest models, the agent loop's evidence, longer answers.
     "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
-                                          "sn-120b", "or-ultra", "gemini-lite-3.5"]),
+                                          "sn-120b", "gemini-flash-3.6", "gemini-flash-3", "or-ultra", "gemini-lite-3.5",
+                                          "gemini-flash-3.8"]),
 }
 
 # The agent loop's planner (research.py): models that make real tool calls when streaming (checked Nov 2026: Qwen and
