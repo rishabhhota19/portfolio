@@ -77,6 +77,8 @@ def find_page(text: str) -> dict | None:
     longest = max((n for ns in named.values() for n in ns), key=len, default="")
     if len(owners := [p for p in PAGES if longest in named[p["id"]]]) == 1:
         return {"path": owners[0]["path"], "label": owners[0]["label"]}  # a page's own name beats section words
+    if section and " " in (name := SECTIONS[section][0]) and _mentions(t, name.lower()):
+        return {"path": section, "label": name}  # a section named in full ("Into the Agent") beats a keyword ("agent")
     scored = []
     for p in PAGES:
         if kind and p["kind"] != kind:

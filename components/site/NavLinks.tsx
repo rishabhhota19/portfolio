@@ -14,8 +14,8 @@ export function NavLinks() {
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <nav aria-label="Main" className="order-last md:order-none md:ml-auto">
-      <ul className="hidden items-center gap-6 md:flex">
+    <nav aria-label="Main" className="order-last lg:order-none lg:ml-auto">
+      <ul className="hidden items-center gap-6 lg:flex">
         {links.map((l) => (
           <li key={l.href}>
             <Link
@@ -31,7 +31,7 @@ export function NavLinks() {
 
       <button
         type="button"
-        className="label rounded border border-rule px-2.5 py-1.5 md:hidden"
+        className="label rounded border border-rule px-2.5 py-1.5 lg:hidden"
         aria-expanded={open}
         aria-controls="mobile-nav"
         onClick={() => setOpen((v) => !v)}
@@ -41,7 +41,7 @@ export function NavLinks() {
       {open ? (
         <ul
           id="mobile-nav"
-          className="absolute inset-x-0 top-full z-30 flex flex-col border-b border-rule bg-paper px-5 py-3 md:hidden"
+          className="absolute inset-x-0 top-full z-30 flex flex-col border-b border-rule bg-paper px-5 py-3 lg:hidden"
         >
           {links.map((l) => (
             <li key={l.href}>

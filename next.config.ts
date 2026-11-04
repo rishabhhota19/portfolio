@@ -58,13 +58,25 @@ const landingCsp = [
 const landingPaths = { "/3d": "/", "/assets/:path*": "/assets/:path*", "/models/:path*": "/models/:path*" }; // here → there
 const landingHeaders = securityHeaders.map((h) => (h.key === "Content-Security-Policy" ? { ...h, value: landingCsp } : h));
 
+// /resume previews the PDF in an <object>: that one page may embed this site's files, and only this site may embed the PDF.
+const resumeRules = [
+  { source: "/resume", headers: [{ key: "Content-Security-Policy", value: csp.replace("object-src 'none'", "object-src 'self'") }] },
+  {
+    source: "/resume.pdf",
+    headers: [
+      { key: "Content-Security-Policy", value: csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'") },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+    ],
+  },
+];
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
   async headers() {
-    // Later rules win for the same header, so the 3D paths end up with the 3D page's CSP.
-    return [{ source: "/:path*", headers: securityHeaders }, ...Object.keys(landingPaths).map((source) => ({ source, headers: landingHeaders }))];
+    // Later rules win for the same header, so the 3D paths and the résumé end up with their own values.
+    return [{ source: "/:path*", headers: securityHeaders }, ...Object.keys(landingPaths).map((source) => ({ source, headers: landingHeaders })), ...resumeRules];
   },
   async rewrites() {
     return {
