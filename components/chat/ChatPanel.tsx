@@ -18,6 +18,7 @@ import {
 import type { PendingQuestion } from "./ChatLauncher";
 import { LeadForm } from "./LeadForm";
 import { Markdown } from "./Markdown";
+import { StreamedGreeting } from "./StreamedGreeting";
 
 type PageLink = { path: string; label: string };
 // retry: the question a failed turn can send again (shown as "Try again" on the last message)
@@ -70,6 +71,8 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
   const [leadSent, setLeadSent] = useState(false);
   const [tokens, setTokens] = useState(0); // tokens this chat counted against the free limits (cached prompt tokens are free)
   const [announce, setAnnounce] = useState(""); // what a screen reader hears: each finished answer once, not every streamed line
+  const [chatRun, setChatRun] = useState(0); // counts chats in this tab, so each new one streams the greeting again
+  const [greeted, setGreeted] = useState(false);
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
@@ -331,6 +334,8 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
     wake();
     logEnd("closed_chat");
     setMessages([]);
+    setChatRun((n) => n + 1); // a new chat greets the visitor again
+    setGreeted(false);
     setStatus("idle");
     setShowLead(false);
     setLeadSent(false);
@@ -375,7 +380,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
   };
 
   const busy = status === "waiting" || status === "streaming";
-  const showStarters = messages.length === 0 || status === "offline";
+  const showStarters = greeted && (messages.length === 0 || status === "offline"); // they follow the greeting
 
   return (
     <section
@@ -424,9 +429,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       </p>
       <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         <div className="max-w-[88%] rounded-sm border border-rule bg-surface px-3.5 py-2.5 text-[0.93rem] leading-relaxed">
-          Hello! I&apos;m Dumbledore, Rishabh&apos;s AI agent. Ask me about his projects, research or experience — I answer
-          from his real work and say so when I don&apos;t know. I can also take you to any page: try &ldquo;take me to his
-          projects&rdquo;.
+          <StreamedGreeting key={chatRun} active={open} onDone={() => setGreeted(true)} />
         </div>
 
         {messages.map((m) =>
