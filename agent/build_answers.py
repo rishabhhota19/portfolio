@@ -41,7 +41,9 @@ async def paraphrase(questions: list[str]) -> list[list[str]]:
     prompt = ("For each question below, write 8 different ways a recruiter might ask the SAME question about Rishabh "
               "(same meaning, varied wording; some short, some casual; use 'he', 'his' or 'Rishabh'). Return ONLY JSON: "
               f"a list of {len(questions)} lists of 8 strings, in order.\n\n" + "\n".join(f"{i + 1}. {q}" for i, q in enumerate(questions)))
-    for name in ("gemini-lite-3.5", "gemini-lite-3.1", "groq-120b"):
+    # Any writer with a key will do (CI has NVIDIA's; a laptop has Groq's and Gemini's): the cheap pools, best first.
+    writers = [n for n in dict.fromkeys([*llm.SUMMARY_POOL, *llm.TIERS["L2"].pool]) if llm.M[n].available]
+    for name in writers:
         try:
             reply = await llm.M[name].client(6000, timeout=90).ainvoke([HumanMessage(prompt)])
             lists = json.loads(re.search(r"\[.*\]", reply.text, re.S).group())
@@ -90,6 +92,10 @@ async def main() -> None:
             await asyncio.sleep(3)  # stay inside the free per-minute limits
         bank.append(entry)
 
+    if len(bank) < len(wanted) - 1:  # a bank missing more than one answer isn't written: it once shrank to 33 unnoticed
+        print(f"::error::Answer bank would have {len(bank)} of {len(wanted)} intents (models out of quota or answers failing "
+              "their checks): keeping the old bank. Re-run when the models are back.")
+        sys.exit(1)
     if bank == old["intents"] and old["version"] == VERSION and old.get("model") == MODEL and VECTORS.exists():
         print(f"Answer bank already up to date ({len(bank)} intents).")
         return

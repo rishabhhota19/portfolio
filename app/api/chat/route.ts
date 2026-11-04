@@ -1,6 +1,6 @@
 import { after } from "next/server";
 import { CHAT_TOKEN_HEADER, LIMITS } from "@/lib/chat-types";
-import { askAgent, splitMeta } from "@/lib/server/agent";
+import { ABORTED, askAgent, splitMeta } from "@/lib/server/agent";
 import { isBot } from "@/lib/server/bot";
 import * as events from "@/lib/server/events";
 import { ipHash, issueChatToken } from "@/lib/server/request";
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
   const { stream, meta } = splitMeta(answer, req.signal);
   after(async () => {
     const m = await meta;
+    if (m === ABORTED) return; // the visitor stopped the answer part-way: the model still ran, so the budget stays spent
     if (!m || !(m.tokens_in + m.tokens_out)) await refundDailyBudget(); // greeting, cache, refusal, page jump: no model
     if (m) await events.turn({ ...m, sessionId, page: parsed.data.page });
   });

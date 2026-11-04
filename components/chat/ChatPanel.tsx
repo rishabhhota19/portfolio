@@ -53,6 +53,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
   const [showLead, setShowLead] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
   const [tokens, setTokens] = useState(0); // tokens this chat counted against the free limits (cached prompt tokens are free)
+  const [announce, setAnnounce] = useState(""); // what a screen reader hears: each finished answer once, not every streamed line
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
@@ -207,6 +208,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
 
       const controller = new AbortController();
       abortRef.current = controller;
+      let full = ""; // the answer so far: a connection that drops part-way keeps it
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -224,20 +226,15 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
             track("chat_paused");
             rest(Math.min(Math.max(Number(data.retryAfter) || 30, 10), 600)); // the route says how long; 30 s otherwise
           } else setStatus("idle");
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === replyId
-                ? { ...m, kind: "notice", content: data.message ?? "Something went wrong. Try again in a moment.", retry: paused ? text : undefined }
-                : m,
-            ),
-          );
+          const message = data.message ?? "Something went wrong. Try again in a moment.";
+          setMessages((prev) => prev.map((m) => (m.id === replyId ? { ...m, kind: "notice", content: message, retry: paused ? text : undefined } : m)));
+          setAnnounce(message);
           return;
         }
 
         setStatus("streaming");
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let full = "";
         let pending = ""; // a line that hasn't fully arrived yet
         const handle = (line: string) => {
           if (!line.trim()) return;
@@ -266,10 +263,14 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         }
         handle(pending);
         if (!full.trim()) updateMessage(replyId, { content: "I couldn't come up with an answer for that — try rephrasing?" });
+        setAnnounce(full.trim() || "No answer came back; try rephrasing.");
         setStatus("idle");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          updateMessage(replyId, { content: "Connection hiccup. Please try again.", retry: text });
+          // Keep what arrived: a dropped connection shouldn't take the half answer with it.
+          const content = full.trim() ? `${full}\n\n_The connection dropped before the end — try again?_` : "Connection hiccup. Please try again.";
+          updateMessage(replyId, { content, retry: text });
+          setAnnounce("The connection dropped. You can try again.");
         }
         setStatus("idle");
       } finally {
@@ -384,8 +385,12 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         </button>
       </header>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4" aria-live="polite">
+      {/* Messages. One hidden status line announces each finished answer; a live region on the list would re-read
+          every streamed line. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {announce}
+      </p>
+      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         <div className="max-w-[88%] rounded-sm border border-rule bg-surface px-3.5 py-2.5 text-[0.93rem] leading-relaxed">
           Hello! I&apos;m Dumbledore, Rishabh&apos;s AI agent. Ask me about his projects, research or experience — I answer
           from his real work and say so when I don&apos;t know. I can also take you to any page: try &ldquo;take me to his

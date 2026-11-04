@@ -45,8 +45,11 @@ export async function POST(req: Request) {
 
   const sessionId = data.sessionId ?? data.conversationId;
   after(async () => {
+    // A tab switch isn't the end of a chat: it gets the plain summary (what was asked), and the model-written one
+    // waits for End chat, leaving the site or a lead — so a visitor who flips tabs doesn't spend the summary quota.
     const useLlm =
       verified &&
+      data.reason !== "tab_hidden" &&
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"));
     const s = useLlm

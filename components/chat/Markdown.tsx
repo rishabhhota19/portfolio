@@ -20,7 +20,8 @@ function inline(text: string, keyPrefix: string): ReactNode[] {
     if (link) {
       const [, text, href] = link;
       const label = inline(text, key); // e.g. "[**Name**](/x)"
-      return href.startsWith("/") ? (
+      // One leading slash is a page of this site; "//evil.com" is another site (the server's guard strips it already)
+      return /^\/(?!\/)/.test(href) ? (
         <Link key={key} href={href} className="text-accent underline underline-offset-2">
           {label}
         </Link>

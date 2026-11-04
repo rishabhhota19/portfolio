@@ -9,14 +9,17 @@
 
 interface Env {
   SITE_ORIGIN: string;
+  WARM_KEY: string; // a secret (wrangler secret put WARM_KEY), the same value as the agent's WARM_KEY: it proves the cron is calling
 }
 
 export default {
   async scheduled(controller: { scheduledTime: number }, env: Env) {
     // A fresh URL each time: the CDN keeps the warm-up's reply for 3 minutes and would answer instead of the agent.
+    // The key is what lets this call skip that cache (and keep Groq's prompt cache warm): without it the agent treats
+    // the request as a visitor's, so nobody can burn function calls by inventing URLs.
     const minute = Math.floor(controller.scheduledTime / 60_000);
     const res = await fetch(`${env.SITE_ORIGIN}/api/agent/warm?src=cron&t=${minute}`, {
-      headers: { "user-agent": "rishabh-warm (Cloudflare cron)" },
+      headers: { "user-agent": "rishabh-warm (Cloudflare cron)", "x-warm-key": env.WARM_KEY ?? "" },
     });
     if (!res.ok) throw new Error(`warm-up answered ${res.status}`); // shows as a failed run in the Worker's metrics
   },

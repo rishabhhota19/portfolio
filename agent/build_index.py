@@ -54,7 +54,10 @@ def main() -> None:
     faiss.write_index(index, str(FOLDER / "index.faiss"))
     labels = np.array([1] * len(IN_SCOPE) + [0] * len(OUT_OF_SCOPE), dtype="int8")
     np.savez(FOLDER / "scope.npz", vectors=asyncio.run(local.embed(examples, timeout=60)), labels=labels, texts=np.array(examples))
-    stamps.write_text(json.dumps({"model": MODEL, "data": stamp}) + "\n")
+    # "knowledge": the content this index was built from, so a running agent can tell when its content moved on
+    # (a content push deploys at once; the index follows when CI commits it — api/index.py warns meanwhile).
+    knowledge = hashlib.sha1((DATA_DIR / "knowledge.json").read_bytes()).hexdigest()[:16]
+    stamps.write_text(json.dumps({"model": MODEL, "data": stamp, "knowledge": knowledge}) + "\n")
     print(f"Indexed {len(chunks)} chunks + {len(examples)} scope examples with {MODEL} ({vectors.shape[1]}-dim) -> {FOLDER}")
 
 

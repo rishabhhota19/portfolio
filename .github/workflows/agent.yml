@@ -4,7 +4,9 @@ name: Agent index + evals
 on:
   push:
     branches: [main]
-    paths: ["content/**", "agent/**", "evals/**", "scripts/build-content.ts", "requirements*.txt"]
+    # Everything on the chat's path, not only the agent: the gateway routes and the agent client are part of it.
+    paths: ["content/**", "agent/**", "evals/**", "api/**", "lib/server/**", "app/api/**", "scripts/build-content.ts",
+            "requirements*.txt", ".github/workflows/agent.yml"]
   workflow_dispatch:
   schedule:
     - cron: "30 3 * * 1" # every Monday, 09:00 IST

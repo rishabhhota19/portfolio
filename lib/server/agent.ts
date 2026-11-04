@@ -11,6 +11,11 @@ function agentUrl(req: Request, path: string) {
   return `${base}/api/agent/${path}`;
 }
 
+if (process.env.VERCEL && !process.env.AGENT_SHARED_SECRET) {
+  // The agent refuses every call without it: say so loudly instead of looking like a quiet outage.
+  console.error("[agent] AGENT_SHARED_SECRET is not set: every call to the agent will be refused");
+}
+
 function agentHeaders(req: Request) {
   return {
     "content-type": "application/json",
@@ -20,16 +25,24 @@ function agentHeaders(req: Request) {
   };
 }
 
-/** Streams the agent's answer, or returns null if the agent is unavailable. */
+const CHAT_TIMEOUT_MS = 50_000; // Vercel stops the route at 60 s; a hung call must not hold the visitor's placeholder until then
+
+/** Streams the agent's answer, or returns null if the agent is unavailable (logged, with a Sentry event: a wrong
+ * secret or a crashed agent must never look like a quiet outage). */
 export async function askAgent(req: Request, conversationId: string, sessionId: string, messages: ChatMessage[]) {
   try {
     const res = await fetch(agentUrl(req, "chat"), {
       method: "POST",
       headers: agentHeaders(req),
       body: JSON.stringify({ conversation_id: conversationId, session_id: sessionId, messages }),
-      signal: req.signal,
+      signal: AbortSignal.any([req.signal, AbortSignal.timeout(CHAT_TIMEOUT_MS)]),
     });
-    return res.ok && res.body ? res.body : null;
+    if (!res.ok || !res.body) {
+      console.error(`[agent] chat answered ${res.status}`);
+      Sentry.captureMessage(`Agent chat answered ${res.status}`, "warning");
+      return null;
+    }
+    return res.body;
   } catch (err) {
     console.error("[agent] chat call failed:", err);
     Sentry.captureException(err);
@@ -49,14 +62,22 @@ export async function agentHealth(req: Request): Promise<Record<string, unknown>
 
 export type AgentMeta = { intent: string; why: string; level: string; model: string; tokens_in: number; tokens_out: number; ms: number };
 
+/** What `splitMeta` hands over when the visitor cancelled before the meta line arrived: the model ran all the same. */
+export const ABORTED = Symbol("aborted");
+
 /** Takes the agent's "meta" line (which model answered, the level: admin-only) out of the answer stream and hands
- * it over when the stream ends — or when the visitor cancels. Every other line passes through as it arrives. */
+ * it over when the stream ends — or ABORTED when the visitor cancels first. Every other line passes through as it
+ * arrives. */
 export function splitMeta(body: ReadableStream<Uint8Array>, signal: AbortSignal) {
   let pending = "";
   let meta: AgentMeta | null = null;
+  let aborted = false;
   let finish!: () => void;
-  const ended = new Promise<AgentMeta | null>((resolve) => (finish = () => resolve(meta)));
-  signal.addEventListener("abort", () => finish());
+  const ended = new Promise<AgentMeta | typeof ABORTED | null>((resolve) => (finish = () => resolve(meta ?? (aborted ? ABORTED : null))));
+  signal.addEventListener("abort", () => {
+    aborted = true;
+    finish();
+  });
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const keep = (line: string) => {

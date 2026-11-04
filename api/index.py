@@ -89,6 +89,24 @@ def load() -> None:
         rag.index()
 
 
+def index_stale() -> bool | None:
+    """Was the search index built from the content this instance serves? A content push deploys at once and the index
+    follows only when CI commits it (or never, if an eval fails): until then retrieval runs on the old chunks and the
+    answer bank is off. None = the index predates the stamp and can't say."""
+    import hashlib
+
+    from agent.config import DATA_DIR
+
+    try:
+        stamps = json.loads((DATA_DIR / "embeddings" / "stamps.json").read_text(encoding="utf-8"))
+        built_from = stamps.get("knowledge")
+        if not built_from:
+            return None
+        return built_from != hashlib.sha1((DATA_DIR / "knowledge.json").read_bytes()).hexdigest()[:16]
+    except Exception:
+        return None
+
+
 def preload() -> None:
     """Loads what a first answer needs as this instance starts, whatever request started it. Vercel runs several
     instances: one started by a summary or a session lookup used to stay half-loaded, and the visitor whose question
@@ -96,6 +114,9 @@ def preload() -> None:
     from agent import embeddings
 
     started = time.perf_counter()
+    if index_stale():
+        print(json.dumps({"event": "index_stale", "note": "content changed since the index was built: CI's rebuild commit hasn't landed"}))
+        sentry_sdk.capture_message("Search index is stale: the content changed and CI's rebuild commit hasn't landed", level="warning")
     try:
         load()
         if embeddings.ENGINES[0].ready:
@@ -109,7 +130,7 @@ preload()
 
 
 @app.get("/api/agent/warm")
-async def warm(src: str = ""):
+async def warm(src: str = "", x_warm_key: str | None = Header(None)):
     """Public. Wakes the agent before a visitor asks: an instance that starts loads everything (preload), so this only
     has to start one. Already warm: returns at once. The CDN keeps the reply for 3 minutes, so visitors in that window
     don't reach the function at all; the Cloudflare cron that keeps the agent awake (cloudflare/warm/) asks with a
@@ -119,6 +140,11 @@ async def warm(src: str = ""):
     from agent import embeddings
 
     started = time.perf_counter()
+    # Only the cron, proving itself with WARM_KEY (the same secret in the Worker), counts as the cron: anyone else
+    # inventing src=cron URLs just gets a visitor's warm-up, which never calls a model.
+    expected = env("WARM_KEY")
+    if src == "cron" and not (expected and hmac.compare_digest(x_warm_key or "", expected)):
+        src = "site"
     was_cold = not loaded()
     if was_cold:
         try:
@@ -268,6 +294,8 @@ async def health(x_agent_secret: str | None = Header(None)):
     expected = env("AGENT_SHARED_SECRET")
     if not (expected and hmac.compare_digest(x_agent_secret or "", expected)):
         return {"ok": True}
+    if _health["at"] > time.time() - HEALTH_CACHE_S:  # the dashboard polls every 2 min: ~20 Redis reads once a minute at most
+        return _health["report"]
     from agent import llm
 
     models = {}
@@ -301,5 +329,12 @@ async def health(x_agent_secret: str | None = Header(None)):
             bank["probe_engine"] = engine.name if engine else "none"
         except Exception as err:
             bank["probe"] = f"failed: {type(err).__name__}"
-    return {"ok": True, "levels": {lv: t.pool for lv, t in llm.TIERS.items()}, "summaries": llm.SUMMARY_POOL,
-            "shared_pools_today": await usage.pools(), "embeddings": engines, "answer_bank": bank, "models": models}
+    report = {"ok": True, "index_stale": index_stale(), "levels": {lv: t.pool for lv, t in llm.TIERS.items()},
+              "summaries": llm.SUMMARY_POOL, "shared_pools_today": await usage.pools(), "embeddings": engines,
+              "answer_bank": bank, "models": models}
+    _health.update(at=time.time(), report=report)
+    return report
+
+
+HEALTH_CACHE_S = 60
+_health: dict = {"at": 0.0, "report": None}  # this instance's last full health report
