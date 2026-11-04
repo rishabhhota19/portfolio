@@ -23,7 +23,7 @@
   { "id": "serving", "kind": "fact", "q": "Has he worked with vLLM or Ollama?", "include": ["vLLM|Ollama"] },
   { "id": "smartknower", "kind": "fact", "q": "What did he do at Smartknower?", "include": ["Power BI|ETL"], "url": "/experience" },
   { "id": "springer", "kind": "fact", "q": "Has he published with Springer?", "include": ["Springer"] },
-  { "id": "fde-fit", "kind": "fact", "q": "Would he fit a Forward Deployed Engineer role?", "include": ["Forward Deployed"] },
+  { "id": "fde-fit", "kind": "fact", "q": "Would he fit a Forward Deployed Engineer role?", "include": ["Forward[- ]Deployed"] },
   { "id": "location", "kind": "fact", "q": "Where is he based?", "include": ["Bengaluru|Bangalore"] },
   { "id": "email", "kind": "fact", "q": "What's the best email to reach him?", "include": ["rishabhhota19@gmail\\.com"] },
 

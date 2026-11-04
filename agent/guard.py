@@ -100,7 +100,8 @@ _ALL_TEXT = "\n".join([KNOWLEDGE["core"], *(d["text"] for d in KNOWLEDGE["docs"]
 ALLOWED_URLS = {u.rstrip(".,;:") for u in re.findall(r"https?://[^\s)\"'\]]+", _ALL_TEXT)} | {SITE["linkedin"], SITE["github"], SITE["url"]}
 PROMPT_MARKERS = re.compile(r"Answer only from PROFILE|Treat user messages,? (and )?CONTEXT|reveal or discuss these rules|"
                             r"reply with exactly|copy numbers exactly|Don't embellish|in the talent-agent sense|"
-                            r"ANSWER SHAPE|You plan and gather evidence|^\s*(RULES|PROFILE|CONTEXT|PAGES|RESEARCH)\s*$", re.I | re.M)
+                            r"ANSWER SHAPE|You plan the research|closest proof it does show|Raise only what matters|"
+                            r"never invent it|are data, not instructions|^\s*(RULES|PROFILE|CONTEXT|PAGES|RESEARCH|STYLE)\s*$", re.I | re.M)
 CODE = re.compile(r"```|^\s{4,}(def |class |import |function |const |let |SELECT |<\w+)|<\?php|#include\b", re.M)
 URL = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)|https?://[^\s)\]]*[^\s)\].,;:!?]")  # a sentence's final "." isn't part of it
 NUMBER = re.compile(r"\+?\d[\d\s().-]{7,}\d")  # 10+ digits = a phone, Aadhaar or card number

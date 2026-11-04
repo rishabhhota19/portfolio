@@ -239,6 +239,8 @@ M = {
     "nv-nemotron-super": FreeModel("nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b", context=64_000, extra=NO_THINKING),
     "nv-nemotron-ultra": FreeModel("nvidia", "nvidia/nemotron-3-ultra-550b-a55b", context=64_000, extra=NO_THINKING),
     "nv-nemotron-lightning": FreeModel("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b", extra=NO_THINKING),
+    # Nano Omni 30B and Bolt E4B scored 8/8 facts too, but on a visa question Nano echoed a rule of the prompt word for
+    # word and Bolt refused outright instead of saying the site doesn't share it: not in any pool.
     "nv-nemotron-nano": FreeModel("nvidia", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", extra=NO_THINKING),
     "nv-nemotron-bolt": FreeModel("nvidia", "nvidia/nemotron-3.5-bolt-e4b", extra=NO_THINKING),
 }
@@ -256,13 +258,12 @@ class Tier:
 
 TIERS = {
     # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
-    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "nv-nemotron-bolt", "nv-nemotron-nano", "gemini-lite-3.1",
-                                      "cf-qwen3-a3b", "cf-granite", "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout",
-                                      "gemini-gemma-26b"]),
+    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-granite",
+                                      "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
     "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "nv-nemotron-super", "nv-nemotron-lightning", "gemini-lite-3.5", "groq-qwen",
-                                      "nv-nemotron-nano", "cf-qwen3-a3b", "cf-gemma", "cf-llama70b", "gemini-lite-3.1",
-                                      "cf-mistral", "gemini-flash-3", "gemini-flash-3.6", "or-lightning"]),
+                                      "cf-qwen3-a3b", "cf-gemma", "cf-llama70b", "gemini-lite-3.1", "cf-mistral",
+                                      "gemini-flash-3", "gemini-flash-3.6", "or-lightning"]),
     # L3 — reasoning (role fit, comparisons, "why"): the strongest models, the agent loop's evidence, longer answers.
     "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "nv-nemotron-super", "nv-nemotron-ultra", "cf-120b", "groq-qwen",
                                           "sn-deepseek", "cf-nemotron", "sn-120b", "gemini-flash-3.6", "gemini-flash-3",
