@@ -14,16 +14,22 @@ permissions:
 
 concurrency:
   group: agent
-  cancel-in-progress: true
+  cancel-in-progress: false # queue, don't cancel: a cancelled run has already spent model calls and tested nothing
 
 jobs:
   agent:
     runs-on: ubuntu-latest
     env:
-      # No Groq key here on purpose: Groq's daily token cap is the site's best capacity, so CI uses Gemini + Cloudflare.
-      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY }}
-      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }} # Cloudflare chat models (embeddings are built locally)
-      CF_WORKERS_AI_TOKEN: ${{ secrets.CF_WORKERS_AI_TOKEN }}
+      # CI never spends the site's daily quotas. No Groq key (its daily token cap is the site's best capacity) and no
+      # Gemini or Cloudflare keys (their daily quotas reset at 13:30 and 05:30 IST, and a Monday-morning run used to
+      # empty them for the visitors that followed). The evals run on NVIDIA's API catalog instead: free, rate-limited
+      # per minute, no daily cap. Embeddings are built locally.
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+      # Optional: a Gemini key from a CI-only Google project (its own free quota), for the RAGAS judge and more models.
+      GOOGLE_GENERATIVE_AI_API_KEY: ${{ secrets.GOOGLE_GENERATIVE_AI_API_KEY_CI }}
+      # Optional: with the site's Redis, CI's calls are booked in the same per-minute pool the visitors use.
+      UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+      UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -68,8 +74,8 @@ jobs:
           git diff --cached --quiet || (git commit -m "Rebuild agent index" && git pull --rebase origin main && git push)
 
       - name: RAGAS (faithfulness, answer relevancy, context precision)
-        # Weekly / manual only: the judge shares the site's free Gemini quota, so don't spend it on every push.
-        if: github.event_name != 'push'
+        # Weekly / manual only, and only with the CI-only Gemini key: the judge is a Gemini model.
+        if: github.event_name != 'push' && env.GOOGLE_GENERATIVE_AI_API_KEY != ''
         run: python -m evals.ragas_eval
         continue-on-error: true # the free judge model can rate-limit
 
