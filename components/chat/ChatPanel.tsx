@@ -263,7 +263,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled 
         }
         handle(pending);
         if (!full.trim()) updateMessage(replyId, { content: "I couldn't come up with an answer for that — try rephrasing?" });
-        setAnnounce(full.trim() || "No answer came back; try rephrasing.");
+        setAnnounce(full.replace(/[*_`]|\[([^\]]+)\]\([^)]*\)/g, "$1").trim() || "No answer came back; try rephrasing."); // plain words, no markdown
         setStatus("idle");
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
