@@ -280,6 +280,43 @@ async def get(name: str) -> dict[str, int]:
     return {k: _get(key) for k, key in keys.items()}
 
 
+async def mark(key: str, seconds: int) -> None:
+    """Notes that something happened (SET EX): `seen` answers whether it did within `seconds`."""
+    redis = _client()
+    if redis:
+        try:
+            await redis.set(key, "1", ex=seconds)
+            return
+        except Exception as err:
+            print(f"[usage] redis mark failed: {err}")
+    _memory[key] = (1, time.time() + seconds)
+
+
+async def seen(key: str) -> bool:
+    redis = _client()
+    if redis:
+        try:
+            return bool(await redis.get(key))
+        except Exception as err:
+            print(f"[usage] redis read failed: {err}")
+    return bool(_get(key))
+
+
+async def claim(key: str, seconds: int) -> bool:
+    """The first caller in `seconds` wins (SET NX): one instance does a job and the others skip it. Without Redis,
+    this instance's memory decides."""
+    redis = _client()
+    if redis:
+        try:
+            return bool(await redis.set(key, "1", nx=True, ex=seconds))
+        except Exception as err:
+            print(f"[usage] redis claim failed: {err}")
+    if _get(key):
+        return False
+    _add(key, 1, seconds)
+    return True
+
+
 _thin: tuple[float, bool] = (0.0, False)  # (checked at, answer) — this instance, once a minute
 
 

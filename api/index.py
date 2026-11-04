@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from agent import memory as session_memory, usage
 from agent.config import env
-from agent.graph import agent
+from agent.graph import RECENT_CHAT, WARM_EVERY, agent, warm_prefix_cache
 from agent.guard import StreamGuard
 from agent.summarize import summarize
 
@@ -111,9 +111,11 @@ preload()
 @app.get("/api/agent/warm")
 async def warm(src: str = ""):
     """Public. Wakes the agent before a visitor asks: an instance that starts loads everything (preload), so this only
-    has to start one. Never calls an LLM: no tokens, no quota. Already warm: returns at once. The CDN keeps the reply
-    for 3 minutes, so visitors in that window don't reach the function at all; the Cloudflare cron that keeps the agent
-    awake (cloudflare/warm/) asks with a fresh URL each time, src=cron."""
+    has to start one. Already warm: returns at once. The CDN keeps the reply for 3 minutes, so visitors in that window
+    don't reach the function at all; the Cloudflare cron that keeps the agent awake (cloudflare/warm/) asks with a
+    fresh URL each time, src=cron — and only that caller also keeps Groq's prompt cache warm (graph.warm_prefix_cache:
+    tiny cached calls, at most once every 100 minutes however often this is hit). A visitor's warm-up never calls an
+    LLM."""
     from agent import embeddings
 
     started = time.perf_counter()
@@ -125,9 +127,15 @@ async def warm(src: str = ""):
                 await local.embed(["warm"])  # loads the ONNX model and runs it once
         except Exception as err:  # best-effort: a chat still loads anything missing itself
             print(f"[warm] failed: {type(err).__name__}")
+    prefix_cache: list[str] = []
+    if src == "cron":
+        try:
+            prefix_cache = await warm_prefix_cache()
+        except Exception as err:
+            print(f"[warm] prefix cache failed: {type(err).__name__}")
     ms = round((time.perf_counter() - started) * 1000)
     print(json.dumps({"event": "warm", "src": src[:16] or "site", "was_cold": was_cold, "ms": ms,
-                      "instance_age_s": round(time.time() - BOOTED)}))
+                      "instance_age_s": round(time.time() - BOOTED), **({"prefix_cache": prefix_cache} if prefix_cache else {})}))
     return JSONResponse({"ok": True, "was_cold": was_cold, "ms": ms}, headers={"Cache-Control": "public, max-age=0, s-maxage=180"})
 
 
@@ -205,6 +213,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
             counts["refused"] = 1  # questions the refusal pipeline turned down
         if counts:  # added to this visit's totals
             await usage.add_to_session(req.session_id, counts, model=result.get("model", "") if result.get("usage") else "")
+        if result.get("usage"):  # a model answered: worth keeping Groq's prefix cache warm for the next question
+            await usage.mark(RECENT_CHAT, WARM_EVERY)
 
     stream = events()
     first = await anext(stream, None)  # wait for the first event so "all models down" becomes a clean 503

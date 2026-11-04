@@ -30,7 +30,7 @@ from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph, add_messages
 
@@ -209,7 +209,7 @@ async def respond(state: State) -> dict:
     def prompt_for(m: llm.FreeModel, second_opinion: bool = False):
         """Context shifting: the level's chunks and turns, trimmed (older turns first, then chunks) until it fits m."""
         for chunks in sorted({tier.chunks, min(tier.chunks, 4), 2}, reverse=True):
-            system, turns = SystemMessage(system_prompt(docs[:chunks], second_opinion, notes)), list(history)
+            system, turns = SystemMessage(system_prompt(docs[:chunks], second_opinion, notes, level)), list(history)
             while turns:
                 prompt = [system, *turns]
                 if llm.fits(m, llm.estimate_tokens(prompt), tier.max_tokens):
@@ -250,6 +250,10 @@ async def respond(state: State) -> dict:
 
 # ── 6. check (Gate 4: output, Gate 5: cache) ────────────────────────────────
 
+HIRING = re.compile(r"\b(fit|hire|hiring|role|position|job description|jd|candidate|junior|senior|recruit\w*)\b", re.I)
+NEXT_STEP = re.compile(r"r[ée]sum[ée]|share your details|e-?mail|reach out|get in touch|linkedin|contact|talk to him|ask him", re.I)
+NEXT_STEP_LINE = "\n\nNext step: his [résumé](/resume) is one click away, and **Share your details** below gets you a reply from Rishabh himself."
+
 async def check(state: State) -> dict:
     started = time.perf_counter()
     last = state["messages"][-1]
@@ -262,6 +266,8 @@ async def check(state: State) -> dict:
     safe = guard.clean(text)  # unknown links, long numbers, IDs, other people's emails removed
     if guard.is_refusal(safe):
         return {"intent": "refused", "why": "prompt", "trace": step("check", started, refused=True)}
+    if HIRING.search(last_question(state)) and not NEXT_STEP.search(safe):
+        safe += NEXT_STEP_LINE  # a hiring question always ends with a way to act, whichever model forgot it
 
     links = pages.links_for(safe, research.evidence(state, 8), skip={a["path"] for a in state.get("actions", [])})
     update: dict = {"actions": state.get("actions", []) + link_actions(links), "trace": step("check", started, links=len(links))}
@@ -277,6 +283,33 @@ def link_actions(links: list[dict], skip: list[dict] = ()) -> list[dict]:
     taken = {a["path"] for a in skip}
     links = [link for link in links if link["path"] not in taken]
     return [{"type": "links", "links": links}] if links else []
+
+
+WARM_PREFIXES = (("groq-120b", "L3"), ("groq-120b", "L2"), ("groq-20b", "L1"))  # the writers' first choices and their prefixes
+WARM_EVERY = 6000  # seconds: Groq's prefix cache lives two hours unused
+RECENT_CHAT = "chat:recent"  # set by every chat turn (api/index.py): the cache is only worth keeping warm while people chat
+
+
+async def warm_prefix_cache() -> list[str]:
+    """Keeps Groq's prompt cache warm for the writers' fixed prefix (persona, rules, pages, profile, shapes), so a
+    visitor's call can read its ~1.8k tokens from the cache — Groq doesn't count cached tokens against its limits.
+    Measured (Nov 2026): the cache is prefix-based in 128-token blocks, takes about a minute to become visible, and
+    hits are not guaranteed (per-replica), so a warm call that misses costs ~2k tokens. It therefore runs only while
+    someone chatted in the last WARM_EVERY seconds — when the next visitor call is likely — at most once per
+    WARM_EVERY across all instances. Called by the cron's warm-up (api/index.py)."""
+    if not await usage.seen(RECENT_CHAT) or not await usage.claim("groq:prefix-warm", WARM_EVERY):
+        return []
+    warmed = []
+    for name, level in WARM_PREFIXES:
+        m = llm.M[name]
+        if not m.available:
+            continue
+        tier = replace(llm.TIERS[level], chunks=0, history=0, max_tokens=8, timeout=10)
+        prompt = [SystemMessage(system_prompt([], level=level)), HumanMessage("Reply with OK.")]
+        answer = await router.run([m], tier, lambda _m, p=prompt: (p, False))
+        if answer:
+            warmed.append(f"{name}/{level}: {answer.cached} cached")
+    return warmed
 
 
 _last_alert = 0.0
