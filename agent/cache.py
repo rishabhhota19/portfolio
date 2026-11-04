@@ -25,8 +25,19 @@ from .embeddings import MODEL
 from .usage import _client as redis_client
 
 TTL = 86_400
+
+
+def answer_content(knowledge: dict) -> dict:
+    """The site data an answer can depend on. Which pages are private, which show in the header nav and the words that
+    name a section only steer navigation and the page chrome (pages.py, content/site.json): changing them can't make a
+    stored answer wrong, so it shouldn't retire the bank."""
+    site = {k: v for k, v in knowledge["site"].items() if k != "private"}
+    site["sections"] = [{k: v for k, v in s.items() if k not in ("nav", "words")} for s in site["sections"]]
+    return {**knowledge, "site": site}
+
+
 # Content and prompt together: answers written before either changed are never served again.
-VERSION = hashlib.sha1((json.dumps(KNOWLEDGE, sort_keys=True) + prompts.VERSION).encode()).hexdigest()[:10]
+VERSION = hashlib.sha1((json.dumps(answer_content(KNOWLEDGE), sort_keys=True) + prompts.VERSION).encode()).hexdigest()[:10]
 _memory: dict[str, tuple[str, float]] = {}
 
 # ── exact cache ─────────────────────────────────────────────────────────────
