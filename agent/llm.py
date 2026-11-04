@@ -34,6 +34,9 @@ PROVIDERS = {  # direct base URL, API key variable, AI Gateway base URL (None: t
                    GATEWAY + "/workers-ai/v1"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY", GATEWAY + "/openrouter"),
     "sambanova": ("https://api.sambanova.ai/v1", "SAMBANOVA_API_KEY", None),  # optional: models switch on when the key is set
+    # NVIDIA's API catalog (build.nvidia.com): free for Developer Program members, rate-limited per account (no
+    # published daily cap, ~40 requests/min reported, "varies per model"). Optional: on when NVIDIA_API_KEY is set.
+    "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY", None),
 }
 
 GATEWAY_DOWN_FOR = 60  # seconds this instance skips the gateway after the gateway itself failed
@@ -117,6 +120,7 @@ class GatewayChat(ChatOpenAI):
 PROVIDER_LIMITS = {
     "openrouter": {"rpd": 50},  # 50 free requests a day across every :free model
     "cloudflare": {"neurons_day": 10_000},  # Workers AI: one pool of 10,000 neurons a day per account (00:00 UTC)
+    "nvidia": {"rpm": 30},  # the catalog's ~40 requests a minute are per account, shared by every model; headroom kept
 }
 
 PACE = 3  # a model may use at most 3x its hourly share of a daily quota, so the best ones aren't used up by noon
@@ -226,6 +230,23 @@ M = {
     # SambaNova (optional): 20 req/min, 20 req/day, 200,000 tokens/day per model.
     "sn-120b": FreeModel("sambanova", "gpt-oss-120b", 20, 20, 0, 200_000, reasoning=True),
     "sn-deepseek": FreeModel("sambanova", "DeepSeek-V3.1", 20, 20, 0, 200_000),
+    # NVIDIA API catalog (optional, NVIDIA_API_KEY): the catalog's free endpoints (Nov 2026), free for Developer
+    # Program members with ~40 requests a minute per account (PROVIDER_LIMITS) and no published daily cap — so these
+    # sit right after Groq and take the overflow all day. Per-model limits "vary"; the router learns them from 429s.
+    # Reasoning models answer directly (NO_THINKING); each still needs a bench (evals/model_bench) once a key exists.
+    "nv-mistral-large": FreeModel("nvidia", "mistralai/mistral-large-4-1t-a52b", context=64_000, extra=NO_THINKING),
+    "nv-nemotron-super": FreeModel("nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b", context=64_000, extra=NO_THINKING),
+    "nv-deepseek-flash": FreeModel("nvidia", "deepseek-ai/deepseek-v4.1-flash", context=64_000, extra=NO_THINKING),
+    "nv-glm-flash": FreeModel("nvidia", "z-ai/glm-5-3-flash", context=64_000, extra=NO_THINKING),
+    "nv-nemotron-ultra": FreeModel("nvidia", "nvidia/nemotron-3-ultra-550b-a55b", context=64_000, extra=NO_THINKING),
+    "nv-step5": FreeModel("nvidia", "stepfun-ai/step-5-preview", context=64_000, extra=NO_THINKING),
+    "nv-minimax": FreeModel("nvidia", "minimaxai/minimax-m3.1-flash", context=64_000, extra=NO_THINKING),
+    "nv-nemotron-lightning": FreeModel("nvidia", "nvidia/nemotron-3.5-lightning-30b-a3b", extra=NO_THINKING),
+    "nv-nemotron-nano": FreeModel("nvidia", "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", extra=NO_THINKING),
+    "nv-muse": FreeModel("nvidia", "meta/muse-glimmer-30b", extra=NO_THINKING),
+    "nv-gemma-31b": FreeModel("nvidia", "google/gemma-4-31b-it"),
+    "nv-gpt-oss-20b": FreeModel("nvidia", "openai/gpt-oss-20b", reasoning=True),
+    "nv-nemotron-bolt": FreeModel("nvidia", "nvidia/nemotron-3.5-bolt-e4b", extra=NO_THINKING),
 }
 
 
@@ -241,28 +262,30 @@ class Tier:
 
 TIERS = {
     # L1 — one fact ("Where did he study?"): small, fast, cheap models and a short prompt.
-    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-granite", "cf-glm", "cf-20b",
-                                      "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
+    "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "nv-gpt-oss-20b", "gemini-lite-3.1", "cf-qwen3-a3b",
+                                      "cf-granite", "nv-nemotron-bolt", "cf-glm", "cf-20b", "gemini-lite-3.5", "cf-scout",
+                                      "gemini-gemma-26b"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
-    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-qwen3-a3b", "cf-gemma",
-                                      "cf-llama70b", "gemini-lite-3.1", "cf-mistral", "gemini-flash-3", "gemini-flash-3.6",
-                                      "or-lightning"]),
+    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "nv-nemotron-super", "nv-deepseek-flash", "gemini-lite-3.5", "groq-qwen",
+                                      "nv-glm-flash", "nv-gemma-31b", "nv-muse", "cf-qwen3-a3b", "cf-gemma", "cf-llama70b",
+                                      "gemini-lite-3.1", "cf-mistral", "gemini-flash-3", "gemini-flash-3.6", "or-lightning"]),
     # L3 — reasoning (role fit, comparisons, "why"): the strongest models, the agent loop's evidence, longer answers.
-    "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
-                                          "sn-120b", "gemini-flash-3.6", "gemini-flash-3", "or-ultra", "gemini-lite-3.5",
-                                          "gemini-flash-3.8"]),
+    "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "nv-mistral-large", "nv-deepseek-flash", "nv-nemotron-super", "cf-120b",
+                                          "nv-nemotron-ultra", "nv-step5", "nv-glm-flash", "groq-qwen", "sn-deepseek",
+                                          "cf-nemotron", "sn-120b", "nv-minimax", "gemini-flash-3.6", "gemini-flash-3",
+                                          "or-ultra", "gemini-lite-3.5", "gemini-flash-3.8"]),
 }
 
 # The agent loop's planner (research.py): models that make real tool calls when streaming (checked Nov 2026: Qwen and
 # Gemini Lite search every point in one go; the gpt-oss models one point a round; Llama 3.3 70B writes the call as
 # text and Mistral's stream breaks). The L3 writer's own model comes last so the two don't share Groq's 8,000 tokens
 # a minute.
-RESEARCH = Tier(0, 4, 400, "low", 12, ["groq-qwen", "gemini-lite-3.1", "groq-120b", "cf-120b"])
+RESEARCH = Tier(0, 4, 400, "low", 12, ["groq-qwen", "nv-nemotron-lightning", "nv-glm-flash", "gemini-lite-3.1", "groq-120b", "cf-120b"])
 
 # If a level's whole pool is busy, try the neighbours: easy questions move up, hard ones move down.
 SPILL = {"L1": ["L1", "L2", "L3"], "L2": ["L2", "L3", "L1"], "L3": ["L3", "L2", "L1"]}
 
-SUMMARY_POOL = ["gemini-lite-3.1", "cf-glm", "gemini-lite-3.5", "cf-20b", "cf-gemma"]  # high-quota, cheap; never Groq
+SUMMARY_POOL = ["gemini-lite-3.1", "nv-nemotron-lightning", "cf-glm", "gemini-lite-3.5", "cf-20b", "cf-gemma"]  # high-quota, cheap; never Groq
 
 
 def candidates(level: str) -> list[FreeModel]:

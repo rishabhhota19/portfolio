@@ -138,6 +138,8 @@ def _counters(m: FreeModel, tokens: int, neurons: int, paced: bool = True) -> tu
         c += [(f"use:{n}:req:{day}:{who}", 1, share(m.rpd), DAY_TTL, "share")] if m.rpd else []
         c += [(f"use:{n}:tok:{day}:{who}", tokens, share(m.tpd), DAY_TTL, "share")] if m.tpd else []
     pool = PROVIDER_LIMITS.get(m.provider, {})
+    if "rpm" in pool:  # a per-account requests-a-minute cap that every model of the provider shares
+        c += [(f"use:{m.provider}:req:{minute}", 1, pool["rpm"], MINUTE_TTL, "minute")]
     if "rpd" in pool:
         c += [(f"use:{m.provider}:req:{day}", 1, pool["rpd"], DAY_TTL, "day"),
               (f"use:{m.provider}:req:h{hour}", 1, hourly(pool["rpd"]), HOUR_TTL, "hour")]
