@@ -238,10 +238,16 @@ TIERS = {
     # L2 — the usual question ("What did he build at X, and what was the impact?").
     "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "gemini-lite-3.5", "groq-qwen", "cf-qwen3-a3b", "cf-gemma",
                                       "cf-llama70b", "gemini-lite-3.1", "cf-mistral", "or-lightning"]),
-    # L3 — reasoning (role fit, comparisons, "why"): the strongest models, more context, longer answers.
-    "L3": Tier(6, 12, 600, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
+    # L3 — reasoning (role fit, comparisons, "why"): the strongest models, the agent loop's evidence, longer answers.
+    "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "cf-120b", "groq-qwen", "sn-deepseek", "cf-nemotron",
                                           "sn-120b", "or-ultra", "gemini-lite-3.5"]),
 }
+
+# The agent loop's planner (research.py): models that make real tool calls when streaming (checked Nov 2026: Qwen and
+# Gemini Lite search every point in one go; the gpt-oss models one point a round; Llama 3.3 70B writes the call as
+# text and Mistral's stream breaks). The L3 writer's own model comes last so the two don't share Groq's 8,000 tokens
+# a minute.
+RESEARCH = Tier(0, 4, 400, "low", 12, ["groq-qwen", "gemini-lite-3.1", "groq-120b", "cf-120b"])
 
 # If a level's whole pool is busy, try the neighbours: easy questions move up, hard ones move down.
 SPILL = {"L1": ["L1", "L2", "L3"], "L2": ["L2", "L3", "L1"], "L3": ["L3", "L2", "L1"]}

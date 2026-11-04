@@ -280,6 +280,30 @@ async def get(name: str) -> dict[str, int]:
     return {k: _get(key) for k, key in keys.items()}
 
 
+_thin: tuple[float, bool] = (0.0, False)  # (checked at, answer) — this instance, once a minute
+
+
+async def thin(models: list[FreeModel], share: float = 0.85) -> bool:
+    """True when the day's quota behind every one of these models is at least `share` used: economy mode for
+    everyone until the quotas reset. One Redis read per model, at most once a minute per instance."""
+    global _thin
+    if time.time() - _thin[0] < 60:
+        return _thin[1]
+    answer = bool(models)
+    for m in models:
+        if m.provider == "cloudflare":
+            used, limit = (int(x) for x in (await pools())["cloudflare neurons"].split("/"))
+            fraction = used / limit
+        else:
+            today = await get(m.name)
+            fraction = max(today["tok_day"] / m.tpd if m.tpd else 0.0, today["req_day"] / m.rpd if m.rpd else 0.0)
+        if fraction < share:
+            answer = False
+            break
+    _thin = (time.time(), answer)
+    return answer
+
+
 async def pools() -> dict[str, str]:
     """Today's use of the providers' shared free pools, e.g. {"cloudflare neurons": "1840/10000"}."""
     day = time.strftime("%Y-%m-%d", time.gmtime())

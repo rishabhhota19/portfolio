@@ -131,9 +131,15 @@ def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> li
     return out[:2]
 
 
+SUMMARY_CHARS = 60  # of each page's summary in the system prompt: enough to pick the right link, ~400 tokens fewer a call
+
+
 def site_map() -> str:
-    """The page list in the system prompt, so answers link real pages (fixed text → cached by Groq)."""
+    """The page list in the system prompt, so answers link real pages. It's sent with every call, so it's kept short."""
+    def brief(summary: str) -> str:
+        return summary if len(summary) <= SUMMARY_CHARS else summary[:SUMMARY_CHARS].rsplit(" ", 1)[0] + "…"
+
     lines = [f"{path} — {label}" for path, (label, _) in SECTIONS.items() if path != "/privacy"]
-    lines += [f"{p['path']} — {p['label']}{': ' + p['summary'] if p['summary'] else ''}"
+    lines += [f"{p['path']} — {p['label']}{': ' + brief(p['summary']) if p['summary'] else ''}"
               f"{' — [read the paper](' + p['paper'] + ')' if p['paper'] else ''}" for p in PAGES]  # copied as a link
     return "\n".join(lines)

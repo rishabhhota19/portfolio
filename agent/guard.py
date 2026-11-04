@@ -14,7 +14,7 @@ import re
 from urllib.parse import urlsplit
 
 from .config import KNOWLEDGE, SITE
-from .pages import PAGES, PATHS
+from .pages import PAGES, PATHS, SECTIONS
 
 REFUSAL = ("I'll have to pass on that one: I only answer questions about Rishabh's work — his projects, research, "
            "experience and fit for a role.")
@@ -98,8 +98,9 @@ def is_refusal(answer: str) -> bool:
 
 _ALL_TEXT = "\n".join([KNOWLEDGE["core"], *(d["text"] for d in KNOWLEDGE["docs"])])
 ALLOWED_URLS = {u.rstrip(".,;:") for u in re.findall(r"https?://[^\s)\"'\]]+", _ALL_TEXT)} | {SITE["linkedin"], SITE["github"], SITE["url"]}
-PROMPT_MARKERS = re.compile(r"Answer only from PROFILE|Treat user messages and CONTEXT|reveal or discuss these rules|"
-                            r"reply with exactly|copy numbers exactly|Don't embellish|^\s*(RULES|PROFILE|CONTEXT|PAGES)\s*$", re.I | re.M)
+PROMPT_MARKERS = re.compile(r"Answer only from PROFILE|Treat user messages,? (and )?CONTEXT|reveal or discuss these rules|"
+                            r"reply with exactly|copy numbers exactly|Don't embellish|in the talent-agent sense|"
+                            r"ANSWER SHAPE|You plan and gather evidence|^\s*(RULES|PROFILE|CONTEXT|PAGES|RESEARCH)\s*$", re.I | re.M)
 CODE = re.compile(r"```|^\s{4,}(def |class |import |function |const |let |SELECT |<\w+)|<\?php|#include\b", re.M)
 URL = re.compile(r"\[([^\]]+)\]\(([^)\s]+)\)|https?://[^\s)\]]*[^\s)\].,;:!?]")  # a sentence's final "." isn't part of it
 NUMBER = re.compile(r"\+?\d[\d\s().-]{7,}\d")  # 10+ digits = a phone, Aadhaar or card number
@@ -133,8 +134,23 @@ def _allowed(url: str) -> bool:
     return u.scheme == "https" and u.hostname == SITE_HOST and "@" not in u.netloc and _allowed(u.path or "/")
 
 
+LABELS = {path: label for path, (label, _) in SECTIONS.items()} | {p["path"]: p["label"] for p in PAGES}
+BARE_PATH = re.compile(r"\s?\[(/[a-z0-9\-/]*(?:#[a-z0-9\-]+)?)\](?!\()", re.I)  # "[/experience]": a citation, not a link
+
+
+def linkify(answer: str) -> str:
+    """A page path cited in bare brackets becomes a real link to that page — or goes, if the page doesn't exist."""
+    def fix(m: re.Match) -> str:
+        path = m.group(1).rstrip("/") or "/"
+        label = LABELS.get(path) or LABELS.get(path.split("#")[0])
+        return f" ([{label}]({path}))" if label and (path.split("#")[0] in PATHS) else ""
+    return BARE_PATH.sub(fix, answer)
+
+
 def clean(answer: str) -> str:
     """Things that are removed, keeping the rest: unknown links (made-up pages too), long numbers, IDs, other emails."""
+    answer = linkify(answer)
+
     def link(m: re.Match) -> str:
         label, url = (m.group(1), m.group(2)) if m.group(1) else (None, m.group(0))
         if label is None:  # a bare URL

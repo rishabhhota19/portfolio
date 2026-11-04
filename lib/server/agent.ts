@@ -110,12 +110,13 @@ function cleanSummary(raw: unknown, messages: ChatMessage[]): ChatSummary {
   return s.summary ? s : plainSummary(messages);
 }
 
-export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], lead?: Lead): Promise<ChatSummary> {
+/** conversationId tells the agent the chat is over, so it deletes that conversation's working memory. */
+export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], lead?: Lead, conversationId = ""): Promise<ChatSummary> {
   try {
     const res = await fetch(agentUrl(req, "summarize"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ messages, lead: lead ?? null, session_id: sessionId }),
+      body: JSON.stringify({ messages, lead: lead ?? null, session_id: sessionId, conversation_id: conversationId }),
       signal: AbortSignal.timeout(30_000),
     });
     if (res.ok) return cleanSummary(await res.json(), messages);

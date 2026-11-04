@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"));
     const s = useLlm
-      ? await summarizeChat(req, sessionId, data.messages)
+      ? await summarizeChat(req, sessionId, data.messages, undefined, data.conversationId)
       : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
     const [chat, usage, firstEnd] = await Promise.all([
       addChat(sessionId, data.conversationId, data.messages.length, s),

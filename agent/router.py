@@ -14,7 +14,7 @@ import asyncio
 import re
 import time
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable
 
 from . import llm, usage
 from .llm import FreeModel, Tier
@@ -35,6 +35,7 @@ class Answer:
     depth: int  # how many models were skipped or failed before this one (0 = first choice)
     trimmed: bool  # context had to be shortened to fit
     tried: list[str]
+    message: Any = None  # the whole reply, tool calls included (the agent loop reads them)
 
     @property
     def counted(self) -> int:
@@ -82,11 +83,13 @@ async def on_error(m: FreeModel, err: Exception) -> None:
             await usage.pause(f"paused:{m.name}", 30)
         if await usage.provider_failed(m.provider):
             print(f"[router] breaker: skipping {m.provider} for 60s")
-    print(f"[router] {m.name} failed ({status or type(err).__name__})")
+    print(f"[router] {m.name} failed ({status or type(err).__name__}): {' '.join(str(err).split())[:140]}")
 
 
-async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeModel], tuple[list, bool] | None]) -> Answer | None:
-    """Tries `models` in order; returns the first real answer, or None if every free model is out of budget."""
+async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeModel], tuple[list, bool] | None],
+              tools: list | None = None) -> Answer | None:
+    """Tries `models` in order; returns the first real answer, or None if every free model is out of budget.
+    With `tools`, the models may call them: a reply of tool calls and no text counts as an answer too."""
     pool = (tuple(m.name for m in models), usage.CALLER.get())  # per caller: one visitor's request never blocks others
     if _none_left.get(pool, 0) > time.time():
         return None  # everything was used up a moment ago: don't spend ~2 Redis commands per model finding that out again
@@ -127,14 +130,15 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             reply = None  # chunks added up: the text and the response headers
             tokens_in = tokens_out = cached = 0  # largest count seen: providers repeat or accumulate usage across chunks
             timeout = tier.timeout if left is None else max(MIN_CALL, min(tier.timeout, left - 2))
+            client = m.client(tier.max_tokens, tier.effort, timeout)
             try:
-                async for chunk in m.client(tier.max_tokens, tier.effort, timeout).astream(prompt):
+                async for chunk in (client.bind_tools(tools) if tools else client).astream(prompt):
                     reply = chunk if reply is None else reply + chunk
                     chunk_in, chunk_out, chunk_cached = llm.tokens_used(chunk)
                     tokens_in, tokens_out, cached = max(tokens_in, chunk_in), max(tokens_out, chunk_out), max(cached, chunk_cached)
             except Exception as err:
                 failed.add(m.name)
-                if reply is None or not reply.text.strip():  # failed before answering: give the budget back, move on
+                if reply is None or not (reply.text.strip() or reply.tool_call_chunks):  # failed before answering: refund, move on
                     await usage.refund(reservation)
                 else:  # broke off mid-answer: the tokens were spent, but a cut-off answer is never returned
                     counted = tokens_in - (cached if m.provider == "groq" else 0) + tokens_out
@@ -149,8 +153,8 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             await usage.settle(reservation, counted or booked, m.neurons_for(tokens_in or prompt_tokens, tokens_out))
             if m.provider == "groq":
                 await usage.sync_groq(m, (reply.response_metadata or {}).get("headers") or {})
-            if reply.text.strip():
-                return Answer(reply.text, m.name, tokens_in, tokens_out, cached, depth, trimmed, tried)
+            if reply.text.strip() or (tools and reply.tool_calls):
+                return Answer(reply.text, m.name, tokens_in, tokens_out, cached, depth, trimmed, tried, reply)
     if not tried and pool[1]:
         if len(_none_left) > 5000:
             _none_left.clear()

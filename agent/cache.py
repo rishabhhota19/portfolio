@@ -7,7 +7,7 @@
     all. Each canonical question has paraphrases; a new question whose embedding is clearly nearest one intent gets
     its answer — written by the agent and checked against the evals before it went in.
 
-Both are keyed to a hash of the site's content, so editing the content retires old answers automatically.
+Both are keyed to a hash of the site's content and the prompt, so editing either retires old answers automatically.
 """
 
 import hashlib
@@ -19,12 +19,14 @@ from functools import lru_cache
 
 import numpy as np
 
+from . import prompts
 from .config import DATA_DIR, KNOWLEDGE, env
 from .embeddings import MODEL
 from .usage import _client as redis_client
 
 TTL = 86_400
-VERSION = hashlib.sha1(json.dumps(KNOWLEDGE, sort_keys=True).encode()).hexdigest()[:10]
+# Content and prompt together: answers written before either changed are never served again.
+VERSION = hashlib.sha1((json.dumps(KNOWLEDGE, sort_keys=True) + prompts.VERSION).encode()).hexdigest()[:10]
 _memory: dict[str, tuple[str, float]] = {}
 
 # ── exact cache ─────────────────────────────────────────────────────────────
@@ -45,7 +47,9 @@ def cacheable(question: str) -> bool:
 
 
 async def get(question: str) -> dict | None:
-    """{"text": answer, "links": [...]} or None."""
+    """{"text": answer, "links": [...]} or None. ANSWER_CACHE=off skips it (evals that compare two versions)."""
+    if env("ANSWER_CACHE") == "off":
+        return None
     key, redis, raw = _key(question), redis_client(), None
     if redis:
         try:
@@ -58,7 +62,7 @@ async def get(question: str) -> dict | None:
 
 
 async def put(question: str, text: str, links: list[dict]) -> None:
-    if not cacheable(question):
+    if not cacheable(question) or env("ANSWER_CACHE") == "off":
         return
     key, redis, raw = _key(question), redis_client(), json.dumps({"text": text, "links": links})
     if redis:

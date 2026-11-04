@@ -23,7 +23,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from pydantic import BaseModel, Field
 
-from agent import usage
+from agent import memory as session_memory, usage
 from agent.config import env
 from agent.graph import agent
 from agent.guard import StreamGuard
@@ -59,6 +59,7 @@ class SummaryRequest(BaseModel):
     messages: list[Message] = Field(max_length=40)
     lead: dict | None = None
     session_id: str = Field("", max_length=64)
+    conversation_id: str = Field("", max_length=64)  # the chat is over: its working memory is deleted
 
 
 def check_secret(secret: str | None) -> None:
@@ -156,7 +157,9 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         call = None  # the LLM call being streamed
         live = True  # False once a call broke off mid-answer: the next model's answer is then sent whole, at the end
         final = None  # the answer as the graph finished it (after the output guard)
-        async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"]):
+        # The conversation id is the agent's thread: its memory (agent/memory.py) follows it across turns and servers.
+        async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"],
+                                              config={"configurable": {"thread_id": req.conversation_id}}):
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
@@ -173,7 +176,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                 for update in data.values():
                     update = update or {}
                     result["trace"] += update.get("trace", [])
-                    result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions") if k in update})
+                    result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions", "economy") if k in update})
                     if update.get("messages"):
                         final = update["messages"][-1].content
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
@@ -221,6 +224,8 @@ async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Heade
     check_secret(x_agent_secret)
     usage.CALLER.set((x_caller or "")[:64])
     usage.DEADLINE.set(time.monotonic() + 25)  # the gateway waits 30 s for a summary
+    if req.conversation_id:
+        await session_memory.forget(req.conversation_id)
     return await summarize([m.model_dump() for m in req.messages], req.lead, req.session_id)
 
 

@@ -32,10 +32,12 @@ export default function PrivacyPage() {
         <p>
           Your messages go to the free AI services that power the agent: Cloudflare Workers AI turns each question into
           numbers to find the relevant parts of this site, and one model on Groq, Google Gemini, Cloudflare Workers AI or
-          OpenRouter writes the answer. They are not stored by this site. Answers to common first questions are cached
-          for a day, keyed by a one-way hash of the question, never the question itself. When the chat ends, only a
-          short AI-written summary of what you asked is added to the visit&apos;s row, along with how many tokens the
-          chat used.
+          OpenRouter writes the answer. They are not stored by this site. While a chat is open, the agent keeps a short
+          working memory of it (the topics you asked about and which pages answered them, not your messages) for up to
+          two hours, so it can follow the conversation; it is deleted when the chat ends. Answers to common first
+          questions are cached for a day, keyed by a one-way hash of the question, never the question itself. When the
+          chat ends, only a short AI-written summary of what you asked is added to the visit&apos;s row, along with
+          how many tokens the chat used.
         </p>
 
         <h2>If you share your details</h2>
