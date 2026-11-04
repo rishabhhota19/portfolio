@@ -138,12 +138,27 @@ const blog = readDir("blog")
   }))
   .sort((a, b) => b.sortKey - a.sortKey);
 
+// What he builds, teaches and advises on, for clients (the 3D landing page's services chamber reads the same files).
+// The file names carry their order ("01-agentic-systems.md"); the slug, and the page anchor, drop it.
+const services = readDir("services").map((s) => ({
+  slug: s.slug.replace(/^\d+-/, ""),
+  title: str(s.data.title),
+  kicker: str(s.data.kicker),
+  summary: str(s.data.summary),
+  tags: list(s.data.tags),
+  featured: Boolean(s.data.featured),
+  keywords: list(s.data.keywords),
+  html: s.html,
+  text: s.text,
+}));
+
 const content = {
   site,
   profile: { skillsHtml: skills.html, educationHtml: education.html },
   experience: experience.map((e) => omit(e, "text", "keywords")),
   projects: projects.map((p) => omit(p, "text", "keywords")),
   publications: publications.map((p) => omit(p, "text", "keywords")),
+  services: services.map((s) => omit(s, "text", "keywords")),
   blog: blog.map((b) => omit(b, "text", "keywords", "sortKey")),
 };
 
@@ -183,6 +198,15 @@ const docs = [
     keywords: b.keywords,
     text: `Blog post: ${b.title} (${b.date})\n${b.summary}\n${b.text}`,
   })),
+  ...services.map((s) => ({
+    id: `service:${s.slug}`,
+    kind: "service",
+    title: s.title,
+    url: "/services",
+    summary: s.summary,
+    keywords: [...s.keywords, ...s.tags],
+    text: `Service he offers (${s.kicker}): ${s.title}\n${s.summary}\n${s.text}`,
+  })),
   {
     id: "profile:skills",
     kind: "profile",
@@ -210,6 +234,6 @@ fs.writeFileSync(path.join(agentDataDir, "knowledge.json"), JSON.stringify(knowl
 
 const coreTokens = Math.round(core.text.length / 4);
 console.log(
-  `content: ${projects.length} projects, ${publications.length} publications, ${experience.length} roles, ${blog.length} posts; ` +
+  `content: ${projects.length} projects, ${publications.length} publications, ${experience.length} roles, ${services.length} services, ${blog.length} posts; ` +
     `knowledge: ${docs.length} docs, core profile ≈ ${coreTokens} tokens`,
 );

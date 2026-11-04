@@ -9,6 +9,12 @@ working memory, hybrid RAG with **FAISS + BM25**, a **five-gate refusal pipeline
 embedding model served two ways**, a **4-level routing web of 23 free LLMs** (+2 optional SambaNova) across Groq,
 NVIDIA's API catalog, Gemini, Cloudflare Workers AI and OpenRouter, and **RAGAS** evals. ₹0/month.
 
+**Into the Agent**, the 3D version of the portfolio (`/3d`, the floating button in every page's top-left corner), is
+its own repo and Vercel project, [rishabhhota19/into-the-agent](https://github.com/rishabhhota19/into-the-agent):
+`next.config.ts` proxies `/3d`, `/assets` and `/models` to it, and it builds its chambers from this repo's `content/`
+(`.github/workflows/into-the-agent.yml` asks Vercel to rebuild it when the content changes). Its "Surf the portfolio
+quickly" link and its "Ask Dumbledore" (`/?chat=1`) come back here.
+
 ```
 Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot check, input validation,
              │                                               rate limits, daily budget

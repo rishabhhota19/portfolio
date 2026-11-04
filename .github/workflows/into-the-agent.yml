@@ -1,0 +1,28 @@
+# The 3D landing page (Into the Agent, github.com/rishabhhota19/into-the-agent) builds its chambers from this repo's
+# content/ folder at deploy time. When the content changes here, this asks Vercel to rebuild it, through a deploy hook
+# stored as the repo secret INTO_THE_AGENT_DEPLOY_HOOK (Vercel → into-the-agent → Settings → Git → Deploy Hooks).
+# Until the secret exists the job only leaves a note, and the 3D page keeps the content it was last built with.
+name: Into the Agent content
+
+on:
+  push:
+    branches: [main]
+    paths: ["content/**"]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: into-the-agent
+  cancel-in-progress: true
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    env:
+      HOOK: ${{ secrets.INTO_THE_AGENT_DEPLOY_HOOK }}
+    steps:
+      - if: env.HOOK == ''
+        run: echo "::notice::INTO_THE_AGENT_DEPLOY_HOOK isn't set, so the 3D landing page wasn't rebuilt with this content."
+      - if: env.HOOK != ''
+        run: curl -fsS -X POST "$HOOK" -o /dev/null && echo "Into the Agent is rebuilding with the new content."

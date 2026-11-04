@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
 import { warmAgent } from "@/lib/visit";
 import { useEffect, useState } from "react";
-import { OPEN_AGENT_EVENT, type OpenAgentDetail } from "./events";
+import { OPEN_AGENT_EVENT, openAgent, type OpenAgentDetail } from "./events";
 
 // The panel (and its logic) only downloads the first time someone opens the agent.
 const ChatPanel = dynamic(() => import("./ChatPanel").then((m) => m.ChatPanel), { ssr: false });
@@ -20,13 +20,21 @@ export function ChatLauncher() {
 
   useEffect(() => {
     const onOpen = (e: Event) => {
-      const { question } = (e as CustomEvent<OpenAgentDetail>).detail ?? {};
+      const { question, source } = (e as CustomEvent<OpenAgentDetail>).detail ?? {};
       setLoaded(true);
       setOpen(true);
-      track("chat_open", { source: question ? "suggested question" : "ask button" });
+      track("chat_open", { source: source ?? (question ? "suggested question" : "ask button") });
       if (question) setPending({ text: question, id: Date.now() });
     };
     window.addEventListener(OPEN_AGENT_EVENT, onOpen);
+    // Arriving from the 3D page's "Ask Dumbledore" (/?chat=1): open the agent at once. The flag is taken off the
+    // address so a reload, or the link shared on, doesn't open it again.
+    if (new URLSearchParams(window.location.search).get("chat") === "1") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("chat");
+      window.history.replaceState(null, "", url);
+      openAgent(undefined, "into the agent");
+    }
     return () => window.removeEventListener(OPEN_AGENT_EVENT, onOpen);
   }, []);
 

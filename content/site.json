@@ -11,9 +11,11 @@
   "private": ["/admin"],
   "sections": [
     { "path": "/", "label": "Home", "words": ["home", "homepage", "main page", "landing page"] },
+    { "path": "/3d", "label": "Into the Agent", "words": ["3d", "3d version", "3d site", "3d page", "3d demo", "the descent", "3d experience", "interactive version"] },
     { "path": "/projects", "label": "Projects", "nav": true, "kind": "project", "words": ["projects", "project", "things he built", "things he made", "case study", "case studies"] },
     { "path": "/publications", "label": "Research", "nav": true, "kind": "publication", "words": ["publications", "publication", "papers", "paper", "research", "journal", "journals"] },
     { "path": "/experience", "label": "Experience", "nav": true, "kind": "experience", "words": ["experience", "work history", "career", "job", "jobs", "role", "roles", "employment", "skills", "skill", "tech stack", "education", "degree", "timeline"] },
+    { "path": "/services", "label": "Services", "nav": true, "kind": "service", "words": ["services", "service", "offerings", "what he offers", "consulting", "consultancy", "consultant", "freelance", "freelancing", "contract work", "hire him for a build", "workshops", "training sessions"] },
     { "path": "/blog", "label": "Writing", "nav": true, "kind": "blog", "words": ["blog", "post", "posts", "article", "articles", "writing", "write-up", "write-ups"] },
     { "path": "/resume", "label": "Résumé", "nav": true, "words": ["resume", "résumé", "cv", "curriculum vitae"] },
     { "path": "/privacy", "label": "Privacy", "words": ["privacy", "data policy", "cookies"] }
