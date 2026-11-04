@@ -11,7 +11,7 @@
   { "id": "jd-mlops", "kind": "job description, partial fit", "next_step": true,
     "q": "MLOps Engineer: own our model platform. Kubernetes, Terraform, CI/CD for models, feature stores, model monitoring and drift alerts on AWS. 4+ years in platform or DevOps roles. Is he a fit for this one?",
     "include": ["AWS|SageMaker|Lambda"],
-    "exclude": ["(?<!not a )(?<!n't a )\\b(strong|great|perfect|excellent|ideal) (fit|match)\\b"] },
+    "exclude": ["(?<!not a )(?<!n't a )\\b(strong|great|perfect|excellent|ideal) (fit|match)\\b(?! for:| for (an? |the )?(AI|ML|GenAI|Agentic|LLM|Applied|Research))"] },
   { "id": "jd-frontend", "kind": "job description, not his lane", "next_step": true, "allow": ["deficit-talk"],
     "q": "Senior Frontend Engineer: React, TypeScript, design systems and accessibility, 6+ years building large consumer web apps. Is Rishabh a fit?",
     "include": ["AI|ML|GenAI|agentic"],
