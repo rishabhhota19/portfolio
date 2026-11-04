@@ -24,6 +24,20 @@
         ]
       },
       {
+        "path": "/3d",
+        "label": "Into the Agent",
+        "words": [
+          "3d",
+          "3d version",
+          "3d site",
+          "3d page",
+          "3d demo",
+          "the descent",
+          "3d experience",
+          "interactive version"
+        ]
+      },
+      {
         "path": "/projects",
         "label": "Projects",
         "nav": true,
@@ -72,6 +86,27 @@
           "education",
           "degree",
           "timeline"
+        ]
+      },
+      {
+        "path": "/services",
+        "label": "Services",
+        "nav": true,
+        "kind": "service",
+        "words": [
+          "services",
+          "service",
+          "offerings",
+          "what he offers",
+          "consulting",
+          "consultancy",
+          "consultant",
+          "freelance",
+          "freelancing",
+          "contract work",
+          "hire him for a build",
+          "workshops",
+          "training sessions"
         ]
       },
       {
@@ -632,6 +667,116 @@
         "dumbledore"
       ],
       "text": "Blog post: How the AI agent on this site works (and why it costs ₹0) (31 Oct 2026)\nDumbledore, a Python LangGraph agent — hybrid RAG, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.\nRecruiters rarely have time to read a whole portfolio, so I put an agent on this site that answers questions about my work. It's called Dumbledore; the chat window is only its interface. Here's how it's built.\n\nThe graph\nThe agent is a small LangGraph graph written in Python:\n\n1. route: simple messages (hi, \"how do I contact him?\", \"take me to his projects\") get an instant reply without calling an LLM. That saves the free quota for real questions.\n2. retrieve: hybrid search over this site's own content.\n   - FAISS finds chunks with similar meaning, using one open-source embedding model, BAAI bge-small-en-v1.5: it runs inside the server itself (an 8-bit ONNX build, about 3 ms a question), with the same model on Cloudflare Workers AI as the backup, so every route gives the same vectors.\n   - BM25 finds exact keywords.\n   - Reciprocal Rank Fusion merges the two rankings.\n3. scope: checks the question is about my work before any LLM sees it (more below).\n4. rerank: keeps the best chunks. I A/B-tested a cross-encoder (bge-reranker-base) on the eval set: it tied RRF on hit@4 but ranked worse (MRR@4 0.885 vs 0.962), so the site keeps the RRF order.\n5. respond: an LLM answers from those chunks only.\n6. check: every sentence is checked before it reaches you.\n\nSaying no: the refusal pipeline\nAn agent on a portfolio shouldn't write code, essays or opinions for anyone. Five gates keep it on topic:\n- Rules: harmful requests, jailbreaks, personal questions and off-topic tasks are refused instantly.\n- Meaning: the question's embedding (already computed for retrieval, so it's free) is compared with on-topic and off-topic example questions. Clearly off-topic means refused, still with no LLM call. A follow-up like \"give me the link of the paper\" is judged together with the previous question.\n- Prompt: the model answers only from my profile, or replies with one exact refusal sentence. If a small model refuses a real question about me, a different model gets a second opinion.\n- Output: the server holds each sentence until it's checked. Code or leaked instructions replace the whole answer; unknown links, phone numbers and other people's emails are removed.\n- Cache: only clean, on-topic answers are ever cached.\n\nOn 76 attack and off-topic prompts there were 0 leaks. On prompts written after the rules (a held-out set), it refused 32 of 33, 24 of them before any LLM, with 0 false refusals on 47 real recruiter questions.\n\nAn agent that acts\nAsk \"open the LCSNet paper\" and Dumbledore takes you there. After an answer it offers \"take me there\" buttons for the pages it was about. Where to go is decided by rules over an allow-list of this site's pages, so it can't be talked into sending anyone elsewhere.\n\nFree models, with fallbacks\nFree LLM tiers have rate limits, so one provider is never enough. Each question gets a difficulty level (fact, standard, reasoning), and each level has its own pool of free models across Groq, Gemini, Cloudflare Workers AI and OpenRouter. Before calling a model, the backend reserves its budget atomically in Redis, so many visitors at once never pile onto one model, and it trims older turns if a long conversation doesn't fit. The switch is invisible. Common questions are answered instantly from a bank of checked answers. Only when every free model is used up does the chat pause, until the limits reset.\n\nSecurity in front, AI behind\n- The browser never talks to the Python agent directly.\n- A Next.js gateway checks for bots, validates input, rate-limits each visitor and enforces a daily budget.\n- Only then does it call the agent, using a shared secret.\n\nMemory that disappears\nChat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.\n\nMeasuring it\n- Eval suites check that retrieval finds the right page, that answers contain the right facts, that guardrails and refusals hold, and that navigation lands on the right page.\n- RAGAS scores faithfulness, answer relevancy and context precision, using a free model as the judge."
+    },
+    {
+      "id": "service:agentic-systems",
+      "kind": "service",
+      "title": "Agentic systems that replace a process",
+      "url": "/services",
+      "summary": "Multi-agent workflows with tool access, guardrails and evals, built to take over a whole process rather than a single step.",
+      "keywords": [
+        "LangGraph",
+        "Google ADK",
+        "CrewAI",
+        "n8n",
+        "MCP",
+        "A2A",
+        "evals"
+      ],
+      "text": "Service he offers (build · agents and automation): Agentic systems that replace a process\nMulti-agent workflows with tool access, guardrails and evals, built to take over a whole process rather than a single step.\nMulti-agent systems, agentic RAG workflows, Model Context Protocol and agent-to-agent collaboration, brought into the tools a team already uses rather than a demo beside them, with review and approval steps kept in the loop. At Simplilearn the Collaterals Agent cut course-launch collateral from 7–10 days across two teams to one day, and won the Best Team Award."
+    },
+    {
+      "id": "service:rag-knowledge",
+      "kind": "service",
+      "title": "Retrieval systems that are measured, not assumed",
+      "url": "/services",
+      "summary": "Production RAG and Graph RAG over your documents: hybrid search, re-ranking, and an eval suite that runs in CI so quality is a number.",
+      "keywords": [
+        "RAG",
+        "Graph RAG",
+        "FAISS",
+        "BM25",
+        "RAGAS",
+        "FastAPI"
+      ],
+      "text": "Service he offers (build · rag and knowledge): Retrieval systems that are measured, not assumed\nProduction RAG and Graph RAG over your documents: hybrid search, re-ranking, and an eval suite that runs in CI so quality is a number.\nHybrid retrieval (FAISS and BM25 fused by reciprocal rank, then cross-encoder re-ranking), a free-model fallback chain and a security gateway. Built sales-enablement platforms on agentic RAG that generate learning content, scripts and playbooks adapting in real time. The agent on his own site runs this way at zero hosting cost: 35 retrieval, fact and guardrail checks passing, RAGAS faithfulness 0.97."
+    },
+    {
+      "id": "service:fine-tuning-serving",
+      "kind": "service",
+      "title": "Small models tuned for one job, served on your hardware",
+      "url": "/services",
+      "summary": "LoRA and QLoRA fine-tunes of Gemma, Llama and Phi with Unsloth and TRL, then quantised and served with vLLM, Ollama or llama.cpp, down to on-device.",
+      "keywords": [
+        "Unsloth",
+        "LoRA · QLoRA",
+        "TRL",
+        "vLLM",
+        "llama.cpp",
+        "speech · TTS"
+      ],
+      "text": "Service he offers (build · fine-tuning and serving): Small models tuned for one job, served on your hardware\nLoRA and QLoRA fine-tunes of Gemma, Llama and Phi with Unsloth and TRL, then quantised and served with vLLM, Ollama or llama.cpp, down to on-device.\nSupervised fine-tuning on your data in 4-bit and 8-bit, KV-cache and batching work for throughput, OpenAI-compatible serving. Ran Gemma 3n offline on Android inside a custom chatbot app, and long-form speech generation with Qwen 3 TTS: thirty minutes of consistent narration without drift."
+    },
+    {
+      "id": "service:medical-imaging",
+      "kind": "service",
+      "title": "Clinical imaging pipelines, from DICOM to report",
+      "url": "/services",
+      "summary": "X-ray and CT classification, segmentation and reporting on AWS, with doctor-validated feedback loops for retraining.",
+      "keywords": [
+        "computer vision",
+        "DICOM",
+        "SageMaker",
+        "segmentation",
+        "AWS"
+      ],
+      "text": "Service he offers (build · medical imaging and vision): Clinical imaging pipelines, from DICOM to report\nX-ray and CT classification, segmentation and reporting on AWS, with doctor-validated feedback loops for retraining.\nLed clinicians and engineers at OsteosConnect to a 96%-accurate osteoarthritis pipeline (X-ray to S3, Lambda, SageMaker and the EMR) with over 90% concordance with radiologists in hospital trials, ahead of the competitor RBKnee. LCSNet, his lightweight caries segmentation network, is published in Elsevier's Intelligence-Based Medicine."
+    },
+    {
+      "id": "service:research-to-prototype",
+      "kind": "service",
+      "title": "New research, turned into a working demo",
+      "url": "/services",
+      "summary": "A paper or a release on Monday, a code-backed prototype by Friday: MCP, agentic patterns, new model families, efficient attention.",
+      "keywords": [
+        "applied research",
+        "prototyping",
+        "MLOps",
+        "LLMOps",
+        "quantum attention",
+        "publications"
+      ],
+      "text": "Service he offers (build · applied research): New research, turned into a working demo\nA paper or a release on Monday, a code-backed prototype by Friday: MCP, agentic patterns, new model families, efficient attention.\nReading papers, forming bold hypotheses, testing in code, then hardening and scaling what works with robust MLOps and LLMOps. At Simplilearn this is the day job: dissect emerging AI into hands-on prototypes, document them, and feed the roadmap. Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; the paper is with Quantum Journal."
+    },
+    {
+      "id": "service:training",
+      "kind": "service",
+      "title": "Teams that can build agents, not just discuss them",
+      "url": "/services",
+      "summary": "Code-driven modules and learning hubs for engineering and product teams: agents, RAG, evaluation and MCP, taught from working repositories.",
+      "keywords": [
+        "workshops",
+        "curriculum",
+        "agents",
+        "RAG",
+        "evals"
+      ],
+      "text": "Service he offers (teach · training and workshops): Teams that can build agents, not just discuss them\nCode-driven modules and learning hubs for engineering and product teams: agents, RAG, evaluation and MCP, taught from working repositories.\nBite-sized modules with runnable code, a curated hub teams come back to, and evaluation habits that outlast the session. This is how the research and learning modules at Simplilearn are built."
+    },
+    {
+      "id": "service:consulting",
+      "kind": "service",
+      "title": "AI strategy that ends in a deployed system",
+      "url": "/services",
+      "summary": "Consulting for teams that want to design the trend rather than follow it: which model, which architecture, what to build first, and how to run it in production.",
+      "keywords": [
+        "AI strategy",
+        "copilots",
+        "architecture",
+        "model selection",
+        "production"
+      ],
+      "text": "Service he offers (consult · ai strategy): AI strategy that ends in a deployed system\nConsulting for teams that want to design the trend rather than follow it: which model, which architecture, what to build first, and how to run it in production.\nAn AI researcher, engineer and consultant strategist who helps businesses not just follow trends but design and deploy them in production. GenAI tools and copilots designed and shipped in ed-tech and finance, bridging prototypes to production; breakthroughs turned into enterprise-ready systems that deliver measurable intelligence in the flow of work."
     },
     {
       "id": "profile:skills",

@@ -824,6 +824,102 @@
   ]
  },
  {
+  "id": "service:agentic-systems#0",
+  "title": "Agentic systems that replace a process",
+  "url": "/services",
+  "text": "Agentic systems that replace a process\nService he offers (build · agents and automation): Agentic systems that replace a process\nMulti-agent workflows with tool access, guardrails and evals, built to take over a whole process rather than a single step.\nMulti-agent systems, agentic RAG workflows, Model Context Protocol and agent-to-agent collaboration, brought into the tools a team already uses rather than a demo beside them, with review and approval steps kept in the loop. At Simplilearn the Collaterals Agent cut course-launch collateral from 7–10 days across two teams to one day, and won the Best Team Award.",
+  "keywords": [
+   "LangGraph",
+   "Google ADK",
+   "CrewAI",
+   "n8n",
+   "MCP",
+   "A2A",
+   "evals"
+  ]
+ },
+ {
+  "id": "service:rag-knowledge#0",
+  "title": "Retrieval systems that are measured, not assumed",
+  "url": "/services",
+  "text": "Retrieval systems that are measured, not assumed\nService he offers (build · rag and knowledge): Retrieval systems that are measured, not assumed\nProduction RAG and Graph RAG over your documents: hybrid search, re-ranking, and an eval suite that runs in CI so quality is a number.\nHybrid retrieval (FAISS and BM25 fused by reciprocal rank, then cross-encoder re-ranking), a free-model fallback chain and a security gateway. Built sales-enablement platforms on agentic RAG that generate learning content, scripts and playbooks adapting in real time. The agent on his own site runs this way at zero hosting cost: 35 retrieval, fact and guardrail checks passing, RAGAS faithfulness 0.97.",
+  "keywords": [
+   "RAG",
+   "Graph RAG",
+   "FAISS",
+   "BM25",
+   "RAGAS",
+   "FastAPI"
+  ]
+ },
+ {
+  "id": "service:fine-tuning-serving#0",
+  "title": "Small models tuned for one job, served on your hardware",
+  "url": "/services",
+  "text": "Small models tuned for one job, served on your hardware\nService he offers (build · fine-tuning and serving): Small models tuned for one job, served on your hardware\nLoRA and QLoRA fine-tunes of Gemma, Llama and Phi with Unsloth and TRL, then quantised and served with vLLM, Ollama or llama.cpp, down to on-device.\nSupervised fine-tuning on your data in 4-bit and 8-bit, KV-cache and batching work for throughput, OpenAI-compatible serving. Ran Gemma 3n offline on Android inside a custom chatbot app, and long-form speech generation with Qwen 3 TTS: thirty minutes of consistent narration without drift.",
+  "keywords": [
+   "Unsloth",
+   "LoRA · QLoRA",
+   "TRL",
+   "vLLM",
+   "llama.cpp",
+   "speech · TTS"
+  ]
+ },
+ {
+  "id": "service:medical-imaging#0",
+  "title": "Clinical imaging pipelines, from DICOM to report",
+  "url": "/services",
+  "text": "Clinical imaging pipelines, from DICOM to report\nService he offers (build · medical imaging and vision): Clinical imaging pipelines, from DICOM to report\nX-ray and CT classification, segmentation and reporting on AWS, with doctor-validated feedback loops for retraining.\nLed clinicians and engineers at OsteosConnect to a 96%-accurate osteoarthritis pipeline (X-ray to S3, Lambda, SageMaker and the EMR) with over 90% concordance with radiologists in hospital trials, ahead of the competitor RBKnee. LCSNet, his lightweight caries segmentation network, is published in Elsevier's Intelligence-Based Medicine.",
+  "keywords": [
+   "computer vision",
+   "DICOM",
+   "SageMaker",
+   "segmentation",
+   "AWS"
+  ]
+ },
+ {
+  "id": "service:research-to-prototype#0",
+  "title": "New research, turned into a working demo",
+  "url": "/services",
+  "text": "New research, turned into a working demo\nService he offers (build · applied research): New research, turned into a working demo\nA paper or a release on Monday, a code-backed prototype by Friday: MCP, agentic patterns, new model families, efficient attention.\nReading papers, forming bold hypotheses, testing in code, then hardening and scaling what works with robust MLOps and LLMOps. At Simplilearn this is the day job: dissect emerging AI into hands-on prototypes, document them, and feed the roadmap. Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; the paper is with Quantum Journal.",
+  "keywords": [
+   "applied research",
+   "prototyping",
+   "MLOps",
+   "LLMOps",
+   "quantum attention",
+   "publications"
+  ]
+ },
+ {
+  "id": "service:training#0",
+  "title": "Teams that can build agents, not just discuss them",
+  "url": "/services",
+  "text": "Teams that can build agents, not just discuss them\nService he offers (teach · training and workshops): Teams that can build agents, not just discuss them\nCode-driven modules and learning hubs for engineering and product teams: agents, RAG, evaluation and MCP, taught from working repositories.\nBite-sized modules with runnable code, a curated hub teams come back to, and evaluation habits that outlast the session. This is how the research and learning modules at Simplilearn are built.",
+  "keywords": [
+   "workshops",
+   "curriculum",
+   "agents",
+   "RAG",
+   "evals"
+  ]
+ },
+ {
+  "id": "service:consulting#0",
+  "title": "AI strategy that ends in a deployed system",
+  "url": "/services",
+  "text": "AI strategy that ends in a deployed system\nService he offers (consult · ai strategy): AI strategy that ends in a deployed system\nConsulting for teams that want to design the trend rather than follow it: which model, which architecture, what to build first, and how to run it in production.\nAn AI researcher, engineer and consultant strategist who helps businesses not just follow trends but design and deploy them in production. GenAI tools and copilots designed and shipped in ed-tech and finance, bridging prototypes to production; breakthroughs turned into enterprise-ready systems that deliver measurable intelligence in the flow of work.",
+  "keywords": [
+   "AI strategy",
+   "copilots",
+   "architecture",
+   "model selection",
+   "production"
+  ]
+ },
+ {
   "id": "profile:skills#0",
   "title": "Skills and tools",
   "url": "/experience",
