@@ -10,7 +10,8 @@
     "resume": "/resume.pdf",
     "url": "https://rishabh-hota.vercel.app",
     "private": [
-      "/admin"
+      "/admin",
+      "/agent-embed"
     ],
     "sections": [
       {
