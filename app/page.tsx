@@ -89,7 +89,7 @@ export default function Home() {
             <li key={p.slug}>
               <Link
                 href={`/projects/${p.slug}`}
-                className="group grid gap-3 py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-baseline"
+                className="group grid gap-3 py-7 sm:grid-cols-[4rem_1fr] sm:items-baseline lg:grid-cols-[4rem_1fr_auto]"
               >
                 <span className="label">{String(i + 1).padStart(2, "0")}</span>
                 <div>
@@ -103,7 +103,7 @@ export default function Home() {
                     ))}
                   </div>
                 </div>
-                <span className="label hidden whitespace-nowrap sm:block">
+                <span className="label hidden whitespace-nowrap lg:block">
                   {projectMeta(p)}
                   <span className="ml-3 inline-block transition-transform group-hover:translate-x-1" aria-hidden>
                     →
