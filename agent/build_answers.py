@@ -13,6 +13,7 @@ import asyncio
 import json
 import os
 import re
+import sys
 from pathlib import Path
 
 os.environ["ANSWER_BANK"] = "off"  # answers come from the live agent, not from an older bank
