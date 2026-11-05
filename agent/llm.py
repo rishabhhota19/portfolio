@@ -263,11 +263,11 @@ TIERS = {
     "L1": Tier(2, 4, 200, "low", 10, ["groq-20b", "nv-nemotron-lightning", "gemini-lite-3.1", "cf-qwen3-a3b", "cf-glm",
                                       "cf-20b", "gemini-lite-3.5", "cf-scout", "gemini-gemma-26b"]),
     # L2 — the usual question ("What did he build at X, and what was the impact?").
-    "L2": Tier(4, 8, 350, "low", 15, ["groq-120b", "nv-nemotron-super", "nv-nemotron-lightning", "gemini-lite-3.5", "groq-qwen",
+    "L2": Tier(4, 8, 300, "low", 15, ["groq-120b", "nv-nemotron-super", "nv-nemotron-lightning", "gemini-lite-3.5", "groq-qwen",
                                       "cf-qwen3-a3b", "cf-gemma", "cf-llama70b", "gemini-lite-3.1", "cf-mistral",
                                       "gemini-flash-3", "gemini-flash-3.6", "or-lightning"]),
     # L3 — reasoning (role fit, comparisons, "why"): the strongest models, the agent loop's evidence, longer answers.
-    "L3": Tier(10, 12, 800, "medium", 25, ["groq-120b", "nv-nemotron-super", "nv-nemotron-ultra", "cf-120b", "groq-qwen",
+    "L3": Tier(10, 12, 600, "medium", 25, ["groq-120b", "nv-nemotron-super", "nv-nemotron-ultra", "cf-120b", "groq-qwen",
                                           "sn-deepseek", "cf-nemotron", "sn-120b", "gemini-flash-3.6", "gemini-flash-3",
                                           "or-ultra", "gemini-lite-3.5", "gemini-flash-3.8"]),
 }

@@ -66,6 +66,9 @@ jobs:
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
 
+      - name: Selling by showing (takes the visitor to the right proof unasked, stays put when it should, replies stay short)
+        run: python -m evals.showing_eval
+
       - name: Recruiter cases (he is sold, honestly — proof, links, a next step, no invented gaps)
         run: python -m evals.advocacy_eval
 

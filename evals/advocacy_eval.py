@@ -34,6 +34,7 @@ from agent.config import KNOWLEDGE  # noqa: E402
 from evals import baseline  # noqa: E402
 
 HERE = Path(__file__).parent
+WORD_LIMIT = 125  # the prompt asks for under 110: this catches a model ignoring it
 DELAY_SECONDS = 20  # hard questions are ~5k tokens and Groq allows 8k a minute per model: don't spill to paid-for quotas
 SITE_TEXT = "\n".join([KNOWLEDGE["core"], *(f"{d['title']}\n{d['text']}" for d in KNOWLEDGE["docs"])])
 SMART_QUOTES = str.maketrans("‘’“”", "''\"\"")
@@ -72,6 +73,8 @@ def check(case: dict, answer: str, links: list[dict] = ()) -> list[str]:
             why.append(f"contains \"{text[max(0, m.start() - 40):m.end() + 40]}\"".replace("\n", " "))
     if case.get("next_step") and not re.search(NEXT_STEP, text, re.I):
         why.append("no next step")
+    if (count := len(re.sub(r"\]\([^)]*\)", "]", text).split())) > WORD_LIMIT:
+        why.append(f"{count} words: nobody reads that")
     return why
 
 
@@ -89,6 +92,7 @@ async def main() -> int:
         answer = last.content if last.type == "ai" else ""
         no_model = state.get("model") == "none"
         links = [l for a in state.get("actions", []) if a.get("type") == "links" for l in a.get("links", [])]
+        links += [a for a in state.get("actions", []) if a.get("type") == "navigate"]  # the page it took them to
         why = [] if no_model else check(case, answer, links)
         steps = [t for t in state.get("trace", []) if t["step"] in ("research", "respond")]
         rows.append({"id": case["id"], "kind": case["kind"], "q": case["q"], "answer": answer, "ok": not why and not no_model,

@@ -53,6 +53,8 @@ class State(TypedDict, total=False):
     model: str  # which LLM answered (or router / cache / bank)
     usage: dict  # real tokens in/out, latency, switches — added to the visit's totals
     actions: list[dict]  # what Dumbledore does on the page: navigate, links
+    brief: str  # what the agent worked out this visitor is deciding (its hidden first line, never logged)
+    show: str  # the page it chose to take them to, or "stay" ("" = it didn't say)
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
     # The agent session (memory.py, research.py)
     memory: Any  # this conversation's memory: points researched so far, a summary of the earlier turns, its spend
@@ -222,11 +224,15 @@ async def respond(state: State) -> dict:
         return None
 
     answers = [await router.run(llm.candidates(level), tier, prompt_for)]
+    brief, show = "", ""
+    if answers[0]:
+        brief, show, answers[0].text = guard.read_brief(answers[0].text)
     if answers[0] and guard.is_refusal(answers[0].text) and re.search(guard.ABOUT_HIM_OR_SITE, last_question(state), re.I):
         # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?").
         # The question already passed Gates 1–2, so ask a *different* model once, with a note; Gate 4 still applies.
         others = [m for m in llm.candidates(level) if m.name != answers[0].model]
         if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=True)):
+            brief, show, retry.text = guard.read_brief(retry.text)
             answers.append(retry)
     answer = answers[-1]
     planner = state.get("research_usage") or {}  # the planner's tokens count towards the turn
@@ -245,8 +251,8 @@ async def respond(state: State) -> dict:
             "tokens_counted": sum(a.counted for a in answers) + planner.get("tokens_counted", 0),
             "latency_ms": ms, "switches": answer.depth,
             "trims": int(answer.trimmed), f"level_{level}": 1}
-    return {"messages": [AIMessage(answer.text)], "model": answer.model, "usage": used,
-            "trace": step("respond", started, level=level, model=answer.model, tried=answer.tried, depth=answer.depth,
+    return {"messages": [AIMessage(answer.text)], "model": answer.model, "usage": used, "brief": brief, "show": show,
+            "trace": step("respond", started, level=level, model=answer.model, show=show, tried=answer.tried, depth=answer.depth,
                           chunks=len(docs), history=len(history), economy=bool(state.get("economy")))}
 
 
@@ -254,7 +260,7 @@ async def respond(state: State) -> dict:
 
 HIRING = re.compile(r"\b(fit|hire|hiring|role|position|job description|jd|candidate|junior|senior|recruit\w*)\b", re.I)
 NEXT_STEP = re.compile(r"r[ée]sum[ée]|share your details|e-?mail|reach out|get in touch|linkedin|contact|talk to him|ask him", re.I)
-NEXT_STEP_LINE = "\n\nNext step: his [résumé](/resume) is one click away, and **Share your details** below gets you a reply from Rishabh himself."
+NEXT_STEP_LINE = "\n\nNext step: his [résumé](/resume), or **Share your details** below for a reply from Rishabh himself."
 
 async def check(state: State) -> dict:
     started = time.perf_counter()
@@ -271,13 +277,20 @@ async def check(state: State) -> dict:
     if HIRING.search(last_question(state)) and not NEXT_STEP.search(safe):
         safe += NEXT_STEP_LINE  # a hiring question always ends with a way to act, whichever model forgot it
 
-    links = pages.links_for(safe, research.evidence(state, 8), skip={a["path"] for a in state.get("actions", [])})
-    update: dict = {"actions": state.get("actions", []) + link_actions(links), "trace": step("check", started, links=len(links))}
+    # The page the agent chose goes first (the visitor is taken there); pages the answer also names become buttons.
+    earlier = state.get("actions", [])
+    shown = pages.shown_page(state.get("show", "")) if not any(a["type"] == "navigate" for a in earlier) else None
+    actions = [*earlier, shown] if shown else earlier
+    links = pages.links_for(safe, research.evidence(state, 8), skip={a["path"] for a in actions})
+    stay = state.get("show") == "stay"  # it chose not to move them: the buttons stay buttons
+    update: dict = {"actions": actions + [{**a, "auto": False} if stay else a for a in link_actions(links)],
+                    "trace": step("check", started, links=len(links))}
     if safe != text:
         update["messages"] = [AIMessage(safe, id=last.id)]
         update["why"] = "output:cleaned"
     elif first_turn(state):
-        await cache.put(last_question(state), safe, links)  # Gate 5: only a clean, in-scope, first-turn answer
+        # Gate 5: only a clean, in-scope, first-turn answer. A cached answer's first link is where it takes the visitor.
+        await cache.put(last_question(state), safe, [] if stay else [{"path": a["path"], "label": a["label"]} for a in actions if a["type"] == "navigate"] + links)
     return update
 
 

@@ -87,7 +87,10 @@ async def main() -> None:
             if not passes(intent, answer):
                 print(f"  skipped (failed its checks): {intent['q']}")
                 continue
-            links = next((a["links"] for a in state.get("actions", []) if a["type"] == "links"), [])
+            # What the agent chose to show goes first: a bank answer's first link is where it takes the visitor.
+            links = [{"path": a["path"], "label": a["label"]} for a in state.get("actions", []) if a["type"] == "navigate"]
+            links += next((a["links"] for a in state.get("actions", []) if a["type"] == "links"), [])
+            links = [] if state.get("show") == "stay" else links
             entry |= {"text": answer, "links": links, "source": state.get("model", "")}
             await asyncio.sleep(3)  # stay inside the free per-minute limits
         bank.append(entry)

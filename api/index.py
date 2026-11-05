@@ -26,7 +26,8 @@ from pydantic import BaseModel, Field
 from agent import memory as session_memory, usage
 from agent.config import env
 from agent.graph import RECENT_CHAT, WARM_EVERY, agent, warm_prefix_cache
-from agent.guard import StreamGuard
+from agent.guard import BriefReader, StreamGuard
+from agent.pages import shown_page
 from agent.summarize import summarize
 
 if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs and evals stay out of Sentry
@@ -172,7 +173,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         {"type": "replace", "text": "…"}     the output guard changed what was shown: show this instead
         {"type": "navigate", "path": "/…", "label": "…"}   take the visitor to this page
         {"type": "ui", "move": "back"}                     do it where the visitor is (pages.MOVES): back, next, scroll…
-        {"type": "links", "links": [{"path", "label"}]}    "take me there" buttons under the answer
+        {"type": "links", "links": [{"path", "label"}], "auto": false}  "take me there" buttons under the answer
         {"type": "usage", "tokens": 123}                   tokens this turn counted against free limits (chat shows a total)
         {"type": "meta", "model": …, "level": …, …}        for the admin dashboard; the gateway strips it
     Every sentence passes the output guard (Gate 4) before it leaves the server. Returns 503 if every model is busy."""
@@ -189,6 +190,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
 
     async def events():
         output = StreamGuard()
+        brief = BriefReader()  # the agent's hidden first line: the page it chose, sent before the reply
+        moved = ""  # the page the visitor has been taken to already
         call = None  # the LLM call being streamed
         live = True  # False once a call broke off mid-answer: the next model's answer is then sent whole, at the end
         final = None  # the answer as the graph finished it (after the output guard)
@@ -200,12 +203,18 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
                     if chunk.id != call:  # another call: a second opinion (nothing shown yet) or a replacement model
                         call = chunk.id
+                        brief = BriefReader()
                         if output.sent:
                             live = False  # the earlier model broke off mid-answer: "replace" sends the new one whole
                         else:
                             output = StreamGuard()
-                    if live:
-                        for kind, text in output.push(chunk.text):
+                    body = brief.push(chunk.text)
+                    if brief.show and not moved and not output.sent and not any(a["type"] == "navigate" for a in result.get("actions", [])):
+                        if shown := shown_page(brief.show):
+                            moved = shown["path"]
+                            yield line(shown)
+                    if live and body:
+                        for kind, text in output.push(body):
                             yield line({"type": kind, "text": text})
             else:  # "updates": what each node returned
                 for update in data.values():
@@ -217,7 +226,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
         print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}, default=str))
         if result.get("model") == "none":
-            if output.sent:  # a model broke off mid-answer and no other could finish it: don't leave half an answer
+            if output.sent or moved:  # a model broke off mid-answer and no other could finish it: don't leave half an answer
                 yield line({"type": "replace", "text": "That answer broke off part-way. Please ask again in a moment."})
             return  # every model is out of budget → nothing streamed → 503 below
         for kind, text in output.finish() if live else []:
@@ -225,7 +234,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         if final is not None and final != output.sent:  # canned replies, or the graph's guard changed the answer
             yield line({"type": "replace" if output.sent else "text", "text": final})
         for action in result.get("actions", []):
-            yield line(action)
+            if not (action["type"] == "navigate" and action["path"] == moved):
+                yield line(action)
         # This turn's tokens as the free limits count them (Groq's cached prompt tokens are free), 0 when no model was
         # needed; the chat shows the running total.
         used = result.get("usage") or {}

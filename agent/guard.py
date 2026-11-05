@@ -175,6 +175,39 @@ def _redact(text: str) -> str:
     return EMAIL.sub(lambda m: m.group(0) if m.group(0).lower() == SITE["email"] else "[email removed]", text)
 
 
+_BRIEF = re.compile(r"^[\s*_]*BRIEF:[\s*_]*(.*?)\|[\s*_]*SHOW:[\s*_]*([^\s*_]\S*)[^\n]*(?:\n+|$)")
+
+
+def read_brief(text: str) -> tuple[str, str, str]:
+    """The agent's hidden first line (prompts.py): what it worked out, the page it chose, and the reply without it."""
+    m = _BRIEF.match(text)
+    return (m[1].strip(), m[2].strip("`[]()"), text[m.end():]) if m else ("", "", text)
+
+
+class BriefReader:
+    """Holds a stream back until its BRIEF line has passed, so the page can move before the reply and the visitor never
+    sees the line. A model that didn't write one streams straight through."""
+
+    def __init__(self) -> None:
+        self.raw = ""
+        self.done = False
+        self.show = ""
+
+    def push(self, text: str) -> str:
+        if self.done:
+            return text
+        self.raw += text
+        start = self.raw.lstrip(" \n*_")
+        if not ("BRIEF:".startswith(start[:6]) or start.startswith("BRIEF:")):
+            self.done = True
+            return self.raw
+        if "\n" not in start or not start.startswith("BRIEF:"):
+            return ""
+        self.done = True
+        _, self.show, body = read_brief(self.raw)
+        return body
+
+
 class StreamGuard:
     """Gate 4 while streaming: holds text back until a sentence ends, checks everything so far, then releases it.
     So nothing reaches the visitor unchecked. Yields ("text", more) or ("replace", whole answer) events."""

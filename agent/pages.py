@@ -174,6 +174,16 @@ def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> li
     return out[:2]
 
 
+def shown_page(path: str) -> dict | None:
+    """The agent's chosen page as an action, if it's a page we have (a wrong anchor still gets the right page)."""
+    for candidate in (path, path.split("#")[0]):
+        if candidate in SECTIONS and candidate not in ("/", "/3d"):
+            return {"type": "navigate", "path": candidate, "label": SECTIONS[candidate][0], "focus": False}
+        if page := next((p for p in PAGES if p["path"] == candidate), None):
+            return {"type": "navigate", "path": candidate, "label": page["label"], "focus": False}
+    return None
+
+
 def site_map() -> str:
     """The page list in the system prompt, so answers link real pages: path and name only (~490 tokens). Every chunk in
     CONTEXT already names its page, so the summaries (another ~170 tokens on every call) aren't needed here."""

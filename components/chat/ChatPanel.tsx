@@ -37,7 +37,7 @@ type AgentEvent =
   | { type: "text" | "replace"; text: string }
   | { type: "navigate"; path: string; label: string; focus?: boolean }
   | { type: "ui"; move: UiMove }
-  | { type: "links"; links: PageLink[] }
+  | { type: "links"; links: PageLink[]; auto?: boolean }
   | { type: "usage"; tokens: number };
 
 // Only this site's own pages: the agent can't send anyone elsewhere, and router.push never sees a javascript: URL.
@@ -201,7 +201,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       if (!SITE_PATH.test(path)) return;
       track("agent_navigate", { path, source }); // our own page path, never visitor text
       if (embedded) return tellHost({ source: "dumbledore", type: "navigate", path, focus });
-      if (path !== window.location.pathname) router.push(path);
+      if (path !== window.location.pathname + window.location.hash) router.push(path);
       // Phones show the chat full-screen: step aside so the visitor sees the page they asked for.
       if (focus && window.matchMedia("(max-width: 639px)").matches) onMinimize();
     },
@@ -312,7 +312,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             // The pages the answer was about arrive after the answer. Dumbledore goes to the first one by itself, no
             // button to click (unless this turn navigated already); the others stay as "take me there" buttons.
             const [first, ...rest] = event.links.filter((l) => SITE_PATH.test(l.path));
-            if (first && !navigated) {
+            if (first && !navigated && event.auto !== false) {
               navigated = true;
               updateMessage(replyId, { opened: first.label, links: rest });
               goTo(first.path, "agent", false); // the answer stays in view; on a phone the visitor steps out to the page
@@ -494,7 +494,15 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
                   Retrieving from his work<span className="caret">▍</span>
                 </span>
               )}
-              {m.opened ? <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p> : null}
+              {m.opened ? (
+                <>
+                  <p className="label mt-1 hidden !text-[0.62rem] sm:block">↗ Opened {m.opened}</p>
+                  {/* A phone's chat covers the page it just moved: one tap shows it. */}
+                  <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline sm:hidden">
+                    ↗ Opened {m.opened}: see it
+                  </button>
+                </>
+              ) : null}
               {m.retry && m.id === messages[messages.length - 1]?.id ? (
                 <button
                   type="button"
