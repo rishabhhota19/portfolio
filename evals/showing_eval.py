@@ -67,6 +67,8 @@ async def main() -> int:
         long = words(answer) > WORD_LIMIT
         rows.append({"id": case["id"], "stay": want == "stay", "right": right, "no_model": no_model, "wrote": wrote_it,
                      "leak": leak, "long": long, "words": words(answer)})
+        if leak:
+            print("      leaked: " + re.search(r".{0,60}(?:\bBRIEF\b|\bSHOW:).{0,60}", answer)[0])
         mark = "NO MODEL" if no_model else "ok  " if right and not leak and not long else "FAIL"
         print(f"{mark:<5} {case['id']:<17} {state.get('level', ''):<3} {state.get('model', '')[:22]:<22} {words(answer):>3}w  "
               f"{went:<44} {'' if wrote_it else 'NO BRIEF  '}{state.get('brief', '')[:60]}")

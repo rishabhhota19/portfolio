@@ -149,9 +149,13 @@ def linkify(answer: str) -> str:
     return BARE_PATH.sub(fix, answer)
 
 
+# The agent's hidden line (read_brief takes the first one) if a model writes it again further down, or a piece of it.
+_HIDDEN_LINE = re.compile(r"^[^\w\n]*(?:BRIEF:|SHOW:\s*(?:/|stay\b)).*(?:\n|$)|\s*\|\s*SHOW:\s*(?:/\S*|stay\b)", re.M)
+
+
 def clean(answer: str) -> str:
     """Things that are removed, keeping the rest: unknown links (made-up pages too), long numbers, IDs, other emails."""
-    answer = linkify(answer)
+    answer = linkify(_HIDDEN_LINE.sub("", answer))
 
     def link(m: re.Match) -> str:
         label, url = (m.group(1), m.group(2)) if m.group(1) else (None, m.group(0))
