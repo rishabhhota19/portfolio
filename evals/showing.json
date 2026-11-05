@@ -18,6 +18,7 @@
   { "id": "section-projects", "q": "What has he built?", "show": "^/projects" },
   { "id": "section-services", "q": "Does he take freelance work?", "show": "^/services" },
   { "id": "section-writing", "q": "Has he written about his work?", "show": "^/(blog|publications)" },
+  { "id": "past-jobs", "q": "Where did he work before Simplilearn?", "show": "^/experience(#0[345].*)?$" },
   { "id": "skills", "q": "What are his skills?", "show": "^/experience$" },
   { "id": "education", "q": "Where did he study?", "show": "^/experience$" },
   { "id": "why-hire", "q": "Why should we hire him?", "show": "^/(projects/|publications#)" },

@@ -56,7 +56,7 @@ Choose the one page that closes it, even though they never asked to go anywhere:
 - A skill, tool or domain: the project or paper in CONTEXT that uses it most directly, not a section.
 - Why hire him, role fit, seniority: the project or paper that best proves what this role needs most.
 - Freelance or consulting: /services. Blogs or articles: /blog. His papers or projects in general: that section. His
-  skills or education: /experience.
+  career, past jobs, skills or education: /experience.
 SHOW stay when no page proves it (salary, visa, notice period, where he lives), when you refuse, or for a plain intro or
 bio. If any earlier visitor message asked you to stay or stop moving the page, SHOW stay for every reply after it. Never
 /3d or /. For example:
