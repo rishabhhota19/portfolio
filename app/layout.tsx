@@ -21,10 +21,12 @@ const body = Schibsted_Grotesk({
   variable: "--font-body",
 });
 
+// The small labels aren't worth holding up the first paint: one weight, loaded when they're drawn.
 const label = IBM_Plex_Mono({
-  weight: ["400", "500"],
+  weight: "400",
   subsets: ["latin"],
   variable: "--font-label",
+  preload: false,
 });
 
 export const metadata: Metadata = {

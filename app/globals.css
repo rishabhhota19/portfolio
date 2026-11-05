@@ -137,20 +137,19 @@ body::after {
 }
 }
 
-/* Staggered page-load reveal. Set --i on children for the delay step. */
+/* A small settle as the page opens. Set --i on children for the stagger. It never fades: the words are readable at the
+   first paint, because fading them in made a loaded page look as if it was still loading (about 0.9 s on a laptop). */
 @keyframes rise {
   from {
-    opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(6px);
   }
   to {
-    opacity: 1;
     transform: none;
   }
 }
 .reveal {
-  animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--i, 0) * 90ms);
+  animation: rise 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 30ms);
 }
 
 /* Attention-map cells fade in along the diagonal. */
@@ -160,8 +159,8 @@ body::after {
   }
 }
 .cell {
-  animation: cell-in 0.6s ease-out both;
-  animation-delay: calc(var(--d, 0) * 35ms + 200ms);
+  animation: cell-in 0.25s ease-out both;
+  animation-delay: calc(var(--d, 0) * 10ms);
 }
 
 /* A ring that grows out of the dot. Only transform and opacity change, so the GPU draws it: animating a box-shadow
