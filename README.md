@@ -233,6 +233,8 @@ run. Green full runs add to `evals/baseline.json` and never remove from it.
 ## Deploy (Vercel + Cloudflare, free)
 Push to `main`; Vercel builds the site and the Python function (`requirements.txt`).
 Set the variables from `.env.example` in Vercel (except `AGENT_URL`).
+The functions run in Mumbai (`bom1`, `vercel.json`) next to their Redis (Upstash, `ap-south-1`): a chat makes several
+Redis calls, so the two must stay in one region. Move them together or not at all.
 Google Sheets logging: follow the steps at the top of `integrations/google-sheets/Code.gs`.
 
 Three Cloudflare Workers deploy separately and by hand, because the GitHub secret `CLOUDFLARE_API_TOKEN` isn't set
