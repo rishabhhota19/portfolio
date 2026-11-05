@@ -488,7 +488,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
               }`}
             >
               {m.content ? (
-                <Markdown text={m.content} />
+                <Markdown text={m.content} onPage={embedded ? (href) => goTo(href, "button") : undefined} />
               ) : (
                 <span className="label inline-flex items-center gap-2">
                   Retrieving from his work<span className="caret">▍</span>
