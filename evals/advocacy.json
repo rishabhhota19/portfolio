@@ -15,7 +15,7 @@
   { "id": "jd-frontend", "kind": "job description, not his lane", "next_step": true, "allow": ["deficit-talk"],
     "q": "Senior Frontend Engineer: React, TypeScript, design systems and accessibility, 6+ years building large consumer web apps. Is Rishabh a fit?",
     "include": ["AI|ML|GenAI|agentic"],
-    "exclude": ["(?<!not a )(?<!n't a )\\b(strong|great|perfect|excellent|ideal|good) (fit|match)\\b(?! for (an? )?(AI|ML|GenAI))"] },
+    "exclude": ["(?<!not a )(?<!n't a )\\b(strong|great|perfect|excellent|ideal|good) (fit|match)\\b(?! for:| for (an? |the )?(AI|ML|GenAI|Agentic|LLM|Applied|Research))"] },
   { "id": "why-hire", "kind": "selling", "next_step": true,
     "q": "Why should we hire him over other candidates?",
     "include": ["\\]\\(/", "Collaterals|LCSNet|QFPViT|96\\s?%"] },

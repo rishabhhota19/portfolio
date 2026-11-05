@@ -67,7 +67,9 @@ def check(case: dict, answer: str, links: list[dict] = ()) -> list[str]:
     why = [f"made-up number {n}" for n in numbers_not_on_site(text, case["q"])]
     why += [f"{name}: /{p}/" for name, p in TRIVIA.items() if name not in case.get("allow", []) and re.search(p, text, re.I)]
     why += [f"missing /{p}/" for p in case.get("include", []) if not re.search(p, shown, re.I)]
-    why += [f"contains /{p}/" for p in case.get("exclude", []) if re.search(p, text, re.I)]
+    for p in case.get("exclude", []):
+        if m := re.search(p, text, re.I):
+            why.append(f"contains \"{text[max(0, m.start() - 40):m.end() + 40]}\"".replace("\n", " "))
     if case.get("next_step") and not re.search(NEXT_STEP, text, re.I):
         why.append("no next step")
     return why
