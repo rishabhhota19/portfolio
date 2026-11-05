@@ -581,7 +581,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             rows={1}
             placeholder={status === "offline" ? "Dumbledore is resting a moment — try again shortly" : "Ask about his work, or “take me to…”"}
             disabled={status === "offline"}
-            className="max-h-32 min-h-[2.6rem] flex-1 resize-none rounded-sm border border-rule bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted focus:border-accent disabled:opacity-60"
+            className="max-h-32 min-h-[2.6rem] flex-1 resize-none rounded-sm border border-rule bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap focus:border-accent disabled:opacity-60"
           />
           <button
             type="submit"
