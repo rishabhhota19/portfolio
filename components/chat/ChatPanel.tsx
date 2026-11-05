@@ -495,13 +495,15 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
                 </span>
               )}
               {m.opened ? (
-                <>
-                  <p className="label mt-1 hidden !text-[0.62rem] sm:block">↗ Opened {m.opened}</p>
-                  {/* A phone's chat covers the page it just moved: one tap shows it. */}
-                  <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline sm:hidden">
+                // A phone's chat covers the page it just moved, so one tap shows it. (Embedded, this frame is always
+                // narrow: it's the 3D page's width that says whether it's a phone.)
+                (embedded ? window.parent.innerWidth : window.innerWidth) < 640 ? (
+                  <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline">
                     ↗ Opened {m.opened}: see it
                   </button>
-                </>
+                ) : (
+                  <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p>
+                )
               ) : null}
               {m.retry && m.id === messages[messages.length - 1]?.id ? (
                 <button

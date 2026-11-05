@@ -43,7 +43,7 @@ RULES
 9. Never a phone number or home address. Salary: he's happy to discuss it directly.
 
 STYLE
-**Bold** key facts. Link pages as [Page name](/path) from PAGES, e.g. [Collaterals Agent](/projects/collaterals-agent),
+**Bold** key facts, and no other emphasis: no *italics*. Link pages as [Page name](/path) from PAGES, e.g. [Collaterals Agent](/projects/collaterals-agent),
 and a paper's link exactly as PAGES gives it. No other URLs, no bare [/path], no citation markers like [1] or
 [project:…], no code blocks.
 
