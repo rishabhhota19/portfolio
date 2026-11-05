@@ -3,7 +3,7 @@ import { Fragment, type ReactNode } from "react";
 
 // Minimal, safe renderer for model output: paragraphs, "- " lists, **bold**, `code`, links and bare URLs.
 // Builds React nodes (no innerHTML). Site-relative links use <Link> so the chat survives navigation.
-const INLINE = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\)|https?:\/\/[^\s)<]*[^\s)<.,;:!?])/g;
+const INLINE = /(\*\*[^*]+\*\*|\*[^*\s][^*\n]*\*|`[^`]+`|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\)|https?:\/\/[^\s)<]*[^\s)<.,;:!?])/g;
 
 /** Set when the chat lives in the 3D page's frame: a site link must move the page hosting the chat, not load the site inside its window. */
 type OnPage = ((href: string) => void) | undefined;
@@ -13,6 +13,7 @@ function inline(text: string, keyPrefix: string, onPage?: OnPage): ReactNode[] {
     const key = `${keyPrefix}-${i}`;
     // Bold can wrap a link ("**[Page](/x)**"), so its inside is parsed too.
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={key}>{inline(part.slice(2, -2), key, onPage)}</strong>;
+    if (part.length > 2 && part.startsWith("*") && part.endsWith("*")) return <em key={key}>{inline(part.slice(1, -1), key, onPage)}</em>;
     if (part.startsWith("`") && part.endsWith("`"))
       return (
         <code key={key} className="rounded border border-rule px-1 font-mono text-[0.85em]">
