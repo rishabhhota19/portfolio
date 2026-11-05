@@ -57,7 +57,7 @@ export default function Home() {
           </div>
         </div>
 
-        <figure className="reveal rounded-sm border border-rule bg-surface/70 p-5 backdrop-blur-[2px]" style={{ ["--i" as string]: 2 }}>
+        <figure className="reveal rounded-sm border border-rule bg-surface/70 p-5" style={{ ["--i" as string]: 2 }}>
           <AttentionGrid />
           <figcaption className="mt-3 border-t border-rule pt-3 text-sm text-muted">
             <span className="label text-ink">Fig. 1</span> — Causal self-attention over the sentence above (illustrative).

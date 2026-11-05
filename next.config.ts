@@ -83,8 +83,6 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
-  // The stylesheet comes inside the page, so a first visit paints as soon as the HTML arrives, with no request to wait on.
-  experimental: { inlineCss: true },
   async headers() {
     // Later rules win for the same header, so the 3D paths and the résumé end up with their own values.
     return [{ source: "/:path*", headers: securityHeaders }, ...Object.keys(landingPaths).map((source) => ({ source, headers: landingHeaders })), ...resumeRules];
