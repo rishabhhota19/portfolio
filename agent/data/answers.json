@@ -1,5 +1,5 @@
 {
- "version": "516d699c29",
+ "version": "d882aacf58",
  "model": "BAAI/bge-small-en-v1.5",
  "intents": [
   {
@@ -14,17 +14,8 @@
     "Can you tell me his current employment role?",
     "What does his current job entail?"
    ],
-   "text": "Rishabh is **Sr. AI Researcher at Simplilearn** in Bengaluru, a role he's held since March 2026. He leads hands-on research into emerging AI technology and turns it into automation for the business — agentic orchestration, multi-step workflow automation, open-source work, and prototypes of new tech as it emerges.\n\nHis strongest proof so far: he built an N8N-based multi-agent \"Collaterals Agent\" that cut course-launch collateral creation from 7–10 days to one day, and the team won Simplilearn's Best Team Award (Q3).\n\nWant his full résumé? It's at [/resume](/resume).",
-   "links": [
-    {
-     "path": "/projects/collaterals-agent",
-     "label": "Collaterals Agent"
-    },
-    {
-     "path": "/experience#01-simplilearn-sr-ai-researcher",
-     "label": "Sr. AI Researcher at Simplilearn"
-    }
-   ],
+   "text": "**Rishabh is Sr. AI Researcher at Simplilearn, on-site in Bengaluru, since Mar 2026.**\n- Leads hands-on research into new AI technology and turns it into automation for the business.\n- Automates complex, multi-step business workflows with AI agents.\n- Designs agentic orchestration across agents, tools and human reviewers.\n\nHis [résumé](/resume) has the full details.",
+   "links": [],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
   },
   {
@@ -39,7 +30,7 @@
     "What percentage accuracy did his osteoarthritis model achieve?",
     "How well did his osteoarthritis model perform?"
    ],
-   "text": "96% classification accuracy on knee X-rays, with more than 90% concordance with radiologists in SRM Trichy trials, and it outperformed competitor RBKnee. See the full project: [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification).",
+   "text": "**His osteoarthritis X-ray model reached 96% classification accuracy.**\n- More than 90% concordance with radiologists in SRM Trichy trials\n- Outperformed competitor RBKnee\n- Led clinicians and engineers on AWS: S3, Lambda, SageMaker, EC2",
    "links": [
     {
      "path": "/projects/oa-classification",
@@ -60,7 +51,7 @@
     "What was the outcome of his work on the Collaterals Agent?",
     "What value did the Collaterals Agent deliver?"
    ],
-   "text": "The Collaterals Agent cut course-launch marketing collateral production from 7–10 days down to 1 day. It replaced work that previously took two teams of four people, and the project won Simplilearn's Best Team Award (Q3). [Collaterals Agent](/projects/collaterals-agent)",
+   "text": "**It cut course-launch collateral turnaround from 7–10 days to one day.**\n- Won Simplilearn's Best Team Award (Q3)\n- Replaced two teams of four people working 7–10 days\n- N8N multi-agent system with Google Docs integration",
    "links": [
     {
      "path": "/projects/collaterals-agent",
@@ -81,7 +72,7 @@
     "How many professionals did the Collaterals Agent save time for?",
     "What is the user reach of the time-saving Collaterals Agent?"
    ],
-   "text": "The Collaterals Agent saved time for eight people — two teams of four who previously spent 7–10 days on each launch.",
+   "text": "The Collaterals Agent saved time for eight people — two teams of four who previously spent 7–10 days on each launch. [Collaterals Agent](/projects/collaterals-agent): cut course-launch collateral from 7–10 days to 1 day.",
    "links": [
     {
      "path": "/projects/collaterals-agent",
@@ -102,8 +93,13 @@
     "Tell me about the award he won at Simplilearn.",
     "Did he get recognized with an award at Simplilearn?"
    ],
-   "text": "Best Team Award (Q3) for automating collateral creation for new program launches, cutting turnaround from 7–10 days to 1 day.",
-   "links": [],
+   "text": "He won the **Best Team Award (Q3)** at Simplilearn for automating collateral creation for new program launches, cutting turnaround from 7–10 days to 1 day.",
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -119,7 +115,12 @@
     "Where did Rishabh study for his degree?"
    ],
    "text": "He earned a B.E. in Electronics & Communication from B.M.S. College of Engineering, Bangalore (2019–2023).",
-   "links": [],
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -134,7 +135,7 @@
     "Can you give me the F1 score of LCSNet?",
     "How well did LCSNet score on F1?"
    ],
-   "text": "LCSNet reached an **F1-score of 71.7%** on dental caries segmentation from smartphone photographs, with an IoU of 56.8%. It was published in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3) in October 2025.\n\nYou can read the paper here: [LCSNet — read the paper](https://www.sciencedirect.com/science/article/pii/S2666521225001085)",
+   "text": "**LCSNet reached an F1-score of 71.7% on dental caries segmentation from smartphone photographs.**\n- [LCSNet — Intelligence-Based Medicine (Elsevier, IF 2.3)](https://www.sciencedirect.com/science/article/pii/S2666521225001085): F1-score of 71.7% and IoU of 56.8%, validated by expert dentists.",
    "links": [
     {
      "path": "/publications#lcsnet",
@@ -155,7 +156,7 @@
     "What academic venue published LCSNet?",
     "In what journal/conference is LCSNet published?"
    ],
-   "text": "LCSNet was published in Intelligence-Based Medicine, an Elsevier journal with an Impact Factor of 2.3.",
+   "text": "LCSNet was published in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3) in October 2025.",
    "links": [
     {
      "path": "/publications#lcsnet",
@@ -176,7 +177,7 @@
     "How would you describe QFPViT?",
     "What did he do with QFPViT?"
    ],
-   "text": "QFPViT is Rishabh's quantum self-attention operator for Vision Transformers, evaluated on MedMNIST medical-imaging benchmarks. He built it starting with no quantum-computing background, and the paper is under review at the journal Quantum. It's a good example of his research-to-prototype service: taking an emerging idea and turning it into a working, evaluated system.\n\nYou can read more on his [publications page](/publications).",
+   "text": "**QFPViT is a fidelity-phase quantum self-attention operator for Vision Transformers, evaluated on MedMNIST medical-imaging benchmarks.**\n- [QFPViT](/publications#qfpvit): designed with no prior quantum-computing background\n- [QFPViT](/publications#qfpvit): paper communicated to the journal Quantum\n- [QFPViT](/publications#qfpvit): evaluates on MedMNIST",
    "links": [
     {
      "path": "/publications#qfpvit",
@@ -197,15 +198,11 @@
     "Has he integrated MCP into his work?",
     "What has he built with MCP?"
    ],
-   "text": "Yes. At Simplilearn he built an N8N-based multi-agent \"Collaterals Agent\" that uses MCP to coordinate agents, and he's currently working on a Zerodha MCP trading copilot (TurboTrade) that keeps API keys out of prompts and logs every step reversibly. Both are live on his projects page.",
+   "text": "TurboTrade — Zerodha MCP trading copilot\n- MCP keeps API keys out of prompts and OAuth scopes guard capital\n- Every step is logged and reversible\n- Models and brokers can be swapped without rewrites",
    "links": [
     {
      "path": "/projects/turbotrade",
      "label": "TurboTrade"
-    },
-    {
-     "path": "/projects/collaterals-agent",
-     "label": "Collaterals Agent"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
@@ -222,7 +219,7 @@
     "How did he build the sales training chatbot?",
     "What tech stack did he use for the sales chatbot?"
    ],
-   "text": "He built it with **FAISS** for vector indexing, **Gemini** as the LLM, **Google ADK** for orchestration, and **Streamlit** for the training UI — designed for horizontal scalability. See the full project here: [Scalable Sales Training Chatbot](/projects/sales-training-chatbot).",
+   "text": "**The Scalable Sales Training Chatbot used FAISS, Gemini, Google ADK and Streamlit.**\n- [Scalable Sales Training Chatbot](/projects/sales-training-chatbot): FAISS vector index, Gemini orchestrated through Google ADK\n- Streamlit UI for interactive training scenarios with real-time feedback\n- Built for horizontal scalability",
    "links": [
     {
      "path": "/projects/sales-training-chatbot",
@@ -243,8 +240,17 @@
     "Has he trained or fine-tuned any LLMs?",
     "Which LLMs has he fine-tuned and using what tooling?"
    ],
-   "text": "Yes. He fine-tunes LLMs using LoRA/QLoRA and the Unsloth framework, and has experimented with TRL for reward modelling. He's tuned models for specific tasks — summarisation, classification, and domain‑adapted assistants — and always serves the tuned model on his own hardware (vLLM, Ollama, llama.cpp) with quantization to keep cost and latency under control.",
-   "links": [],
+   "text": "He has fine-tuned LLMs using LoRA and QLoRA on Unsloth, and also via TRL. His OA classification project fine-tuned a Vision Transformer on AWS SageMaker, and his QFPViT paper explored quantum-inspired attention with fine-tuning experiments.",
+   "links": [
+    {
+     "path": "/projects/oa-classification",
+     "label": "AI-Powered Osteoarthritis Classification & Reporting"
+    },
+    {
+     "path": "/publications#qfpvit",
+     "label": "QFPViT"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -259,8 +265,13 @@
     "Has he deployed on any cloud platforms?",
     "Which cloud platforms does he know?"
    ],
-   "text": "AWS and Azure. He's built production pipelines on EC2, Lambda, SageMaker, Bedrock and S3, and used Azure AI Foundry for some work.",
-   "links": [],
+   "text": "He's used both AWS and Azure in production. At OsteosConnect he built a 96%-accurate osteoarthritis X-ray classification pipeline on AWS (S3, Lambda, SageMaker, EC2); he also lists Azure AI Foundry among his core strengths.",
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -275,8 +286,13 @@
     "Did he work from home for OsteosConnect?",
     "Is his OsteosConnect experience remote?"
    ],
-   "text": "Yes — his OsteosConnect role was fully remote, based in Remote, California, from Feb 2024 to Mar 2025.",
-   "links": [],
+   "text": "Yes, his OsteosConnect AI Engineer role was remote — California-based, Feb 2024 to Mar 2025.",
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -291,8 +307,13 @@
     "How many years has he been in the industry?",
     "What is his level of experience in years?"
    ],
-   "text": "3+ years of professional experience turning AI research into production prototypes and AWS-hosted pipelines.",
-   "links": [],
+   "text": "He has 3+ years of professional experience in turning AI research into production prototypes and AWS-hosted pipelines.",
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -307,7 +328,7 @@
     "What does his AI teddy bear do?",
     "How does the AI teddy bear project work?"
    ],
-   "text": "The AI Teddy Bear (MVP) is a storytelling teddy bear for children that tells personalized stories in a unique character voice. It's open source and built to be ready for both hardware and a companion app, with guardrails in place for children's safety. If a recruiter wants specifics beyond what's on the site, Rishabh can share more directly.",
+   "text": "The AI Teddy Bear (MVP) is a storytelling companion for children that speaks in a personalized character voice. It’s open source, guardrailed for safety, and built to run on hardware or a companion app. If a recruiter wants deeper specs, Rishabh can share more directly.",
    "links": [
     {
      "path": "/projects/ai-teddy-bear",
@@ -328,7 +349,7 @@
     "Which languages and machine learning frameworks is he proficient in?",
     "What does his programming and ML toolkit look like?"
    ],
-   "text": "He works primarily in **Python**, with **PyTorch**, **PyTorch Lightning**, **TensorFlow**, **scikit-learn**, **Pandas**, **NumPy**, **FastAPI**, **Flask**, **LangChain**, **LangGraph**, **Google ADK**, **OpenAI SDK**, **CrewAI**, **FastMCP**, **gRPC**, **Pydantic**, and **PyDICOM**. For fine-tuning and serving he uses **Unsloth**, **LoRA/QLoRA**, **Hugging Face Transformers**, **TRL**, **vLLM**, **Ollama**, **llama.cpp**, and quantization formats like **GGUF** and **AWQ**.\n\nWant to see how he's applied them? His [projects](/projects) and [résumé](/resume) have the details.",
+   "text": "**Python is his main language.**\n- Python, scikit-learn, TensorFlow, PyTorch, PyTorch Lightning, LangChain, LangGraph, Google ADK, CrewAI, Pandas, NumPy, FastAPI, Flask\n- Unsloth, LoRA and QLoRA, Hugging Face Transformers and TRL\n- vLLM, Ollama, llama.cpp, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry",
    "links": [],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
   },
@@ -344,8 +365,13 @@
     "Any past internships on his resume?",
     "What internship experience does he list?"
    ],
-   "text": "Yes. He completed two short internships before his final year:\n\n- **Data Science & ML Intern** at Smartknower Pvt Ltd, Bangalore — Nov 2020 to Jan 2021 (3 months)\n- **AI/ML Intern** at OsteosConnect Inc, remote — Jul 2023 to Jan 2024 (7 months), where he built the osteoarthritis X-ray classification pipeline that later became his published work.\n\nBoth are listed under his experience section.",
-   "links": [],
+   "text": "He has two internships in the record:\n\n- **AI/ML Intern at OsteosConnect Inc** (Jul 2023 – Jan 2024) — led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.\n- **Data Science & ML Intern at Smartknower Pvt Ltd** (Nov 2020 – Jan 2021) — standard internship listed in his profile.\n\nBoth are on his experience page.",
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -360,11 +386,40 @@
     "What was his role in the COVID-19 decision support project?",
     "What was the impact of his COVID-19 decision support system?"
    ],
-   "text": "Rishabh built an IoT-enabled, two-stage COVID-19 decision support system as a college project (team of four, Oct 2022 – Apr 2023). Stage one screens vitals and symptoms; stage two adds chest X-ray analysis for a deeper diagnosis. A guided UI walks users through screening, optional X-ray upload, and a rule-based report with recommended next steps. It placed 6th college-wide and ties into his related research on multimodal COVID-19 prediction and chest CT classification.\n\nSee the full project page: [COVID-19 Decision Support System](/projects/covid-decision-support).",
+   "text": "**COVID-19 Decision Support System is an IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays.**\n- Team of four, Oct 2022 – Apr 2023, awarded 6th place college-wide\n- Stage one screens vitals and symptoms; stage two adds chest X-ray analysis via deep learning\n- Guided UI moves from screening questions to X-ray upload, then a rule-based engine outputs a report with recommended next steps\n\nHis related paper, Multi-Modal Decision Support for COVID-19 Prediction, is under review at Inderscience.",
    "links": [
     {
      "path": "/projects/covid-decision-support",
      "label": "COVID-19 Decision Support System"
+    },
+    {
+     "path": "/publications#covid-multimodal",
+     "label": "Multi-Modal Decision Support for COVID-19 Prediction"
+    }
+   ],
+   "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
+  },
+  {
+   "q": "How is the agent on this website built?",
+   "paraphrases": [
+    "How is Rishabh built as an agent on this website?",
+    "Can you explain how Rishabh was built on this site?",
+    "What's the build behind Rishabh here?",
+    "How does Rishabh work as an agent on this website?",
+    "Tell me how Rishabh is constructed on this site.",
+    "How was Rishabh developed for this website?",
+    "What's Rishabh's setup as an agent here?",
+    "How is the Rishabh agent implemented on this website?"
+   ],
+   "text": "**It's a LangGraph agent with hybrid RAG, evals, guardrails, monitoring and cost control across many LLM providers.**\n- [How the AI agent on this site works](/blog/how-my-portfolio-agent-works): 0 leaks on 76 attack prompts, refused 32 of 33 held-out prompts, 0 false refusals on 47 real recruiter questions\n- [AI Portfolio Agent](/projects/portfolio-agent): Python eval suites check retrieval, facts, guardrails, refusals, navigation and difficulty routing; RAGAS scores faithfulness, answer relevancy and context precision\n- [AI Portfolio Agent](/projects/portfolio-agent): Next.js gateway checks for bots, validates input, rate-limits per visitor and enforces a daily budget",
+   "links": [
+    {
+     "path": "/blog/how-my-portfolio-agent-works",
+     "label": "How the AI agent on this site works"
+    },
+    {
+     "path": "/projects/portfolio-agent",
+     "label": "AI Portfolio Agent"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
@@ -381,7 +436,7 @@
     "Can he use LangGraph in a production setting?",
     "What is his experience with LangGraph in production?"
    ],
-   "text": "Yes. The AI Portfolio Agent on this site is a LangGraph graph in Python, live since October 2026 with error monitoring (Sentry) and evals on every push.",
+   "text": "Yes. Dumbledore, the AI agent on this site, is a Python LangGraph graph live in production since October 2026 — hybrid RAG, a five-gate refusal pipeline, page navigation and 17 free LLMs on a ₹0/month stack, with error monitoring (Sentry) and evals on every push.",
    "links": [
     {
      "path": "/projects/portfolio-agent",
@@ -402,8 +457,13 @@
     "Does he know how to use vLLM or Ollama?",
     "Have you seen him use vLLM or Ollama in projects?"
    ],
-   "text": "Yes. He's used vLLM and Ollama for LLM inference and serving — among other tools like llama.cpp, quantization and KV-cache optimisation — as part of his fine-tuning-and-serving service.",
-   "links": [],
+   "text": "He's built small models tuned for one job and served them with vLLM, Ollama and llama.cpp — 4-bit and 8-bit quantised, with KV-cache optimisation and batching for throughput. He's also run Gemma 3n offline on Android inside a custom chatbot app.\n\n- [Services: fine-tuning and serving](/services#fine-tuning-serving): LoRA/QLoRA fine-tunes of Gemma, Llama and Phi, then quantised and served with vLLM, Ollama or llama.cpp\n- [Experience: skills and tools](/experience#01-simplilearn-sr-ai-researcher): Python, PyTorch, LangChain, LangGraph, vLLM, Ollama, llama.cpp",
+   "links": [
+    {
+     "path": "/services#fine-tuning-serving",
+     "label": "Small models tuned for one job, served on your hardware"
+    }
+   ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
@@ -418,7 +478,7 @@
     "What projects did he work on at Smartknower?",
     "What was his experience at Smartknower like?"
    ],
-   "text": "He was a Data Science & ML Intern at Smartknower Pvt Ltd in Bangalore from Nov 2020 to Jan 2021. He built a full ETL pipeline with feature engineering and predictive models, then created Power BI dashboards for sales forecasting and presented actionable insights.",
+   "text": "**He built a full ETL pipeline, feature engineering and predictive models as a Data Science & ML Intern at Smartknower Pvt Ltd.**\n- Built Power BI dashboards for sales forecasting\n- Presented actionable insights\n- Nov 2020 – Jan 2021 in Bangalore",
    "links": [
     {
      "path": "/experience#05-smartknower-intern",
@@ -439,30 +499,14 @@
     "Did he get a paper published in Springer?",
     "Have his academic works appeared in Springer?"
    ],
-   "text": "Yes — he has Springer publications listed in his achievements.",
-   "links": [],
-   "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
-  },
-  {
-   "q": "Would he fit a Forward Deployed Engineer role?",
-   "paraphrases": [
-    "Would Rishabh be a good fit for a Forward Deployed Engineer position?",
-    "Is he suitable for a Forward Deployed Engineer role?",
-    "Could he handle a Forward Deployed Engineer job?",
-    "Would he fit a Forward Deployed Engineer role?",
-    "Does his background align with a Forward Deployed Engineer position?",
-    "Is he qualified to be a Forward Deployed Engineer?",
-    "How well would he do as a Forward Deployed Engineer?",
-    "Does he have the skills for a Forward Deployed Engineer role?"
-   ],
-   "text": "**Yes — he's a strong fit for Forward Deployed Engineer.**\n\n- **End-to-end production delivery:** He built an osteoarthritis X-ray pipeline on AWS — X-ray → S3 → Lambda → EC2 → prediction → Lambda → EMR — reaching 96% accuracy and over 90% concordance with radiologists in hospital trials, ahead of competitor RBKnee. [AI Engineer at OsteosConnect](/experience#03-osteosconnect-ai-engineer)\n- **Multi-agent orchestration in production:** His Collaterals Agent at Simplilearn cut course-launch collateral creation from 7–10 days across two teams to one day and won the Best Team Award (Q3). [Collaterals Agent](/projects/collaterals-agent)\n- **Works directly with domain experts:** He led clinicians and engineers at OsteosConnect and built feedback loops where doctors validate ground truth for retraining — exactly the embedded, customer-facing work FDEs do.\n- **Full-stack AI engineering:** Python, FastAPI, LangChain/LangGraph, AWS, Docker, RAG, fine-tuning and evals — he can ship a system, not just prototype it.\n\n**Worth asking him about:** how he handles on-site customer deployment and travel, since the site doesn't cover that.\n\nNext step: his [résumé](/resume) or the **Share your details** button below.",
+   "text": "Yes — Springer and Inderscience venues.",
    "links": [
     {
-     "path": "/projects/collaterals-agent",
-     "label": "Collaterals Agent"
+     "path": "/publications",
+     "label": "Research"
     }
    ],
-   "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
+   "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "q": "Where is he based?",
@@ -476,7 +520,7 @@
     "Where is he working from?",
     "Where is Rishabh currently residing?"
    ],
-   "text": "He's based in Bengaluru, India.",
+   "text": "Rishabh is based in Bengaluru, India. He works on-site at Simplilearn there, and has remote experience with OsteosConnect Inc in California. The site doesn't go into his home address or exact notice period.",
    "links": [],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
