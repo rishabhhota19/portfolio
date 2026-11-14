@@ -154,11 +154,21 @@ export function allowNearby(key: string, max: number, windowSeconds: number) {
   return ++hit.n <= max;
 }
 
-/** Fixed-window counter. Returns true while `key` is under `max` hits per `windowSeconds`. */
+const over = new Set<string>(); // windows Redis has already said are over their limit
+
+/** Fixed-window counter. Returns true while `key` is under `max` hits per `windowSeconds`.
+ * Once Redis says a window is over its limit, this instance remembers it: a counter only goes up, so every later
+ * request in that window is refused from memory. Without that, each refusal still spent an Upstash command, and a
+ * flood that was being turned away could use up the free plan's commands and take the limits down for everyone. */
 export async function allow(key: string, max: number, windowSeconds: number) {
   const bucket = Math.floor(Date.now() / 1000 / windowSeconds);
-  const n = await store.incr(`rl:${key}:${bucket}`, windowSeconds);
-  return n <= max;
+  const window = `rl:${key}:${bucket}`;
+  if (over.has(window)) return false;
+  const n = await store.incr(window, windowSeconds);
+  if (n <= max) return true;
+  if (over.size > 10_000) over.clear(); // old windows are never asked about again; this only bounds the memory
+  over.add(window);
+  return false;
 }
 
 /** A whole number from the environment; blank, missing or invalid means `fallback` (Number("") would be 0). */

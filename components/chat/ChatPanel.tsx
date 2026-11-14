@@ -85,7 +85,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
-  const loggedCount = useRef(0);
+  const logged = useRef({ count: 0, ended: false }); // how much of this chat the server has, and whether as its end
   const messagesRef = useRef<UiMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -130,12 +130,16 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
     };
   }, []);
 
-  // Sends the transcript for summarising. keepalive lets it finish while the page unloads.
+  // Sends the transcript for summarising. keepalive lets it finish while the page unloads. A tab switch is only a
+  // pause: the real end of the same transcript still goes out after it (closing a tab fires both, the pause first),
+  // or the chat would keep its pause note and never get a summary.
   const logEnd = useCallback(
     (reason: EndReason) => {
       const count = transcript(messagesRef.current).length;
-      if (count === 0 || count === loggedCount.current) return;
-      loggedCount.current = count;
+      const pause = reason === "tab_hidden";
+      const last = logged.current;
+      if (count === 0 || (count === last.count && (pause || last.ended))) return;
+      logged.current = { count, ended: !pause };
       try {
         fetch("/api/chat/end", {
           method: "POST",
@@ -385,7 +389,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
     setInput("");
     setTokens(0);
     token.current = null;
-    loggedCount.current = 0;
+    logged.current = { count: 0, ended: false };
     conversation.current = null;
     onMinimize();
   };
@@ -402,7 +406,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         const said = (await res.json().catch(() => null)) as { message?: string } | null;
         return said?.message ?? "Couldn't send that — please email rishabhhota19@gmail.com directly.";
       }
-      loggedCount.current = transcript(messagesRef.current).length;
+      logged.current = { count: transcript(messagesRef.current).length, ended: true };
       setLeadSent(true);
       setShowLead(false);
       track("lead_submitted");

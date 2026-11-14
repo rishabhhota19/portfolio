@@ -30,14 +30,29 @@ from agent.guard import BriefReader, StreamGuard
 from agent.pages import shown_page
 from agent.summarize import summarize
 
+def sentry_safe(event: dict, _hint: dict | None = None) -> dict:
+    """What Sentry may know of a request is its method and its address. The headers carry the gateway's shared secret
+    and the warm-up key, and Sentry's own list of sensitive headers has neither; nothing else in a request helps find
+    a bug here. Runs on every error and every traced request before it leaves."""
+    request = event.get("request")
+    if isinstance(request, dict):
+        event["request"] = {part: request[part] for part in ("method", "url") if part in request}
+    return event
+
+
 if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs and evals stay out of Sentry
-    # Errors from the Python agent go to the same Sentry project. Request bodies (chat text) are never sent.
+    # Errors from the Python agent go to the same Sentry project: what failed and where, never what was said.
     sentry_sdk.init(
         dsn=env("NEXT_PUBLIC_SENTRY_DSN"),
         environment=env("VERCEL_ENV", "development"),
         traces_sample_rate=0.1,
         send_default_pii=False,
         max_request_body_size="never",
+        # A stack frame's variables are the visitor's messages, the prompt and the secret headers (x_agent_secret,
+        # x_warm_key): Sentry would send them with every error, and scrubs a variable only by its exact name.
+        include_local_variables=False,
+        before_send=sentry_safe,
+        before_send_transaction=sentry_safe,
     )
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
@@ -58,7 +73,6 @@ class ChatRequest(BaseModel):
 
 class SummaryRequest(BaseModel):
     messages: list[Message] = Field(max_length=40)
-    lead: dict | None = None
     session_id: str = Field("", max_length=64)
     conversation_id: str = Field("", max_length=64)  # the chat is over: its working memory is deleted
 
@@ -273,7 +287,7 @@ async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Heade
     usage.DEADLINE.set(time.monotonic() + 25)  # the gateway waits 30 s for a summary
     if req.conversation_id:
         await session_memory.forget(req.conversation_id)
-    return await summarize([m.model_dump() for m in req.messages], req.lead, req.session_id)
+    return await summarize([m.model_dump() for m in req.messages], req.session_id)
 
 
 @app.get("/api/agent/session/{session_id}")

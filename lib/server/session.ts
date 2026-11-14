@@ -1,9 +1,21 @@
 import "server-only";
 import type { ChatSummary } from "@/lib/server/agent";
-import { store } from "@/lib/server/store";
+import { firstTime, store } from "@/lib/server/store";
 
 // What happened during a visit. A visitor can end a chat and start another, so each chat's summary is
 // remembered for the visit (a day) and the Sessions row shows them all.
+
+/** Is this point of the chat being logged for the first time? A transcript of a given length is logged once as a
+ * pause (a tab switch: the plain summary) and once as an end (End chat, leaving the site, a lead: the model's
+ * summary). Closing a tab sends both, the pause first, and the end must still get through: when one key covered both,
+ * a chat that ended that way never got its summary and its working memory was never deleted. An end marks the pause
+ * as well, so a tab switch after it can't put the plain summary back over the model's. */
+export async function firstLog(conversationId: string, messages: number, pause: boolean) {
+  const end = `end:${conversationId}:${messages}`;
+  if (pause) return firstTime(`${end}:pause`, 86_400);
+  const [first] = await Promise.all([firstTime(end, 86_400), firstTime(`${end}:pause`, 86_400)]);
+  return first;
+}
 
 type ChatNote = { id: string; messages: number; intent: string; topics: string; summary: string; followUp: string };
 

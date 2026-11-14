@@ -2,7 +2,7 @@ import { after } from "next/server";
 import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
 import * as events from "@/lib/server/events";
 import { ipHash, verifyChatToken } from "@/lib/server/request";
-import { addChat } from "@/lib/server/session";
+import { addChat, firstLog } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
 import { allow, allowNearby, envNumber, firstTime, spendDailyBudget } from "@/lib/server/store";
 import { endRequest, json } from "@/lib/server/validate";
@@ -38,23 +38,25 @@ export async function POST(req: Request) {
   const limitOk = verified ? await allow(`end:ip:${ip}`, 20, 600) : await allow(`end:anon:${ip}`, 3, 3600);
   if (!limitOk) return json({ ok: false, error: "rate_limited" }, 429);
 
-  // Each distinct transcript length is summarised once (closing after a tab switch with no new messages is a no-op).
-  if (!(await firstTime(`end:${data.conversationId}:${data.messages.length}`, 86_400))) {
+  // Each transcript length is logged once as a pause and once as an end (see firstLog).
+  const pause = data.reason === "tab_hidden";
+  if (!(await firstLog(data.conversationId, data.messages.length, pause))) {
     return json({ ok: true, skipped: "duplicate" }, 202);
   }
 
   const sessionId = data.sessionId ?? data.conversationId;
   after(async () => {
-    // A tab switch isn't the end of a chat: it gets the plain summary (what was asked), and the model-written one
-    // waits for End chat, leaving the site or a lead — so a visitor who flips tabs doesn't spend the summary quota.
+    // A tab switch isn't the end of a chat: it gets the plain summary (how much was said, never what), and the
+    // model-written one waits for End chat, leaving the site or a lead — so a visitor who flips tabs doesn't spend
+    // the summary quota.
     const useLlm =
       verified &&
-      data.reason !== "tab_hidden" &&
+      !pause &&
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"));
     const s = useLlm
-      ? await summarizeChat(req, sessionId, data.messages, undefined, data.conversationId)
-      : plainSummary(data.messages, verified ? "" : "Quick answers only. ");
+      ? await summarizeChat(req, sessionId, data.messages, data.conversationId)
+      : plainSummary(data.messages, pause ? "Chat paused (switched away). " : verified ? "" : "Quick answers only. ");
     const [chat, usage, firstEnd] = await Promise.all([
       addChat(sessionId, data.conversationId, data.messages.length, s),
       sessionUsage(req, sessionId),

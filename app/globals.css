@@ -177,16 +177,20 @@ body::after {
     opacity: 0;
   }
 }
-.pulse-dot {
-  position: relative;
-}
-.pulse-dot::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--accent);
-  animation: pulse-dot 2.2s ease-out infinite;
+/* In the components layer so a position utility on the same element still wins: outside any layer, this rule beat
+   Tailwind's `absolute` on the timeline dot of /experience, which dropped into the grid and broke the first role. */
+@layer components {
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--accent);
+    animation: pulse-dot 2.2s ease-out infinite;
+  }
 }
 
 @keyframes blink {

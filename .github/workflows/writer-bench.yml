@@ -1,7 +1,7 @@
 # Writer bench (evals/writer_bench.py): how a model does as the one that writes Dumbledore's answers, on the recruiter
-# cases and a spread of facts. It runs here because the Groq key lives only in these secrets and on Vercel. Manual, and
-# on pushes to a fix/ branch that touch the bench. It shares Groq's free quota with the site: two models use roughly
-# 80,000 tokens each of their 200,000 a day, so run it on a quiet day and not twice.
+# cases and a spread of facts. It runs here because the Groq key lives only in these secrets and on Vercel. Manual
+# only: it shares Groq's free quota with the site, and two models use nearly 100,000 tokens each of their 200,000 a
+# day (14 Nov 2026: 98,180 and 95,203), so run it on a quiet day and not twice.
 name: Writer bench
 
 on:
@@ -10,9 +10,6 @@ on:
       models:
         description: Model names from agent/llm.py, space-separated
         default: groq-qwen groq-120b
-  push:
-    branches: ["fix/**"]
-    paths: ["evals/writer_bench.py", ".github/workflows/writer-bench.yml"]
 
 permissions:
   contents: read

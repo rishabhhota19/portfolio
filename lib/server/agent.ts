@@ -1,6 +1,7 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
-import type { ChatMessage, Lead } from "@/lib/chat-types";
+import starters from "@/content/starters.json";
+import type { ChatMessage } from "@/lib/chat-types";
 import { ipHash } from "@/lib/server/request";
 import type { SessionRow } from "@/lib/server/sheets";
 
@@ -116,10 +117,25 @@ export type ChatSummary = {
   model: string;
 };
 
-/** Cheap fallback when the agent can't summarise: list what the visitor asked. */
+const QUICK_QUESTIONS = new Set(starters.map((s) => s.q));
+
+/** The summary when no model writes one: a tab switch, quick answers only, the summary budget spent, the agent down.
+ * It never repeats what the visitor typed, because the privacy page promises that only an AI-written summary of a
+ * chat is kept. It counts their messages and names the site's own quick questions they picked: matched against our
+ * list, not taken on the browser's word, so no typed text gets through as a "quick question". */
 export function plainSummary(messages: ChatMessage[], note = ""): ChatSummary {
-  const asked = messages.filter((m) => m.role === "user").map((m) => m.content.slice(0, 80));
-  return { summary: `${note}Visitor asked: ${asked.join("; ") || "nothing"}.`, topics: asked.slice(0, 6).join(", "), model: "none" };
+  const asked = messages.filter((m) => m.role === "user").map((m) => m.content);
+  const picked = [...new Set(asked.filter((q) => QUICK_QUESTIONS.has(q)))];
+  const typed = asked.length - asked.filter((q) => QUICK_QUESTIONS.has(q)).length;
+  const did = [
+    typed ? `typed ${typed} ${typed === 1 ? "message" : "messages"}` : "",
+    picked.length ? `picked ${picked.map((q) => `“${q}”`).join(", ")}` : "",
+  ].filter(Boolean);
+  return {
+    summary: `${note}Visitor ${did.join(" and ") || "sent nothing"}.${typed ? " No AI summary for this one, so their own words are not kept." : ""}`,
+    topics: picked.join(", "),
+    model: "none",
+  };
 }
 
 /** The summary is a model's JSON: every field becomes a short string (a list is joined), so nothing later can trip on it. */
@@ -131,13 +147,15 @@ function cleanSummary(raw: unknown, messages: ChatMessage[]): ChatSummary {
   return s.summary ? s : plainSummary(messages);
 }
 
-/** conversationId tells the agent the chat is over, so it deletes that conversation's working memory. */
-export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], lead?: Lead, conversationId = ""): Promise<ChatSummary> {
+/** A model's summary of the chat, and only of the chat: what a visitor types into "Share your details" never goes to
+ * a model (the lead route puts it in the row itself). conversationId tells the agent the chat is over, so it deletes
+ * that conversation's working memory. */
+export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], conversationId = ""): Promise<ChatSummary> {
   try {
     const res = await fetch(agentUrl(req, "summarize"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ messages, lead: lead ?? null, session_id: sessionId, conversation_id: conversationId }),
+      body: JSON.stringify({ messages, session_id: sessionId, conversation_id: conversationId }),
       signal: AbortSignal.timeout(30_000),
     });
     if (res.ok) return cleanSummary(await res.json(), messages);

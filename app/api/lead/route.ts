@@ -4,9 +4,9 @@ import { isBot } from "@/lib/server/bot";
 import { sendLeadEmail } from "@/lib/server/email";
 import * as events from "@/lib/server/events";
 import { ipHash, requestMeta, verifyChatToken } from "@/lib/server/request";
-import { addChat } from "@/lib/server/session";
+import { addChat, firstLog } from "@/lib/server/session";
 import { logSession } from "@/lib/server/sheets";
-import { allow, envNumber, firstTime, spendDailyBudget } from "@/lib/server/store";
+import { allow, envNumber, spendDailyBudget } from "@/lib/server/store";
 import { json, leadRequest } from "@/lib/server/validate";
 import { networkOf, whereAndDevice } from "@/lib/server/visitor";
 
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
     return json({ ok: false, error: "rate_limited", message: "Too many submissions — try again later." }, 429);
   }
 
-  // Closing the chat afterwards with no new messages shouldn't re-summarise.
-  await firstTime(`end:${data.conversationId}:${data.messages.length}`, 86_400);
+  // Closing the chat or switching tabs afterwards with no new messages shouldn't re-summarise.
+  await firstLog(data.conversationId, data.messages.length, false);
 
   const sessionId = data.sessionId ?? data.conversationId;
   const meta = requestMeta(req);
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       verifyChatToken(data.conversationId, data.token) &&
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"))
-        ? await summarizeChat(req, sessionId, data.messages, data.lead)
+        ? await summarizeChat(req, sessionId, data.messages) // the chat only: the form's details never go to a model
         : plainSummary(data.messages);
     // allSettled: the lead's dashboard record, Sheet row and email never fail because a side step (notes, usage) did.
     const [chatR, usageR, networkR] = await Promise.allSettled([
