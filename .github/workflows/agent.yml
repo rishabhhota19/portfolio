@@ -94,7 +94,7 @@ jobs:
         run: python -m evals.ragas_eval
         continue-on-error: true # the free judge model can rate-limit
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-results
