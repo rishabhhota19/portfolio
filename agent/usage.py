@@ -387,3 +387,29 @@ async def session(session_id: str) -> tuple[dict[str, int], dict[str, int]]:
         except Exception as err:
             print(f"[usage] redis read failed, using memory: {err}")
     return dict(_hashes.get(key, {})), dict(_hashes.get(models, {}))
+
+
+# ── named counters kept together (the judge's shadow tallies) ───────────────
+
+TALLY = "for i = 2, #ARGV, 2 do redis.call('HINCRBY', KEYS[1], ARGV[i], ARGV[i + 1]) end redis.call('EXPIRE', KEYS[1], ARGV[1]) return 1"
+
+
+async def tally(key: str, counts: dict[str, int], ttl: int = 40 * 86400) -> None:
+    """Adds to several named counters under one key: one Redis command however many counters."""
+    if not counts:
+        return
+    if await _run(TALLY, [key], [ttl, *[v for name, amount in counts.items() for v in (name, amount)]]) is None:
+        bucket = _hashes.setdefault(key, {})
+        for name, amount in counts.items():
+            bucket[name] = bucket.get(name, 0) + amount
+
+
+async def tallies(key: str) -> dict[str, int]:
+    """The counters under `key`, as `tally` left them."""
+    redis = _client()
+    if redis:
+        try:
+            return {k: int(v) for k, v in (await redis.hgetall(key) or {}).items()}
+        except Exception as err:
+            print(f"[usage] redis read failed, using memory: {err}")
+    return dict(_hashes.get(key, {}))

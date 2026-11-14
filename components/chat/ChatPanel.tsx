@@ -82,6 +82,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
   const [announce, setAnnounce] = useState(""); // what a screen reader hears: each finished answer once, not every streamed line
   const [chatRun, setChatRun] = useState(0); // counts chats in this tab, so each new one streams the greeting again
   const [greeted, setGreeted] = useState(false);
+  const [cut, setCut] = useState(false); // the last paste was longer than one message may be, and was cut to fit
 
   const conversation = useRef<{ id: string; startedAt: string } | null>(null);
   const token = useRef<string | null>(null);
@@ -268,6 +269,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         track("chat_question", { page: currentPage() }); // never the question text
       }
       setInput("");
+      setCut(false);
       wake(); // a retry while resting: this answer decides the status now
       setStatus("waiting");
       const replyId = retryOf ?? append({ role: "assistant", content: "" });
@@ -588,7 +590,10 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             id="agent-input"
             ref={inputRef}
             value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, LIMITS.maxMessageChars))}
+            onChange={(e) => {
+              setCut(e.target.value.length > LIMITS.maxMessageChars); // a paste longer than a message may be
+              setInput(e.target.value.slice(0, LIMITS.maxMessageChars));
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -608,6 +613,13 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             {busy ? "…" : "Send"}
           </button>
         </form>
+        {input.length >= LIMITS.maxMessageChars * 0.8 ? (
+          // Shown only near the limit: a long paste (a job description) must never be cut without a word.
+          <p className="label mt-2 text-right !text-[0.62rem]" aria-live="polite">
+            {cut ? `Cut to fit: check the must-haves are still there · ` : ""}
+            {input.length.toLocaleString("en-IN")} / {LIMITS.maxMessageChars.toLocaleString("en-IN")}
+          </p>
+        ) : null}
         <p className="mt-2 text-[0.68rem] leading-snug text-muted">
           This chat lives only in this tab; ending it or leaving the site deletes it. A short summary is kept so Rishabh can
           follow up.

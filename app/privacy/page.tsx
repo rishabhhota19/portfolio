@@ -31,8 +31,9 @@ export default function PrivacyPage() {
         <h2>If you chat with the agent (Dumbledore)</h2>
         <p>
           Your messages go to the free AI services that power the agent: Cloudflare Workers AI turns each question into
-          numbers to find the relevant parts of this site, and one model on Groq, NVIDIA&apos;s API catalog, Google
-          Gemini, Cloudflare Workers AI or OpenRouter writes the answer. They are not stored by this site. While a chat is open, the agent keeps a short
+          numbers to find the relevant parts of this site, a small Cloudflare model reads the message to tell what kind
+          of question it is, and one model on Groq, NVIDIA&apos;s API catalog, Google Gemini, Cloudflare Workers AI or
+          OpenRouter writes the answer. They are not stored by this site. While a chat is open, the agent keeps a short
           working memory of it (the topics you asked about and which pages answered them, not your messages) for up to
           two hours, so it can follow the conversation; it is deleted when the chat ends. Answers to common first
           questions are cached for a day, keyed by a one-way hash of the question, never the question itself. When the

@@ -34,7 +34,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph, add_messages
 
-from . import cache, embeddings, guard, llm, memory as session, pages, research, router, scope as gate2, usage
+from . import cache, embeddings, guard, judge, llm, memory as session, pages, research, router, scope as gate2, usage
 from .difficulty import difficulty
 from .prompts import system_prompt
 from .rag import rerank, search
@@ -100,9 +100,12 @@ def say(text: str, intent: str, started: float, name: str, **extra) -> dict:
 async def route(state: State) -> dict:
     started = time.perf_counter()
     question = last_question(state)
-    intent = guard.classify(question, fresh(state))
-    if intent in guard.REFUSED:
+    intent = guard.classify(question)
+    rescue = intent in guard.REFUSED and await rescued()
+    if intent in guard.REFUSED and not rescue:
         return say(guard.reply_for(intent), "refused", started, "route", why=f"rules:{intent}")
+    if rescue:
+        intent = "question"  # the judge is sure this is about him: a keyword's refusal is set aside
     if intent != "question":
         return say(guard.reply_for(intent), intent, started, "route")
 
@@ -116,7 +119,8 @@ async def route(state: State) -> dict:
     if fresh(state) and (hit := await cache.get(question)):
         return say(hit["text"], "cached", started, "route", model="cache", actions=actions or link_actions(hit["links"]))
     level = difficulty(question, len(state["messages"]) - 1)
-    return {"intent": "question", "level": level, "actions": actions, "trace": step("route", started, intent=intent, level=level)}
+    return {"intent": "question", "level": level, "actions": actions, **({"why": "judge:rescued"} if rescue else {}),
+            "trace": step("route", started, intent=intent, level=level, rescued=rescue)}
 
 
 # ── 2. retrieve + 3. scope (Gate 2) + 4. rerank ─────────────────────────────
@@ -141,12 +145,14 @@ async def scope(state: State) -> dict:
         # A follow-up ("give me the link of the paper") leans on the chat: refuse it only if it's off-topic on its
         # own AND together with the previous question.
         in_scope, gap = gate2.judge(last_question(state, turns=2), state["context_vector"], relevance, follow_up=True)
-    if not in_scope:
+    rescue = not in_scope and await rescued()
+    if not in_scope and not rescue:
         return say(guard.REFUSAL, "refused", started, "scope", why=f"scope:{gap}")
     if fresh(state) and (hit := cache.from_bank(state.get("vector"))):
         links = link_actions(hit["links"], skip=state.get("actions", []))
         return say(hit["text"], "bank", started, "scope", model="bank", actions=state.get("actions", []) + links)
-    return {"trace": step("scope", started, gap=gap)}
+    judge.ask()  # a model will answer this turn: the judge reads it meanwhile (its verdict is in before the first words)
+    return {**({"why": "judge:rescued"} if rescue else {}), "trace": step("scope", started, gap=gap, rescued=rescue)}
 
 
 async def rerank_docs(state: State) -> dict:
@@ -176,10 +182,41 @@ async def remember(state: State, config: RunnableConfig) -> dict:
     started = time.perf_counter()
     thread = (config.get("configurable") or {}).get("thread_id") or ""
     mem: session.Memory = state.get("memory") or session.Memory()
+    if state.get("intent") == "care":  # nothing a visitor in distress wrote is kept, not even for the two hours
+        return {"trace": step("remember", started, turns=mem.turns, points=len(mem.points), saved=False)}
     mem.remember(last_question(state), research.turn_points(state), (state.get("usage") or {}).get("tokens_counted", 0))
     if thread:
         await session.save(thread, mem)
     return {"memory": mem, "trace": step("remember", started, turns=mem.turns, points=len(mem.points), saved=bool(thread))}
+
+
+
+
+async def rescued() -> bool:
+    """Today's rules are about to refuse this message. The judge is asked either way (so the two can be compared, and
+    so it can spot a visitor in distress); with JUDGE=rescue, when it is sure the message is about him, the refusal
+    is set aside and the turn goes on to a model. "I'd kill for a candidate like him, is he available?" was refused
+    on the word "kill" while the judge read it as a hiring question at 0.83 (14 Nov 2026)."""
+    judge.ask()
+    if not judge.rescues():
+        return False
+    verdict = await judge.verdict(judge.REFUSAL_WAIT)
+    return bool(verdict and verdict.about_him)
+
+
+async def second_look(state: State, reply: str) -> str:
+    """Did the writer turn away something it should have answered? "" for no; otherwise which note the second opinion
+    carries (prompts.SECOND_OPINION): "sure" when the judge has read the message, "soft" on a hint alone."""
+    verdict = await judge.verdict() if guard.is_refusal(reply) or guard.is_care(reply) else None
+    if guard.is_care(reply):  # the judge is the better reader of distress: where it has answered, it decides
+        return "sure" if verdict and verdict.calm and verdict.about_him else "soft" if verdict and verdict.calm else ""
+    if not guard.is_refusal(reply):
+        return ""
+    if verdict and verdict.about_him:
+        # Recruiters also write "What is the notice period?", which names nobody: small models refused it, and with
+        # only the hint below it got no second look at all (14 Nov 2026).
+        return "sure"
+    return "soft" if re.search(guard.ABOUT_HIM_OR_SITE, last_question(state), re.I) else ""
 
 
 def fallback_answer(state: State) -> str:
@@ -210,7 +247,7 @@ async def respond(state: State) -> dict:
     history = state["messages"][-keep:]
     docs = research.evidence(state, tier.chunks)  # this turn's evidence first, then the first search, then the rest
 
-    def prompt_for(m: llm.FreeModel, second_opinion: bool = False):
+    def prompt_for(m: llm.FreeModel, second_opinion: str = ""):
         """Context shifting: the level's chunks and turns, trimmed (older turns first, then chunks) until it fits m."""
         for chunks in sorted({tier.chunks, min(tier.chunks, 4), 2}, reverse=True):
             system, turns = SystemMessage(system_prompt(docs[:chunks], second_opinion, notes, level)), list(history)
@@ -227,11 +264,14 @@ async def respond(state: State) -> dict:
     brief, show = "", ""
     if answers[0]:
         brief, show, answers[0].text = guard.read_brief(answers[0].text)
-    if answers[0] and guard.is_refusal(answers[0].text) and re.search(guard.ABOUT_HIM_OR_SITE, last_question(state), re.I):
-        # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?").
-        # The question already passed Gates 1–2, so ask a *different* model once, with a note; Gate 4 still applies.
-        others = [m for m in llm.candidates(level) if m.name != answers[0].model]
-        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=True)):
+    if answers[0] and (look := await second_look(state, answers[0].text)):
+        # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?"), or
+        # take a figure of speech for distress. The question already passed Gates 1–2, so ask a *different* model
+        # once, with a note; Gate 4 still applies. It comes from the level above: a model of the same size refuses the
+        # same question ("What is the notice period?" was turned down by both small writers, 14 Nov 2026).
+        stronger = {"L1": "L2", "L2": "L3"}.get(level, level)
+        others = [m for m in llm.candidates(stronger) if m.name != answers[0].model]
+        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look)):
             brief, show, retry.text = guard.read_brief(retry.text)
             answers.append(retry)
     answer = answers[-1]
@@ -268,6 +308,9 @@ async def check(state: State) -> dict:
     if last.type != "ai":  # no model answered (respond returned model "none")
         return {}
     text = last.content
+    if guard.is_care(text):  # the writer saw a visitor in distress (prompts.py rule 10): the reply is ours, word for word
+        return {"messages": [AIMessage(guard.CARE, id=last.id)], "intent": "care", "why": "prompt:care", "actions": [],
+                "trace": step("check", started, care=True)}
     if why := guard.check(text):  # code or leaked instructions: replace the whole answer
         return {"messages": [AIMessage(guard.REFUSAL, id=last.id)], "intent": "refused", "why": f"output:{why}",
                 "trace": step("check", started, blocked=why)}

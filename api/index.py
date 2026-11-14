@@ -23,10 +23,10 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from pydantic import BaseModel, Field
 
-from agent import memory as session_memory, usage
+from agent import judge, memory as session_memory, usage
 from agent.config import env
 from agent.graph import RECENT_CHAT, WARM_EVERY, agent, warm_prefix_cache
-from agent.guard import BriefReader, StreamGuard
+from agent.guard import CARE, BriefReader, StreamGuard
 from agent.pages import shown_page
 from agent.summarize import summarize
 
@@ -186,6 +186,7 @@ async def warm(src: str = "", x_warm_key: str | None = Header(None)):
                 await local.embed(["warm"])  # loads the ONNX model and runs it once
         except Exception as err:  # best-effort: a chat still loads anything missing itself
             print(f"[warm] failed: {type(err).__name__}")
+    await judge.warm()  # opens the judge's connection ahead of the first question; asks the model nothing
     prefix_cache: list[str] = []
     if src == "cron":
         try:
@@ -212,6 +213,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
     check_secret(x_agent_secret)
     usage.CALLER.set((x_caller or "")[:64])  # the visitor's network (hashed): fair shares and failure counting
     usage.DEADLINE.set(time.monotonic() + 45)  # the function is stopped at 60 s; leave time to finish the stream
+    turn = judge.begin([m.model_dump() for m in req.messages])  # None unless JUDGE=shadow; nothing is sent yet
     # Starter quick answers (shown by the browser, not written by the agent) are marked, so a question typed after
     # them still counts as the start of the conversation (graph.fresh).
     history = [(HumanMessage if m.role == "user" else AIMessage)(m.content, additional_kwargs={"starter": True} if m.starter else {})
@@ -227,9 +229,22 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         call = None  # the LLM call being streamed
         live = True  # False once a call broke off mid-answer: the next model's answer is then sent whole, at the end
         final = None  # the answer as the graph finished it (after the output guard)
+        care: bool | None = None  # the judge's answer to "is this visitor in distress?", once it has been asked
+
+        async def distress(wait: float = judge.WAIT) -> bool:
+            """Asked just before anything is shown. The judge was asked when the turn left the gates, and a model's
+            first words take longer than its verdict, so this seldom waits. Until a verdict is in, the answer is no."""
+            nonlocal care
+            if care is None and turn:
+                verdict = await turn.verdict(wait)
+                if verdict is not None:
+                    care = verdict.distress
+            return bool(care)
+
         # The conversation id is the agent's thread: its memory (agent/memory.py) follows it across turns and servers.
-        async for mode, data in agent.astream({"messages": history}, stream_mode=["messages", "updates"],
-                                              config={"configurable": {"thread_id": req.conversation_id}}):
+        run = agent.astream({"messages": history}, stream_mode=["messages", "updates"],
+                            config={"configurable": {"thread_id": req.conversation_id}})
+        async for mode, data in run:
             if mode == "messages":  # LLM tokens, as they are generated
                 chunk, meta = data
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
@@ -241,6 +256,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                         else:
                             output = StreamGuard()
                     body = brief.push(chunk.text)
+                    if (body or brief.show) and await distress():
+                        break  # nothing a model wrote is shown to a visitor in distress
                     if brief.show and not moved and not output.sent and not any(a["type"] == "navigate" for a in result.get("actions", [])):
                         if shown := shown_page(brief.show):
                             moved = shown["path"]
@@ -255,6 +272,15 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                     result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions", "economy") if k in update})
                     if update.get("messages"):
                         final = update["messages"][-1].content
+        if care:
+            await run.aclose()  # stops the writer: its answer will not be used
+        elif await distress(judge.REFUSAL_WAIT if result.get("intent") == "refused" else judge.WAIT):
+            pass  # a refusal, or an answer that arrived whole and not as a stream, was about to go to someone in distress
+        if care:  # the reply is ours, word for word: no page, no links, nothing a model wrote
+            result.update({"intent": "care", "why": "judge:distress", "model": "router", "actions": []})
+            final = CARE
+        if result.get("intent") == "care":  # the judge's verdict or the writer's own signal (graph.check)
+            live = False  # whatever the stream guard holds is not for the visitor
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
         print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}, default=str))
         if result.get("model") == "none":
@@ -284,6 +310,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
             await usage.add_to_session(req.session_id, counts, model=result.get("model", "") if result.get("usage") else "")
         if result.get("usage"):  # a model answered: worth keeping Groq's prefix cache warm for the next question
             await usage.mark(RECENT_CHAT, WARM_EVERY)
+        if judged := await judge.record(turn, result):  # counts only: the verdict beside what the gates did
+            print(json.dumps({"event": "judge", "conversation": req.conversation_id, "gates": judge.gates_said(result), **judged}))
 
     stream = events()
     first = await anext(stream, None)  # wait for the first event so "all models down" becomes a clean 503

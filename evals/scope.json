@@ -147,5 +147,15 @@
   { "set": "tuned", "expect": "answer", "cat": "greeting + question", "intent": "question", "q": "hello, what has he built?" },
   { "set": "held-out", "expect": "answer", "cat": "greeting + question", "intent": "question", "q": "hi there, is he open to remote work?" },
   { "set": "held-out", "expect": "answer", "cat": "greeting + question", "intent": "question", "q": "yo what projects has he done" },
-  { "set": "held-out", "expect": "answer", "cat": "borderline", "intent": "question", "q": "hyderabad?" }
+  { "set": "held-out", "expect": "answer", "cat": "borderline", "intent": "question", "q": "hyderabad?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What are the projects?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What are the key skills?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What's the tech stack?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What's the total experience?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What is the highest qualification?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What are the main achievements?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What is the day rate for consulting?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "Who is this guy?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "What are the publications?" },
+  { "set": "tuned", "expect": "answer", "cat": "plain first message", "q": "Where is the resume?" }
 ]

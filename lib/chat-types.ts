@@ -50,7 +50,10 @@ export type VisitRequest = {
 };
 
 export const LIMITS = {
-  maxMessageChars: 500,
+  // A visitor's message. It was 500, which cut a pasted job description, the most useful thing a recruiter sends,
+  // part-way through and without a word. 2,500 holds a full posting (about 600 tokens); the chat shows a counter
+  // near the limit and says so when a paste was cut.
+  maxMessageChars: 2500,
   maxAnswerChars: 3000, // an answer as sent back as history (the longest real answer is ~600 tokens)
   maxHistory: 12, // messages sent to the model per turn
   maxHistoryChars: 20_000, // all of them together

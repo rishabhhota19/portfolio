@@ -54,6 +54,9 @@ jobs:
       - name: Navigation (rules, no API calls)
         run: python -m evals.navigation_eval
 
+      - name: Judge wiring (the care reply, the second opinion, the rescue; scripted, no API calls)
+        run: python -m evals.judge_eval
+
       - name: Groq smoke test (2 questions, ~1% of each model's daily quota)
         # The only step with the Groq key: it shares the site's quota, so the full evals below never use Groq.
         env:

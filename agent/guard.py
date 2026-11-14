@@ -19,6 +19,23 @@ from .pages import PAGES, PATHS, SECTIONS
 REFUSAL = ("I'll have to pass on that one: I only answer questions about Rishabh's work — his projects, research, "
            "experience and fit for a role.")
 
+# A visitor who seems to be in real distress gets this, whole and unchanged, whoever noticed: the judge (judge.py) or
+# the writer, which answers with CARE_MARK alone (prompts.py rule 10). No model writes it and nothing is added to it:
+# no page, no link, no next step. It goes out as it is, so the output check's number filter never touches the helpline.
+# Checked 14 Nov 2026: Tele-MANAS (14416) is the Government of India's free helpline, open all hours, in 20 languages;
+# findahelpline.com is the directory the International Association for Suicide Prevention points to.
+CARE = ("I'm sorry you're going through this. I'm only an AI that knows Rishabh's work, so I can't be the help you need, "
+        "but you deserve real support right now. In India, Tele-MANAS is free and open day and night: call 14416. "
+        "Anywhere else, findahelpline.com lists a helpline for your country. If you are in immediate danger, please call "
+        "your local emergency number or reach out to someone near you.")
+CARE_MARK = "CARE"
+
+
+def is_care(answer: str) -> bool:
+    """The writer's one-word signal, allowing for the dressing a model may put round it."""
+    return answer.strip(" \n*_`.!\"'").upper() == CARE_MARK
+
+
 CANNED = {
     "injection": "My instructions stay as they are, I'm afraid. Ask me anything about Rishabh's work — his projects, research or experience.",
     "contact": f"You can email him at **{SITE['email']}** or message him on [LinkedIn]({SITE['linkedin']}). He doesn't share a phone number or address here — or tap **Share your details** below and he'll get back to you.",
@@ -31,7 +48,6 @@ CANNED = {
 
 ABOUT_HIM = r"\b(he|his|him|rishabh'?s?)\b"
 ABOUT_HIM_OR_SITE = r"\b(he|his|him|rishabh'?s?|this (site|website|chat|chatbot|bot|agent|portfolio))\b"
-ABOUT = r"\b(he|his|him|rishabh'?s?|you|your|this (site|chat|bot|agent|portfolio))\b"  # the question is about him (or me)
 # "hi", "hy", "hii", "heyy", "helo", "hlo", "hai", "yo", "sup", "namaste", "good morning"… as visitors actually type them
 GREETING = r"(h+[iy]+|hiya|hel+o+|hlo|hai|hey+|yo|sup|what'?s up|namaste|namaskar|hola|good (morning|afternoon|evening|day|night))"
 REQUEST = (r"(^|[.,;:!?]\s*|\b(can|could|would|will) you\s+|\bplease\s+)((now|then|ok|okay|so|also|and|cool),?\s+)?"
@@ -67,9 +83,11 @@ RULES = {  # checked in this order; the first match wins
     # the whole message is the greeting (maybe twice, maybe addressed to someone); "hi, has he used LangGraph?" is a question
     "greeting": rf"^\s*{GREETING}([\s,!.]+{GREETING})?(,?\s*(there|dumbledore|sir|ma'?am|rishabh|bot|agent|everyone|team|all))?[\s!.,]*$",
 }
-# A first message that asks a general question ("what is…", "explain…") without mentioning him, me or any page.
-GENERAL = r"^\s*(please\s+)?(explain|define|what is|what are|what's|whats|how does|how do|how to|who is|who was|who won|where is|when (is|was)|why (is|do|does))\b"
-REFUSED = {"harmful", "injection", "personal", "off_topic", "general"}
+# There is no "general question" rule any more. It refused a first message that began "what is", "what are", "how to"
+# and named neither him nor a page: that is how recruiters write ("What are the key skills?", "What is the notice
+# period?"), and 15 of 18 such questions were turned away before any model saw them (14 Nov 2026). What a question is
+# about is for Gate 2 and the models to judge.
+REFUSED = {"harmful", "injection", "personal", "off_topic"}
 
 
 def names_a_page(text: str) -> bool:
@@ -77,13 +95,11 @@ def names_a_page(text: str) -> bool:
     return any(re.search(rf"(?<![a-z0-9]){re.escape(w)}(?![a-z0-9])", t) for p in PAGES for w in p["names"] | p["words"])
 
 
-def classify(text: str, first_turn: bool = True) -> str:
+def classify(text: str) -> str:
     """Gate 1. Returns an intent: one of REFUSED, a canned one (contact, identity, thanks, greeting), or "question"."""
     for intent, pattern in RULES.items():
         if re.search(pattern, text, re.I):
             return intent
-    if first_turn and re.search(GENERAL, text, re.I) and not re.search(ABOUT, text, re.I) and not names_a_page(text):
-        return "general"
     return "question"
 
 
@@ -229,6 +245,8 @@ class StreamGuard:
         start = self.raw.lstrip()
         if not self.sent and (REFUSAL.startswith(start) or start.startswith(REFUSAL[:40])):
             return []  # looks like the refusal: it's sent whole at the end (or replaced by a second opinion)
+        if not self.sent and (word := start.strip(" \n*_`.!\"'")) and CARE_MARK.startswith(word):
+            return []  # may be the writer's care signal: the visitor must see the care reply, never the signal
         ends = [m.end() for m in self.BOUNDARY.finditer(self.raw)]
         cut = next((e for e in reversed(ends) if e > self.cut and self._balanced(self.raw[:e])), 0)
         return self._release(cut) if cut else []
