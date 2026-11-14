@@ -9,6 +9,7 @@ import starters from "@/content/starters.json";
 import {
   CHAT_TOKEN_HEADER,
   LIMITS,
+  clip,
   newestWithin,
   type ChatMessage,
   type EndReason,
@@ -108,7 +109,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       .filter((m) => m.kind !== "notice" && m.content.trim())
       .map(({ role, content, kind }) => ({
         role,
-        content: content.slice(0, role === "user" ? LIMITS.maxMessageChars : LIMITS.maxAnswerChars),
+        content: clip(content, role === "user" ? LIMITS.maxMessageChars : LIMITS.maxAnswerChars),
         ...(kind === "starter" ? { starter: true } : {}),
       }));
 
@@ -126,7 +127,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       messages: newestWithin(
         transcript(messagesRef.current)
           .slice(-LIMITS.maxLoggedMessages)
-          .map((m) => ({ ...m, content: m.content.slice(0, LIMITS.maxLoggedChars) })),
+          .map((m) => ({ ...m, content: clip(m.content, LIMITS.maxLoggedChars) })),
         LIMITS.maxLoggedTotalChars,
       ),
     };
@@ -248,7 +249,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
   const ask = useCallback(
     // retryOf: a failed reply's id — the same question goes again and that reply is reused, so nothing shows twice.
     async (raw: string, retryOf?: string) => {
-      const text = raw.trim().slice(0, LIMITS.maxMessageChars);
+      const text = clip(raw.trim(), LIMITS.maxMessageChars);
       if (!text || status === "waiting" || status === "streaming") return;
 
       const userCount = messagesRef.current.filter((m) => m.role === "user").length;
@@ -592,7 +593,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             value={input}
             onChange={(e) => {
               setCut(e.target.value.length > LIMITS.maxMessageChars); // a paste longer than a message may be
-              setInput(e.target.value.slice(0, LIMITS.maxMessageChars));
+              setInput(clip(e.target.value, LIMITS.maxMessageChars));
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -613,13 +614,17 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             {busy ? "…" : "Send"}
           </button>
         </form>
-        {input.length >= LIMITS.maxMessageChars * 0.8 ? (
-          // Shown only near the limit: a long paste (a job description) must never be cut without a word.
-          <p className="label mt-2 text-right !text-[0.62rem]" aria-live="polite">
-            {cut ? `Cut to fit: check the must-haves are still there · ` : ""}
-            {input.length.toLocaleString("en-IN")} / {LIMITS.maxMessageChars.toLocaleString("en-IN")}
-          </p>
-        ) : null}
+        {/* Shown only near the limit: a long paste (a job description) must never be cut without a word. The notice
+            sits in a region that is always there, so a screen reader announces it when it appears; the running count
+            is for the eye only, or it would be read out on every keystroke. */}
+        <p className={`label text-right !text-[0.62rem] ${cut || input.length >= LIMITS.maxMessageChars * 0.8 ? "mt-2" : "sr-only"}`}>
+          <span aria-live="polite">{cut ? "Cut to fit: check the must-haves are still there · " : ""}</span>
+          {input.length >= LIMITS.maxMessageChars * 0.8 ? (
+            <span aria-hidden>
+              {input.length.toLocaleString("en-IN")} / {LIMITS.maxMessageChars.toLocaleString("en-IN")}
+            </span>
+          ) : null}
+        </p>
         <p className="mt-2 text-[0.68rem] leading-snug text-muted">
           This chat lives only in this tab; ending it or leaving the site deletes it. A short summary is kept so Rishabh can
           follow up.

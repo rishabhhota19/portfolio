@@ -92,7 +92,13 @@ def split_points(question: str) -> list[str]:
         if (3 <= len(p) <= 70 and re.search(r"[a-z]{3}", p, re.I) and not NOT_A_POINT.match(p) and not re.match(r"\d|not\b", p, re.I)
                 and p.lower() not in {q.lower() for q in points}):  # "4+ years…": the profile has his years; "not quarters": no point
             points.append(p)
-    return points[:LIST_SEARCHES]
+    if len(points) > LIST_SEARCHES:
+        # A full posting has more points than are searched. Taken evenly across it, not from the top: the must-haves
+        # of a posting come after its company blurb, and the first 14 points of a 2,300-character one all sat in its
+        # first 600 characters.
+        step = len(points) / LIST_SEARCHES
+        points = [points[int(i * step)] for i in range(LIST_SEARCHES)]
+    return points
 
 
 MODIFIERS = {  # words a requirement is wrapped in, not the requirement itself ("strong Python", "hands-on RAG experience")
@@ -165,7 +171,7 @@ async def plan(state: dict) -> dict:
         known = memory.notes() or "(nothing yet)"
         human = (f"ALREADY FOUND in this chat:\n{known}\n\n"
                  + (f"Earlier question: {asked[-2][:300]}\n" if len(asked) > 1 else "")
-                 + f"Question now: {asked[-1][:1200]}")
+                 + f"Question now: {asked[-1][:2500]}")
         planner = [SystemMessage(RESEARCH), HumanMessage(human)]
     else:
         planner = list(state.get("planner") or [])

@@ -105,8 +105,20 @@ def names_a_page(text: str) -> bool:
     return any(re.search(rf"(?<![a-z0-9]){re.escape(w)}(?![a-z0-9])", t) for p in PAGES for w in p["names"] | p["words"])
 
 
+RULES_UP_TO = 500  # characters: the longest message that could reach these rules before 14 Nov 2026
+
+
 def classify(text: str) -> str:
-    """Gate 1. Returns an intent: one of REFUSED, a canned one (contact, identity, thanks, greeting), or "question"."""
+    """Gate 1. Returns an intent: one of REFUSED, a canned one (contact, identity, thanks, greeting), or "question".
+
+    A message longer than RULES_UP_TO is always a "question". The lists were written and tested for one-line
+    messages (no eval case is over 410 characters), and a pasted job description holds their words in ordinary
+    senses: "system prompt design", "act as the technical lead", "write production code", "fraud", "passwords".
+    When the message limit went from 500 to 2,500, 16 of 18 such posting lines got a whole posting refused. Longer
+    messages are new, so nothing that was refused before is let through now; Gate 2, the writer's own rules and
+    the output check still apply to them, and the lists themselves go when the judge is trusted."""
+    if len(text) > RULES_UP_TO:
+        return "question"
     for intent, pattern in RULES.items():
         if re.search(pattern, text, re.I):
             return intent

@@ -23,7 +23,12 @@ from fastapi.testclient import TestClient  # noqa: E402
 from langchain_core.messages import HumanMessage  # noqa: E402
 
 import api.index as api  # noqa: E402
-from agent import graph, guard, judge, prompts, router, usage  # noqa: E402
+from agent import graph, guard, judge, llm, prompts, router, usage  # noqa: E402
+
+# The writer is scripted, so which provider keys this machine has must not matter: each level gets its own stand-in
+# model. (With no key at all the pools were empty and the first check crashed; with only one provider's key two levels
+# started with the same model and a check about "the level above" failed for the wrong reason.)
+llm.candidates = graph.llm.candidates = lambda level: [llm.FreeModel("groq", f"scripted-{level}")]
 
 KINDS = ("his_work", "hiring_contact", "about_him_task", "wants_page", "conversational", "general_knowledge",
          "task_for_visitor", "private_life", "attack", "distress")
@@ -191,6 +196,7 @@ def stream_checks() -> None:
 
     r = stream("what has he built with agents, i feel hopeless about everything", verdict("distress", 0.9), "**He built the Collaterals Agent.**")
     check("endpoint: distress on a turn a model would answer gets the care reply too", r["text"] == guard.CARE, r["text"])
+    check("…and that turn's page link is dropped: no page move, no links", not {"navigate", "links"} & r["kinds"], r["kinds"])
 
     from agent import memory as session_memory
 
@@ -206,9 +212,35 @@ def stream_checks() -> None:
     check("the verdicts are tallied as counts", day.get("asked", 0) >= 3 and any(k.startswith("care|") for k in day), day)
 
 
+POSTING = """Is he a fit for this role?
+
+Senior AI Engineer, Agents. About us: we build developer tools used by 4,000 teams. What you will do: design, build and
+ship LLM agents end to end. You will write production code in Python and act as the technical lead for a team of three.
+Prompt engineering: system prompt design, evaluation and jailbreak testing. Own guardrails against fraud and abuse.
+Must have: 3+ years in machine learning; Python; PyTorch; LangGraph or a similar agent framework; retrieval and vector
+databases; fine-tuning with LoRA; evaluation with RAGAS; AWS. Nice to have: medical imaging, published research,
+experience mentoring. We offer comprehensive health cover, a learning budget and a hybrid week in Bengaluru."""
+
+
+def long_message_checks() -> None:
+    """The message limit went from 500 to 2,500 characters. A pasted posting must not be turned away by keyword lists
+    written for one-line questions, and all of it must be searched, not its first quarter."""
+    from agent import research
+
+    check("a full job posting is a question, whatever words it holds", len(POSTING) > guard.RULES_UP_TO and guard.classify(POSTING) == "question", guard.classify(POSTING))
+    short = "Prompt engineering: system prompt design, evaluation and jailbreak testing."
+    check("the same words in a one-line message still meet the rules, as before", guard.classify(short) in guard.REFUSED, guard.classify(short))
+    points = research.split_points(POSTING)
+    late = [p for p in points if any(word in p for word in ("PyTorch", "LangGraph", "LoRA", "RAGAS", "AWS", "vector"))]
+    check("a long posting's must-haves are among the points searched", len(points) <= research.LIST_SEARCHES and len(late) >= 3, points)
+    few = research.split_points("Is he a fit? Must: Python, RAG, LangGraph, AWS. Nice: PyTorch.")
+    check("a short list is searched point by point, in order, as before", few[:2] == ["Python", "RAG"] and len(few) == 5, few)
+
+
 def main() -> int:
     asyncio.run(graph_checks())
     stream_checks()
+    long_message_checks()
     print(f"\njudge wiring: {'all pass' if not failures else str(len(failures)) + ' FAILED'}")
     return 1 if failures else 0
 

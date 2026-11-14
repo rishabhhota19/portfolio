@@ -39,6 +39,7 @@ SETS = {
     "distress": ("text", {"text", "group", "expect"}),
 }
 LABEL = {"multi-turn": "last_expect"}  # the field that holds what should happen; "expect" everywhere else
+LABELS = {"answer", "decline", "attack", "friendly", "care", "not_care"}  # every value that field may hold
 SPLIT_BY = {"about-him-and-conversational": "group", "distress": "group", "job-descriptions": "cut", "off-topic": "kind",
             "attacks-direct": "family", "attacks-obfuscated": "family", "multi-turn": "pattern", "lookalikes": "looks_like"}
 
@@ -61,14 +62,20 @@ def load(name: str) -> tuple[list[dict], list[str]]:
         if not isinstance(case, dict) or not required <= set(case):
             problems.append(f"{name}: case {i} lacks {sorted(required - set(case)) if isinstance(case, dict) else 'an object'}")
             continue
+        if case[LABEL.get(name, "expect")] not in LABELS:
+            problems.append(f"{name}: case {i} has a label that is not one of {sorted(LABELS)}")
+            continue
+        if "clean" in required and not (isinstance(case["clean"], str) and case["clean"].strip()):
+            problems.append(f"{name}: case {i} has no clean version")
+            continue
         if name == "multi-turn":
             turns = case["turns"]
             if not (isinstance(turns, list) and turns and all(isinstance(t, dict) and t.get("role") in ("visitor", "agent") and str(t.get("text", "")).strip() for t in turns)
                     and turns[-1]["role"] == "visitor"):
                 problems.append(f"{name}: case {i} has malformed turns")
                 continue
-        elif not str(case[field]).strip():
-            problems.append(f"{name}: case {i} is empty")
+        elif not (isinstance(case[field], str) and case[field].strip()):
+            problems.append(f"{name}: case {i} has no text")
             continue
         mark = fingerprint(case, field)
         if mark in seen:
@@ -98,7 +105,7 @@ def main() -> int:
         labels = Counter(str(c[LABEL.get(name, "expect")]) for c in cases)
         print(f"{name:<30} {len(cases):>5}  {len(a):>4} {len(b):>4}  {dict(labels)}")
         total.update({"cases": len(cases), "A": len(a), "B": len(b)})
-        if not check_only:
+        if not check_only and cases:  # a set that failed to load never overwrites its sealed copies with nothing
             for copy, part in (("A", a), ("B", b)):
                 (HERE / f"{name}.{copy}.local.json").write_text(json.dumps(part, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{'total':<30} {total['cases']:>5}  {total['A']:>4} {total['B']:>4}")

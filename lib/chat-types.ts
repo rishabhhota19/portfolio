@@ -63,6 +63,15 @@ export const LIMITS = {
   maxLoggedTotalChars: 16_000,
 } as const;
 
+/** The first `max` characters of `text`, never ending on the first half of an emoji or other two-unit character. A
+ * plain slice can leave one: the agent then rejects the string as broken, the chat reports a rest, and every later
+ * question fails too, because that message rides along in the history. */
+export function clip(text: string, max: number): string {
+  const cut = text.slice(0, max);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
+}
+
 /** The newest messages whose combined length fits `maxChars` (the oldest are dropped first). */
 export function newestWithin<T extends { content: string }>(list: T[], maxChars: number): T[] {
   let total = 0;
