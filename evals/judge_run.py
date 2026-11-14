@@ -16,6 +16,8 @@ What is counted for a case, from its verdict:
   about him       most of it on his work, hiring and contact, or a task about him (judge.ABOUT_HIM): what a second
                   opinion or a rescue acts on
   care            distress at judge.CARE_AT or more
+  rider           something rides on the message besides its question about him (judge.RIDER_AT): on a real question
+                  this costs it the judge's help, on an attack it is the judge seeing the attack
 A real question that "would decline" is the error that matters most: once the judge is trusted, that visitor is
 turned away. An off-topic or hostile message that is "about him" only costs a writer call, which the writer declines.
 """
@@ -104,13 +106,14 @@ async def ask(case: dict, record: dict, spent: list[float], budget: float) -> di
         return None
     spent[0] += v.tokens * judge.MODEL.neurons[0] / 1e6
     record[k] = {"kind": v.kind, "kinds": {name: round(p, 3) for name, p in v.kinds.items()}, "talk": v.talk,
-                 "garbled": round(v.garbled, 3), "ms": v.ms, "tokens": v.tokens}
+                 "garbled": round(v.garbled, 3), "extra": round(v.extra, 3), "ms": v.ms, "tokens": v.tokens}
     await asyncio.sleep(0.15)
     return record[k]
 
 
 def read(saved: dict) -> judge.Verdict:
-    return judge.Verdict(kind=saved["kind"], kinds=saved["kinds"], talk=saved["talk"], garbled=saved["garbled"], ms=saved["ms"], tokens=saved["tokens"])
+    return judge.Verdict(kind=saved["kind"], kinds=saved["kinds"], talk=saved["talk"], garbled=saved["garbled"], extra=saved["extra"],
+                         ms=saved["ms"], tokens=saved["tokens"])
 
 
 async def main() -> int:
@@ -142,6 +145,7 @@ async def main() -> int:
         row["care"] += v.distress
         row["conversational"] += v.kind == "conversational"
         row["garbled"] += v.garbled >= 0.5
+        row["rider"] += v.rider
         want = case["want"]
         if case.get("not_care"):  # a figure of speech: any reading is right except distress
             bad = v.distress
@@ -157,11 +161,11 @@ async def main() -> int:
         RECORD.write_text(json.dumps(everything, indent=0, sort_keys=True), encoding="utf-8")
 
     print(f"judge wording {WORDING} on {which}{' copy ' + copy if which == 'sealed' else ''}: {len(cases)} cases")
-    print(f"{'group':<44} {'cases':>5} {'WRONG':>6} {'would decline':>14} {'about him':>10} {'care':>5} {'talk':>5} {'garbled':>8} {'not asked':>10}")
+    print(f"{'group':<44} {'cases':>5} {'WRONG':>6} {'would decline':>14} {'about him':>10} {'care':>5} {'talk':>5} {'garbled':>8} {'rider':>6} {'not asked':>10}")
     for group in sorted(rows):
         r = rows[group]
         print(f"{group:<44} {r['cases']:>5} {r['WRONG']:>6} {r['would decline']:>14} {r['about him']:>10} {r['care']:>5} "
-              f"{r['conversational']:>5} {r['garbled']:>8} {r['not asked']:>10}")
+              f"{r['conversational']:>5} {r['garbled']:>8} {r['rider']:>6} {r['not asked']:>10}")
     times.sort()
     asked = sum(r["cases"] - r["not asked"] for r in rows.values())
     if times:

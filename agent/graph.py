@@ -213,14 +213,15 @@ async def second_look(state: State, reply: str) -> str:
         # The judge is the better reader of distress, so where it is sure the message is a question about him and
         # sees no distress, a stronger model answers it. In every other case the care reply stands: a needless care
         # reply does no harm, and the judge must never be what turns one into a refusal.
-        return "sure" if verdict and verdict.calm and verdict.about_him else ""
+        return "sure" if verdict and verdict.calm and verdict.about_him and not verdict.rider else ""
     if not guard.is_refusal(reply):
         return ""
     if state.get("rescued"):
         return ""  # the judge has already set one refusal aside this turn: a writer's own refusal now stands
-    if verdict and verdict.about_him:
+    if verdict and verdict.about_him and not verdict.rider:
         # Recruiters also write "What is the notice period?", which names nobody: small models refused it, and with
-        # only the hint below it got no second look at all (14 Nov 2026).
+        # only the hint below it got no second look at all (14 Nov 2026). The firm note says the refusal sentence does
+        # not apply, so it is never given when something else rides on the question (Verdict.rider).
         return "sure"
     return "soft" if re.search(guard.ABOUT_HIM_OR_SITE, last_question(state), re.I) else ""
 
@@ -240,6 +241,11 @@ def fallback_answer(state: State) -> str:
 
 
 # ── 5. respond (Gate 3: the prompt) ─────────────────────────────────────────
+
+# State["model"] when no model wrote the reply: "fallback" for the short version from the evidence (fallback_answer),
+# "none" for no reply at all. The evals wait and ask again on either, and count it as unanswered, never as wrong.
+UNANSWERED = ("none", "fallback")
+
 
 async def respond(state: State) -> dict:
     started = time.perf_counter()
@@ -266,15 +272,21 @@ async def respond(state: State) -> dict:
                     turns = turns[1:]  # … and keep the conversation starting with a visitor message
         return None
 
+    def empty(reply: router.Answer) -> bool:
+        """Nothing for the visitor in it: the hidden first line alone, in any shape the output check would remove."""
+        return not guard.clean(reply.text).strip()
+
     answers = [await router.run(llm.candidates(level), tier, prompt_for)]
     brief, show = "", ""
     if answers[0]:
         brief, show, answers[0].text = guard.read_brief(answers[0].text)
-    if answers[0] and (look := await second_look(state, answers[0].text)):
+    if answers[0] and ((look := await second_look(state, answers[0].text)) or empty(answers[0])):
         # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?"), or
         # take a figure of speech for distress. The question already passed Gates 1–2, so ask a *different* model
         # once, with a note; Gate 4 still applies. It comes from the level above: a model of the same size refuses the
         # same question ("What is the notice period?" was turned down by both small writers, 14 Nov 2026).
+        # A writer that wrote its hidden first line and stopped gets the same second writer, with no note: it left
+        # "Has he used LangGraph in production?" with an empty reply in CI (14 Nov 2026).
         stronger = {"L1": "L2", "L2": "L3"}.get(level, level)
         others = [m for m in llm.candidates(stronger) if m.name != answers[0].model]
         if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look)):
@@ -289,6 +301,12 @@ async def respond(state: State) -> dict:
         return {"messages": [AIMessage(fallback_answer(state))], "model": "fallback", "usage": dict(planner),
                 "trace": step("respond", started, level=level, model="fallback")}
 
+    model = answer.model
+    if empty(answer):
+        # No writer wrote more than its hidden first line. The visitor gets the short version from the evidence in
+        # hand, never an empty reply (or a bare "Next step" line), and the models' tokens are still counted.
+        answer.text, model = fallback_answer(state), "fallback"
+
     ms = round((time.perf_counter() - started) * 1000)
     used = {"calls": len(answers) + planner.get("calls", 0),
             "tokens_in": sum(a.tokens_in for a in answers) + planner.get("tokens_in", 0),
@@ -297,8 +315,8 @@ async def respond(state: State) -> dict:
             "tokens_counted": sum(a.counted for a in answers) + planner.get("tokens_counted", 0),
             "latency_ms": ms, "switches": answer.depth,
             "trims": int(answer.trimmed), f"level_{level}": 1}
-    return {"messages": [AIMessage(answer.text)], "model": answer.model, "usage": used, "brief": brief, "show": show,
-            "trace": step("respond", started, level=level, model=answer.model, show=show, tried=answer.tried, depth=answer.depth,
+    return {"messages": [AIMessage(answer.text)], "model": model, "usage": used, "brief": brief, "show": show,
+            "trace": step("respond", started, level=level, model=model, show=show, tried=answer.tried, depth=answer.depth,
                           chunks=len(docs), history=len(history), economy=bool(state.get("economy")))}
 
 

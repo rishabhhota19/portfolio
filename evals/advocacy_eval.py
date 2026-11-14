@@ -90,7 +90,7 @@ async def main() -> int:
         state = await graph.agent.ainvoke({"messages": conversation(case)})
         last = state["messages"][-1]
         answer = last.content if last.type == "ai" else ""
-        no_model = state.get("model") == "none"
+        no_model = state.get("model") in graph.UNANSWERED
         links = [l for a in state.get("actions", []) if a.get("type") == "links" for l in a.get("links", [])]
         links += [a for a in state.get("actions", []) if a.get("type") == "navigate"]  # the page it took them to
         why = [] if no_model else check(case, answer, links)
@@ -102,11 +102,11 @@ async def main() -> int:
         print(f"{mark:<5} {case['id']:<12} {state.get('level', ''):<3} {state.get('model', '')[:34]:<34} {'; '.join(why)}")
     if out:
         out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
-    failed = sum(not r["ok"] and r["model"] != "none" for r in rows)
-    unanswered = sum(r["model"] == "none" for r in rows)
+    failed = sum(not r["ok"] and r["model"] not in graph.UNANSWERED for r in rows)
+    unanswered = sum(r["model"] in graph.UNANSWERED for r in rows)
     print(f"\nadvocacy: {len(rows) - failed - unanswered}/{len(rows)} passed" + (f", {unanswered} no model" if unanswered else ""))
     # Same bar as the other evals (baseline.py): at most one miss, never a case that passed on the last green run.
-    regressed = baseline.regressions("advocacy", {r["id"] for r in rows if not r["ok"] and r["model"] != "none"}) if not ids else []
+    regressed = baseline.regressions("advocacy", {r["id"] for r in rows if not r["ok"] and r["model"] not in graph.UNANSWERED}) if not ids else []
     if regressed:
         print(f"::error::Regression — passed before, fail now: {', '.join(regressed)}")
     if unanswered:

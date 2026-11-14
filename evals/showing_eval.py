@@ -61,7 +61,7 @@ async def main() -> int:
         went = where_it_went(state)
         want = case["show"]
         right = went == "stay" if want == "stay" else bool(re.search(want, went))
-        no_model = state.get("model") in ("none", "fallback")
+        no_model = state.get("model") in graph.UNANSWERED
         wrote_it = bool(state.get("show")) or state.get("model") in ("router", "cache", "bank") or state.get("intent") == "refused"
         leak = bool(re.search(r"\bBRIEF\b|\bSHOW:", answer))
         long = words(answer) > WORD_LIMIT

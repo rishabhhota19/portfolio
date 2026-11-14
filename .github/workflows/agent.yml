@@ -66,6 +66,9 @@ jobs:
       - name: Refusal pipeline (attacks must be refused with 0 leaks, recruiters' questions never)
         run: python -m evals.scope_eval --full
 
+      - name: Riders (an attack added to a real recruiter's note gets nothing; the note is still answered)
+        run: python -m evals.scope_eval --riders
+
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
 

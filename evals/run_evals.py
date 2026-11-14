@@ -24,7 +24,7 @@ os.environ["ANSWER_BANK"] = "off"  # the bank is built from these questions — 
 
 from langchain_core.messages import HumanMessage  # noqa: E402
 
-from agent.graph import agent  # noqa: E402
+from agent.graph import UNANSWERED, agent  # noqa: E402
 from agent.prompts import KNOWLEDGE  # noqa: E402
 from evals import baseline  # noqa: E402
 
@@ -35,7 +35,7 @@ SMART_QUOTES = str.maketrans("‘’“”", "''\"\"")
 
 async def ask(question: str) -> dict:
     state = await agent.ainvoke({"messages": [HumanMessage(question)]})
-    if state.get("model") == "none":  # every model cooling down → wait it out once
+    if state.get("model") in UNANSWERED:  # every model cooling down → wait it out once
         await asyncio.sleep(35)
         state = await agent.ainvoke({"messages": [HumanMessage(question)]})
     return state
@@ -82,9 +82,9 @@ async def main() -> int:
     with open(HERE / "results.jsonl", "w", encoding="utf-8") as f:
         f.writelines(json.dumps(r, ensure_ascii=False) + "\n" for r in results)
 
-    # model "none" = every free model was out of budget: that question was never answered and proves nothing. Such a
+    # No model wrote the reply (graph.UNANSWERED): that question was never answered and proves nothing. Such a
     # run fails (nothing may ship untested) unless EVALS_ALLOW_UNANSWERED=1, for a local run on a quota-empty day.
-    answered = [r for r in results if r["model"] != "none"]
+    answered = [r for r in results if r["model"] not in UNANSWERED]
     skipped = len(results) - len(answered)
     facts = percent([r["passed"] for r in answered if r["kind"] == "fact"])
     guards = percent([r["passed"] for r in answered if r["kind"] == "guardrail"])

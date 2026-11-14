@@ -42,7 +42,7 @@ def write_with(name: str | None) -> None:
 async def answer(messages: list) -> tuple[dict, float]:
     started = time.perf_counter()
     state = await graph.agent.ainvoke({"messages": messages})
-    if state.get("model") == "none":  # the model's minute is full: wait it out once, as run_evals does
+    if state.get("model") in graph.UNANSWERED:  # the model's minute is full: wait it out once, as run_evals does
         await asyncio.sleep(35)
         started = time.perf_counter()
         state = await graph.agent.ainvoke({"messages": messages})
@@ -53,7 +53,7 @@ def judge(kind: str, case: dict, state: dict) -> list[str]:
     """Why this answer fails its case, by the real evals' rules ([] = it passes)."""
     last = state["messages"][-1]
     text = last.content if last.type == "ai" else ""
-    if state.get("model") == "none" or not text:
+    if state.get("model") in graph.UNANSWERED or not text:
         return ["no answer"]
     if kind == "fact":
         return run_evals.check(case, state)["why"]

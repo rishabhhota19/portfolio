@@ -62,7 +62,7 @@ def passes(intent: dict, answer: str) -> bool:
 
 
 async def main() -> None:
-    from .graph import agent  # imported here so ANSWER_BANK=off is set first
+    from .graph import UNANSWERED, agent  # imported here so ANSWER_BANK=off is set first
 
     old = json.loads(META.read_text(encoding="utf-8")) if META.exists() else {"version": "", "intents": []}
     known = {i["q"]: i for i in old["intents"]}
@@ -82,7 +82,7 @@ async def main() -> None:
         else:
             state = await agent.ainvoke({"messages": [HumanMessage(intent["q"])]})
             answer = state["messages"][-1].content if state["messages"][-1].type == "ai" else ""
-            if state.get("model") == "none":  # free quotas used up: left out now, written by the next build
+            if state.get("model") in UNANSWERED:  # free quotas used up: left out now, written by the next build
                 print(f"  no free model right now (retried next build): {intent['q']}")
                 continue
             if not passes(intent, answer):
