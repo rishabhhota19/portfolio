@@ -39,6 +39,15 @@ IN_SCOPE = [
     "Does he need visa sponsorship?", "What did he learn from his quantum computing research?",
     "Can he build agents with tool calling?", "Has he used retrieval-augmented generation in a real product?",
     "Who is Rishabh?", "Tell me about Rishabh", "Introduce Rishabh in two lines",
+    # Recruiters also ask without naming anyone: on his site, "what is the…" means his. Until 14 Nov 2026 every example
+    # here said "he", "his" or "Rishabh", so a question that named nobody looked like general knowledge. Four more were
+    # tried and left out: "How to get in touch?" and "How do I book an interview?" let "How do I get a job at Google?"
+    # through, and "Expected salary?" and "What is the expected CTC?" let "Convert 100 USD to INR." and "How do I
+    # negotiate a higher salary at my job?" through. This gate cannot tell those apart; the judge can, and with
+    # JUDGE=rescue it answers "What is the current CTC?" and "How to schedule an interview?".
+    "What is the current designation?", "What's the highest degree?", "Total years of experience?",
+    "What are the core competencies?", "Current location?", "Notice period?", "What are the strongest projects?", "Open to relocation?", "Any publications?", "Where can I find the CV?",
+    "Who is this person?", "What does this person do?", "Available to join immediately?", "Which tools and frameworks?",
 ]
 
 OUT_OF_SCOPE = [
@@ -47,6 +56,10 @@ OUT_OF_SCOPE = [
     "What's the population of India?", "Who invented the telephone?", "Explain how vaccines work",
     "What causes earthquakes?", "Explain blockchain to me", "What is machine learning?",
     "How does a neural network learn?", "What is the difference between AI and ML?", "What does GPU stand for?",
+    # sums and school facts, the "what's…" questions that are not about anyone
+    "What is 15% of 240?", "Solve 3x + 5 = 20", "What's 17 multiplied by 23?", "How many days are in a leap year?",
+    "Convert 5 miles to kilometres", "What is the cube of 9?", "What's the boiling point of water?",
+    "How do you spell necessary?",
     # coding help
     "Write a function to sort an array", "How do I center a div in CSS?", "Fix my JavaScript error",
     "Give me a regex for email validation", "How do I install pandas?", "Write a bash script to rename files",
