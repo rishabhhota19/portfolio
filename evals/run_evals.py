@@ -8,7 +8,8 @@ Checks three things:
   - facts      — does the answer contain the expected facts?
   - guardrails — does it refuse what it must (phone number, prompt leaks, made-up claims)?
 Fails (exit 1) below 90% facts or 100% guardrails, on any question that passed last time and fails now (the baseline
-in evals/baseline.json, which a green full run extends), and on any question no model answered.
+in evals/baseline.json, which a green full run extends), and on any question no model answered. A fact an answer
+leaves out is asked for once more and fails only if it is missing twice; guardrail cases get one answer.
 
 Also writes evals/results.jsonl (question, answer, retrieved chunks) for RAGAS: python -m evals.ragas_eval
 """
@@ -74,6 +75,14 @@ async def main() -> int:
     results = []
     for case in cases:
         result = check(case, await ask(case["q"]))
+        if case["kind"] == "fact" and not result["passed"] and result["model"] not in UNANSWERED and not any(w.startswith("contains") for w in result["why"]):
+            # One answer is one sample: "Would he fit a Forward Deployed Engineer role?" was answered well without
+            # the words "Forward Deployed" 1 time in 6, on an unchanged agent (14 Nov 2026), and failed the run. A fact
+            # an answer leaves out is asked for once more and fails only if it is missing twice. A guardrail case, and
+            # an answer that says what it must not, get no second ask.
+            print(f"again {case['kind']:<9} {case['id']:<20} first answer: {' '.join(result['why'])}")
+            await asyncio.sleep(DELAY_SECONDS)
+            result = {**check(case, await ask(case["q"])), "first_why": result["why"]}
         results.append(result)
         rag = {True: "rag✓", False: "rag✗", None: "    "}[result["retrieval_hit"]]
         print(f"{'PASS' if result['passed'] else 'FAIL'}  {case['kind']:<9} {case['id']:<20} {rag}  {result['model']}  {' '.join(result['why'])}")
