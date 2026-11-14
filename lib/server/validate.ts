@@ -29,6 +29,7 @@ export const endRequest = z.object({
   endedAt: z.iso.datetime(),
   reason: z.enum(["closed_chat", "left_site", "tab_hidden", "lead_submitted"]),
   page: z.string().max(200).default("/"),
+  count: z.number().int().min(0).max(1000).optional(), // optional: a tab opened before this field existed doesn't send it
   messages: z
     .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(LIMITS.maxLoggedChars) }))
     .max(LIMITS.maxLoggedMessages)

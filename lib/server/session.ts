@@ -9,7 +9,9 @@ import { firstTime, store } from "@/lib/server/store";
  * pause (a tab switch: the plain summary) and once as an end (End chat, leaving the site, a lead: the model's
  * summary). Closing a tab sends both, the pause first, and the end must still get through: when one key covered both,
  * a chat that ended that way never got its summary and its working memory was never deleted. An end marks the pause
- * as well, so a tab switch after it can't put the plain summary back over the model's. */
+ * as well, so a tab switch after it can't put the plain summary back over the model's.
+ * `messages` is the whole chat's count, not the length of the list that was sent: that list is cut to fit, so in a
+ * long chat its length stops growing and a later end would look like one already logged. */
 export async function firstLog(conversationId: string, messages: number, pause: boolean) {
   const end = `end:${conversationId}:${messages}`;
   if (pause) return firstTime(`${end}:pause`, 86_400);
@@ -17,7 +19,7 @@ export async function firstLog(conversationId: string, messages: number, pause: 
   return first;
 }
 
-type ChatNote = { id: string; messages: number; intent: string; topics: string; summary: string; followUp: string };
+type ChatNote = { id: string; messages: number; intent: string; topics: string; summary: string; followUp: string; byModel?: boolean };
 
 export async function addChat(sessionId: string, conversationId: string, messages: number, s: ChatSummary) {
   const key = `chats:${sessionId}`;
@@ -25,16 +27,20 @@ export async function addChat(sessionId: string, conversationId: string, message
   try {
     chats = JSON.parse((await store.get(key)) ?? "[]");
   } catch {} // a damaged note starts the visit's list again instead of failing every later chat
-  const note = {
+  const note: ChatNote = {
     id: conversationId,
     messages,
     intent: s.intent ?? "",
     topics: s.topics ?? "",
     summary: s.summary ?? "",
     followUp: s.followUp ?? "",
+    byModel: s.model !== "none",
   };
   const i = chats.findIndex((c) => c.id === conversationId);
-  if (i >= 0) chats[i] = note;
+  // A plain note never replaces a model's summary of the same chat: one more question and a tab switch after a lead
+  // would swap the lead's summary for a bare count, for good if the tab is never closed cleanly. Only the count moves.
+  if (i >= 0 && chats[i].byModel && !note.byModel) chats[i] = { ...chats[i], messages };
+  else if (i >= 0) chats[i] = note;
   else chats.push(note);
   await store.set(key, JSON.stringify(chats), 86_400);
 

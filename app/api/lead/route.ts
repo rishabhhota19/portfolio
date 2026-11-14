@@ -42,7 +42,8 @@ export async function POST(req: Request) {
   }
 
   // Closing the chat or switching tabs afterwards with no new messages shouldn't re-summarise.
-  await firstLog(data.conversationId, data.messages.length, false);
+  const total = Math.max(data.count ?? 0, data.messages.length); // the whole chat's count (see firstLog)
+  await firstLog(data.conversationId, total, false);
 
   const sessionId = data.sessionId ?? data.conversationId;
   const meta = requestMeta(req);
@@ -53,16 +54,17 @@ export async function POST(req: Request) {
       verifyChatToken(data.conversationId, data.token) &&
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"))
-        ? await summarizeChat(req, sessionId, data.messages) // the chat only: the form's details never go to a model
+        ? // The chat only: the model is told that the form was filled in, never what was typed into it.
+          await summarizeChat(req, sessionId, data.messages, { sharedDetails: true })
         : plainSummary(data.messages);
     // allSettled: the lead's dashboard record, Sheet row and email never fail because a side step (notes, usage) did.
     const [chatR, usageR, networkR] = await Promise.allSettled([
-      addChat(sessionId, data.conversationId, data.messages.length, { ...s, intent: s.intent || "Hiring — exploring" }),
+      addChat(sessionId, data.conversationId, total, { ...s, intent: s.intent || "Hiring — exploring" }),
       sessionUsage(req, sessionId),
       networkOf(req),
     ]);
     const chat = settled(chatR, {
-      chats: 1, messages: data.messages.length, intent: s.intent ?? "", topics: s.topics ?? "", summary: s.summary ?? "", followUp: s.followUp ?? "",
+      chats: 1, messages: total, intent: s.intent ?? "", topics: s.topics ?? "", summary: s.summary ?? "", followUp: s.followUp ?? "",
     });
     const usage = settled(usageR, {});
     const network = settled(networkR, "");

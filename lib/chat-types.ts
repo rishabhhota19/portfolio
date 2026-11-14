@@ -29,6 +29,7 @@ export type EndRequest = {
   endedAt: string;
   reason: EndReason;
   page: string;
+  count: number; // messages in the whole chat: the list below is cut to fit, so its length stops growing in a long chat
   messages: ChatMessage[];
 };
 

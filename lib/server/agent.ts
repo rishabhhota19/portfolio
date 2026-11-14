@@ -148,14 +148,20 @@ function cleanSummary(raw: unknown, messages: ChatMessage[]): ChatSummary {
 }
 
 /** A model's summary of the chat, and only of the chat: what a visitor types into "Share your details" never goes to
- * a model (the lead route puts it in the row itself). conversationId tells the agent the chat is over, so it deletes
- * that conversation's working memory. */
-export async function summarizeChat(req: Request, sessionId: string, messages: ChatMessage[], conversationId = ""): Promise<ChatSummary> {
+ * a model (the lead route puts it in the row itself). `sharedDetails` tells the model only that the form was filled
+ * in, so it can still judge how serious the visitor is. `conversationId` tells the agent the chat is over, so it
+ * deletes that conversation's working memory. */
+export async function summarizeChat(
+  req: Request,
+  sessionId: string,
+  messages: ChatMessage[],
+  { conversationId = "", sharedDetails = false }: { conversationId?: string; sharedDetails?: boolean } = {},
+): Promise<ChatSummary> {
   try {
     const res = await fetch(agentUrl(req, "summarize"), {
       method: "POST",
       headers: agentHeaders(req),
-      body: JSON.stringify({ messages, session_id: sessionId, conversation_id: conversationId }),
+      body: JSON.stringify({ messages, shared_details: sharedDetails, session_id: sessionId, conversation_id: conversationId }),
       signal: AbortSignal.timeout(30_000),
     });
     if (res.ok) return cleanSummary(await res.json(), messages);
@@ -168,7 +174,23 @@ export async function summarizeChat(req: Request, sessionId: string, messages: C
   return plainSummary(messages);
 }
 
-type Usage = Pick<SessionRow, "tokensIn" | "tokensOut" | "tokensTotal" | "llmCalls" | "models" | "switches" | "avgLatency" | "summaryTokens">;
+/** The chat is over and no model is summarising it (the summary budget is spent, or a lead already logged this point
+ * of it): the agent deletes its working memory of the conversation all the same, as the privacy page says it does. */
+export async function forgetChat(req: Request, conversationId: string): Promise<void> {
+  try {
+    const res = await fetch(agentUrl(req, "forget"), {
+      method: "POST",
+      headers: agentHeaders(req),
+      body: JSON.stringify({ conversation_id: conversationId }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) console.error("[agent] forget failed:", res.status); // the memory then goes on its own after two hours
+  } catch (err) {
+    console.error("[agent] forget call failed:", err);
+  }
+}
+
+type Usage = Pick<SessionRow,"tokensIn" | "tokensOut" | "tokensTotal" | "llmCalls" | "models" | "switches" | "avgLatency" | "summaryTokens">;
 
 /** The visit's real token totals (counted by the Python agent). Empty if the visitor didn't use the LLM. */
 export async function sessionUsage(req: Request, sessionId: string): Promise<Usage> {

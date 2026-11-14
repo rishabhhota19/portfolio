@@ -121,6 +121,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       endedAt: new Date().toISOString(),
       reason,
       page: currentPage(),
+      count: transcript(messagesRef.current).length,
       messages: newestWithin(
         transcript(messagesRef.current)
           .slice(-LIMITS.maxLoggedMessages)
@@ -406,7 +407,9 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         const said = (await res.json().catch(() => null)) as { message?: string } | null;
         return said?.message ?? "Couldn't send that — please email rishabhhota19@gmail.com directly.";
       }
-      logged.current = { count: transcript(messagesRef.current).length, ended: true };
+      // The server has this much of the chat, but the chat goes on: its real end is still sent (it writes nothing
+      // new for the same transcript, and tells the agent to forget the conversation).
+      logged.current = { count: transcript(messagesRef.current).length, ended: false };
       setLeadSent(true);
       setShowLead(false);
       track("lead_submitted");

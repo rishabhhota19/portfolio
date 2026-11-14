@@ -18,7 +18,8 @@ export async function sendLeadEmail({ lead, summary, topics, followUp, meta }: L
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.LEAD_ALERT_EMAIL;
   if (!apiKey || !to) {
-    console.info("[email] RESEND_API_KEY / LEAD_ALERT_EMAIL not set — lead email skipped:", lead.email);
+    // No address in this line: it goes to the function log, and Sentry keeps console lines as breadcrumbs.
+    console.info("[email] RESEND_API_KEY / LEAD_ALERT_EMAIL not set — lead email skipped (the Sheet's script sends it)");
     return false;
   }
 

@@ -4,7 +4,8 @@ Summaries run on the router like answers, but only on cheap high-quota models (n
 if those are busy, no summary comes back and the gateway writes a plain one — so summaries can never starve the chat.
 
 Only the chat goes to a model. What a visitor types into "Share your details" (name, email, phone, note) goes to the
-Sheet and Rishabh's inbox and nowhere else: the gateway adds it to the row itself.
+Sheet and Rishabh's inbox and nowhere else: the gateway adds it to the row itself. The model is told only that the
+form was filled in, so it can still judge how serious the visitor is and write a next step.
 """
 
 import json
@@ -19,8 +20,14 @@ TIER = llm.Tier(chunks=0, history=0, max_tokens=300, effort="low", timeout=15, p
 NO_SUMMARY = {"summary": "", "model": "none"}  # the gateway's plain summary takes over (lib/server/agent.ts)
 
 
-async def summarize(messages: list[dict], session_id: str = "") -> dict:
+SHARED_DETAILS = ("\n(After this the visitor filled in the contact form so Rishabh can reply. Their name, email and "
+                  "note are with Rishabh and are not shown here: leave those fields empty.)")
+
+
+async def summarize(messages: list[dict], session_id: str = "", shared_details: bool = False) -> dict:
     transcript = "\n".join(f"{'Visitor' if m['role'] == 'user' else 'Agent'}: {m['content']}" for m in messages)
+    if shared_details:
+        transcript += SHARED_DETAILS
     prompt = [SystemMessage(SUMMARY_PROMPT), HumanMessage(transcript)]
 
     models = [llm.M[n] for n in TIER.pool if llm.M[n].available]

@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
+import { forgetChat, plainSummary, sessionUsage, summarizeChat } from "@/lib/server/agent";
 import * as events from "@/lib/server/events";
 import { ipHash, verifyChatToken } from "@/lib/server/request";
 import { addChat, firstLog } from "@/lib/server/session";
@@ -38,9 +38,12 @@ export async function POST(req: Request) {
   const limitOk = verified ? await allow(`end:ip:${ip}`, 20, 600) : await allow(`end:anon:${ip}`, 3, 3600);
   if (!limitOk) return json({ ok: false, error: "rate_limited" }, 429);
 
-  // Each transcript length is logged once as a pause and once as an end (see firstLog).
+  // Each point of a chat is logged once as a pause and once as an end (see firstLog), by the whole chat's count.
+  const total = Math.max(data.count ?? 0, data.messages.length);
   const pause = data.reason === "tab_hidden";
-  if (!(await firstLog(data.conversationId, data.messages.length, pause))) {
+  if (!(await firstLog(data.conversationId, total, pause))) {
+    // Already logged at this point (by a lead, usually). If the chat is ending here, the agent still forgets it.
+    if (!pause && verified) after(() => forgetChat(req, data.conversationId));
     return json({ ok: true, skipped: "duplicate" }, 202);
   }
 
@@ -55,16 +58,18 @@ export async function POST(req: Request) {
       (await allow(`sum:conv:${data.conversationId}`, SUMMARIES_PER_CHAT, 86_400)) &&
       (await spendDailyBudget(SUMMARY_BUDGET, "budget-summary"));
     const s = useLlm
-      ? await summarizeChat(req, sessionId, data.messages, data.conversationId)
+      ? await summarizeChat(req, sessionId, data.messages, { conversationId: data.conversationId })
       : plainSummary(data.messages, pause ? "Chat paused (switched away). " : verified ? "" : "Quick answers only. ");
     const [chat, usage, firstEnd] = await Promise.all([
-      addChat(sessionId, data.conversationId, data.messages.length, s),
+      addChat(sessionId, data.conversationId, total, s),
       sessionUsage(req, sessionId),
       firstTime(`chat1:${data.conversationId}`, 86_400), // a chat can end twice (tab switch, then close): count it once
+      // An end with no model summary is still the end: the agent forgets the chat (summarizeChat does it otherwise).
+      !useLlm && !pause && verified ? forgetChat(req, data.conversationId) : undefined,
     ]);
     await Promise.all([
       events.record(
-        { type: "chat", sid: sessionId, messages: data.messages.length, intent: s.intent ?? "", topics: s.topics ?? "",
+        { type: "chat", sid: sessionId, messages: total, intent: s.intent ?? "", topics: s.topics ?? "",
           summary: (s.summary ?? "").slice(0, 400), followUp: (s.followUp ?? "").slice(0, 200), reason: REASON_LABEL[data.reason] },
         { chats: firstEnd ? 1 : 0 },
       ),

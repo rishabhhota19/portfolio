@@ -30,18 +30,31 @@ from agent.guard import BriefReader, StreamGuard
 from agent.pages import shown_page
 from agent.summarize import summarize
 
+# Sentry's own integrations for model libraries report errors the agent has already handled (a failed model call, a
+# tool call whose arguments didn't fit), each under one of these names.
+AI_ERRORS = {"langchain", "langgraph", "openai", "google_genai", "anthropic", "huggingface_hub"}
+
+
 def sentry_safe(event: dict, _hint: dict | None = None) -> dict:
-    """What Sentry may know of a request is its method and its address. The headers carry the gateway's shared secret
-    and the warm-up key, and Sentry's own list of sensitive headers has neither; nothing else in a request helps find
-    a bug here. Runs on every error and every traced request before it leaves."""
+    """Runs on every error and every traced request before it leaves for Sentry.
+
+    A request is reported as its method and its address: the headers carry the gateway's shared secret and the
+    warm-up key, and Sentry's own list of sensitive headers has neither.
+
+    An error from a model library is reported as its type and where it happened, without its message: that message
+    is the provider's or the validator's own text, and it can quote what the planner wrote from the question."""
     request = event.get("request")
     if isinstance(request, dict):
         event["request"] = {part: request[part] for part in ("method", "url") if part in request}
+    errors = (event.get("exception") or {}).get("values") or []
+    if any((error.get("mechanism") or {}).get("type") in AI_ERRORS for error in errors):
+        for error in errors:  # the chained ones too: the cause is where the quoted text usually sits
+            error["value"] = ""
     return event
 
 
 if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs and evals stay out of Sentry
-    # Errors from the Python agent go to the same Sentry project: what failed and where, never what was said.
+    # Errors from the Python agent go to the same Sentry project: what failed and where, not what was said.
     sentry_sdk.init(
         dsn=env("NEXT_PUBLIC_SENTRY_DSN"),
         environment=env("VERCEL_ENV", "development"),
@@ -73,8 +86,13 @@ class ChatRequest(BaseModel):
 
 class SummaryRequest(BaseModel):
     messages: list[Message] = Field(max_length=40)
+    shared_details: bool = False  # the visitor filled in the contact form: that it happened, never what they typed
     session_id: str = Field("", max_length=64)
     conversation_id: str = Field("", max_length=64)  # the chat is over: its working memory is deleted
+
+
+class ForgetRequest(BaseModel):
+    conversation_id: str = Field(min_length=1, max_length=64)
 
 
 def check_secret(secret: str | None) -> None:
@@ -287,7 +305,16 @@ async def summarize_chat(req: SummaryRequest, x_agent_secret: str | None = Heade
     usage.DEADLINE.set(time.monotonic() + 25)  # the gateway waits 30 s for a summary
     if req.conversation_id:
         await session_memory.forget(req.conversation_id)
-    return await summarize([m.model_dump() for m in req.messages], req.session_id)
+    return await summarize([m.model_dump() for m in req.messages], req.session_id, req.shared_details)
+
+
+@app.post("/api/agent/forget")
+async def forget_chat(req: ForgetRequest, x_agent_secret: str | None = Header(None)):
+    """The chat is over and no model is summarising it (the summary budget is spent, or a lead already logged it):
+    its working memory goes all the same. Secret required."""
+    check_secret(x_agent_secret)
+    await session_memory.forget(req.conversation_id)
+    return {"ok": True}
 
 
 @app.get("/api/agent/session/{session_id}")
