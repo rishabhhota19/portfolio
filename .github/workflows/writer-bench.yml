@@ -1,0 +1,40 @@
+# Writer bench (evals/writer_bench.py): how a model does as the one that writes Dumbledore's answers, on the recruiter
+# cases and a spread of facts. It runs here because the Groq key lives only in these secrets and on Vercel. Manual, and
+# on pushes to a fix/ branch that touch the bench. It shares Groq's free quota with the site: two models use roughly
+# 80,000 tokens each of their 200,000 a day, so run it on a quiet day and not twice.
+name: Writer bench
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: Model names from agent/llm.py, space-separated
+        default: groq-qwen groq-120b
+  push:
+    branches: ["fix/**"]
+    paths: ["evals/writer_bench.py", ".github/workflows/writer-bench.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: writer-bench
+  cancel-in-progress: false # a cancelled run has already spent model calls
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }} # the research planner's lead model, as in production
+      MODELS: ${{ inputs.models || 'groq-qwen groq-120b' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements-dev.txt
+      - name: Bench the models as the writer
+        run: python -m evals.writer_bench $MODELS

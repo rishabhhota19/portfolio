@@ -24,7 +24,11 @@ SPEED = 30  # simulated seconds per real second
 MINUTES = 10  # simulated duration of each run
 MIX = {"L1": 0.30, "L2": 0.55, "L3": 0.15}  # share of LLM questions per level
 PROMPT = {"L1": 1400, "L2": 2500, "L3": 4000}  # typical prompt tokens per level (measured)
-LATENCY = {"groq": 1.8, "gemini": 2.3, "cloudflare": 3.5, "openrouter": 6.0, "sambanova": 2.5}
+# Seconds per answer by provider. NVIDIA's catalog measured about 1.5x Groq on the live site (Nov 2026).
+LATENCY = {"groq": 1.8, "gemini": 2.3, "cloudflare": 3.5, "openrouter": 6.0, "sambanova": 2.5, "nvidia": 2.7}
+# A provider added to llm.py without a latency here used to crash the run part-way (KeyError): say so at the start.
+if missing := sorted(set(llm.PROVIDERS) - set(LATENCY)):
+    raise SystemExit(f"evals/load_sim.py: add a LATENCY entry for {', '.join(missing)}")
 
 
 class Clock:
@@ -65,6 +69,8 @@ class Providers:
             (f"{m.name}:rd:{day}", 1, m.rpd), (f"{m.name}:td:{day}", tokens_in + tokens_out, m.tpd),
         ]
         pool = llm.PROVIDER_LIMITS.get(m.provider, {})
+        if "rpm" in pool:  # a per-account limit shared by all of a provider's models (NVIDIA's catalog)
+            checks.append((f"{m.provider}:rm:{minute}", 1, pool["rpm"]))
         if "rpd" in pool:
             checks.append((f"{m.provider}:rd", 1, pool["rpd"]))
         if "neurons_day" in pool:
