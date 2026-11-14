@@ -11,6 +11,7 @@ Every pattern here is checked by evals/scope.json: attack prompts must be refuse
 """
 
 import re
+import zlib
 from urllib.parse import urlsplit
 
 from .config import KNOWLEDGE, SITE
@@ -53,6 +54,42 @@ CANNED = {
     "thanks": "You're most welcome. Anything else you'd like to know about Rishabh's work?",
     "greeting": "Hello! I'm **Dumbledore**, Rishabh's AI agent. Ask me about his projects, research or experience — or ask me to take you to any page.",
 }
+
+# Our own words (guardrails v2, phase 2). A reply that is not an answer is written here, by us: a model only decides
+# which one applies (judge.py), it never improvises them. Rishabh approves these lines.
+DECLINES = {  # by the judge's kind; a question picks its variant, so the same question always gets the same line
+    "general_knowledge": (
+        "That one's outside what I cover: I'm here for Rishabh's work — his projects, research, experience and fit for a role.",
+        "I'll leave that one to a search engine. What I know well is Rishabh's work — his projects, research and experience.",
+    ),
+    "task_for_visitor": (
+        "That's a job for a general assistant, and I'm not one: I answer questions about Rishabh's work — his projects, research, experience and fit for a role.",
+        "I can't take that on: I'm here only for questions about Rishabh's work — his projects, research and experience.",
+    ),
+    "private_life": ("His private life isn't something this site covers. I can tell you about his work, projects and research.",),
+}
+TALK = {  # the judge's small-talk kinds: one short friendly line, never a decline, a pitch or a page move
+    "greeting": CANNED["greeting"],
+    "thanks": CANNED["thanks"],
+    "what_can_you_do": CANNED["identity"],
+    "ok": "Good. Anything else you'd like to know about Rishabh's work?",
+    "bye": "Goodbye, and thanks for stopping by. If you'd like Rishabh to follow up, tap **Share your details** below.",
+    "checking_in": "I'm here. Ask me anything about Rishabh's work — his projects, research or experience.",
+    "frustrated": ("I'm sorry, that wasn't the help you wanted. Tell me in a few words what you're looking for and I'll try "
+                   "again, or tap **Share your details** below and Rishabh will reply himself."),
+}
+# The judge is sure the question is about him and no writer would answer it: never a flat no (graph.respond).
+NOT_ON_SITE = (f"His site doesn't say, and I won't guess. It's a quick one for him to answer himself: email "
+               f"**{SITE['email']}**, or tap **Share your details** below and he'll get back to you.")
+_DECLINE_LINES = (REFUSAL, *(line for lines in DECLINES.values() for line in lines))
+_DECLINE_STARTS = tuple(line[:40] for line in _DECLINE_LINES)
+
+
+def decline(kind: str, question: str) -> str:
+    """Our line for a message of this kind; the refusal sentence for a kind with no line of its own."""
+    lines = DECLINES.get(kind) or (REFUSAL,)
+    return lines[zlib.crc32(question.strip().lower().encode()) % len(lines)]
+
 
 # ── Gate 1: rules ───────────────────────────────────────────────────────────
 
@@ -134,7 +171,8 @@ def reply_for(intent: str) -> str:
 
 
 def is_refusal(answer: str) -> bool:
-    return answer.strip().startswith(REFUSAL[:40])
+    """A decline: the sentence a writer is told to use, or one of our own lines."""
+    return answer.strip().startswith(_DECLINE_STARTS)
 
 
 # ── Gate 4: output ──────────────────────────────────────────────────────────
@@ -269,8 +307,9 @@ class StreamGuard:
     def push(self, text: str) -> list[tuple[str, str]]:
         self.raw += text
         start = self.raw.lstrip()
-        if not self.sent and (REFUSAL.startswith(start) or start.startswith(REFUSAL[:40])):
-            return []  # looks like the refusal: it's sent whole at the end (or replaced by a second opinion)
+        if not self.sent and any(line.startswith(start) or start.startswith(line[:40]) for line in _DECLINE_LINES):
+            return []  # looks like a decline: it's sent whole at the end (or replaced by a second opinion). Our own
+            # lines count too: a writer that repeats one from the history is declining, and is_refusal() says so
         if not self.sent and may_be_care(start):
             return []  # the writer's care signal, or its beginning: the visitor sees the care reply, never this
         ends = [m.end() for m in self.BOUNDARY.finditer(self.raw)]

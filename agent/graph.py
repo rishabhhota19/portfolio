@@ -42,7 +42,7 @@ from .rag import rerank, search
 
 class State(TypedDict, total=False):
     messages: Annotated[list, add_messages]  # the conversation (the browser sends it each turn)
-    intent: str  # question, refused, navigate, cached, bank, or a canned one (greeting, contact, …)
+    intent: str  # question, refused, navigate, cached, bank, talk, not_on_site, or a canned one (greeting, contact, …)
     why: str  # which gate refused, or what the output guard removed
     level: str  # L1 / L2 / L3 — how hard the question is (difficulty.py)
     docs: list[dict]  # retrieved chunks
@@ -148,12 +148,51 @@ async def scope(state: State) -> dict:
         in_scope, gap = gate2.judge(last_question(state, turns=2), state["context_vector"], relevance, follow_up=True)
     rescue = not in_scope and await rescued()
     if not in_scope and not rescue:
-        return say(guard.REFUSAL, "refused", started, "scope", why=f"scope:{gap}")
+        # Enforced, the judge may know better what this is: small talk the similarity gate has no example of
+        # ("hii thr" was refused here), or which of our declines fits. A refusal can wait for its verdict.
+        return await our_words(state, started, judge.REFUSAL_WAIT) or say(guard.REFUSAL, "refused", started, "scope", why=f"scope:{gap}")
     if fresh(state) and (hit := cache.from_bank(state.get("vector"))):
         links = link_actions(hit["links"], skip=state.get("actions", []))
         return say(hit["text"], "bank", started, "scope", model="bank", actions=state.get("actions", []) + links)
     judge.ask()  # a model will answer this turn: the judge reads it meanwhile (its verdict is in before the first words)
+    if not rescue and not state.get("rescued") and (own := await our_words(state, started)):
+        return own
     return {**({"why": "judge:rescued", "rescued": True} if rescue else {}), "trace": step("scope", started, gap=gap, rescued=rescue)}
+
+
+CLOSE = 0.5  # the best passage is at least this close in meaning: worth offering its page under a decline
+
+
+def page_button(state: State) -> list[dict]:
+    """One page offered under a decline when something on the site is close to what was asked ("python code for
+    fibonacci" finds his Python work). A button and no more: a decline never moves the page by itself."""
+    docs = state.get("docs") or []
+    page = pages.shown_page(docs[0]["url"]) if docs and state.get("relevance", 0.0) >= CLOSE else None
+    return [{"type": "links", "links": [{"path": page["path"], "label": page["label"]}], "auto": False}] if page else []
+
+
+async def our_words(state: State, started: float, wait: float = judge.WAIT) -> dict | None:
+    """JUDGE=enforce: where the judge is sure, the turn gets one of our own lines and no writer is asked. Small talk
+    gets a friendly line; a message that is plainly not about his work gets a decline, with a page button when the
+    site has something close. An unsure verdict, a slow one or none returns None: the writer answers, as before.
+    Nor does a message with any sign of distress in it (Verdict.calm): the chat endpoint gives the care reply when
+    the judge is sure, and a writer can still give the care signal when it is not."""
+    if not judge.enforces():
+        return None
+    verdict = await judge.verdict(wait)
+    if verdict is None or not verdict.calm:
+        return None  # any sign of distress leaves the turn to a writer, which can still answer with the care signal
+    # Every line of ours replaces whatever route() had lined up: a page asked for in the same breath is not opened
+    # under a goodbye or a decline.
+    if talk := verdict.small_talk:
+        return say(guard.TALK[talk], talk if talk in guard.CANNED else "talk", started, "scope", why=f"judge:{talk}", actions=[])
+    kind = verdict.declined
+    if kind == "attack":
+        return say(guard.CANNED["injection"], "refused", started, "scope", why="judge:attack", actions=[])
+    if kind:
+        button = [] if kind == "private_life" else page_button(state)  # a private-life question gets one plain line
+        return say(guard.decline(kind, last_question(state)), "refused", started, "scope", why=f"judge:{kind}", actions=button)
+    return None
 
 
 async def rerank_docs(state: State) -> dict:
@@ -301,7 +340,15 @@ async def respond(state: State) -> dict:
         return {"messages": [AIMessage(fallback_answer(state))], "model": "fallback", "usage": dict(planner),
                 "trace": step("respond", started, level=level, model="fallback")}
 
-    model = answer.model
+    model, why = answer.model, ""
+    if guard.is_refusal(answer.text) and not state.get("rescued") and judge.rescues():
+        verdict = await judge.verdict()
+        if verdict and verdict.rescues:  # the same bar as a rescue: about him, no sign of an attack, nothing riding
+            # Never a flat no to a question the judge is sure is about him. Both writers declined it, firm note and
+            # all ("What's the work authorization status?" on the live site, 2 of 2, 15 Nov 2026), so the visitor
+            # gets our line: the site doesn't say, and here is how to ask him. A turn the judge already rescued
+            # from the rules keeps its refusal: one verdict sets one gate aside.
+            answer.text, why, show = guard.NOT_ON_SITE, "judge:not_on_site", "stay"
     if empty(answer):
         # No writer wrote more than its hidden first line. The visitor gets the short version from the evidence in
         # hand, never an empty reply (or a bare "Next step" line), and the models' tokens are still counted.
@@ -316,6 +363,7 @@ async def respond(state: State) -> dict:
             "latency_ms": ms, "switches": answer.depth,
             "trims": int(answer.trimmed), f"level_{level}": 1}
     return {"messages": [AIMessage(answer.text)], "model": model, "usage": used, "brief": brief, "show": show,
+            **({"why": why, "intent": "not_on_site"} if why else {}),  # counted apart from a model's answers
             "trace": step("respond", started, level=level, model=model, show=show, tried=answer.tried, depth=answer.depth,
                           chunks=len(docs), history=len(history), economy=bool(state.get("economy")))}
 
@@ -355,8 +403,9 @@ async def check(state: State) -> dict:
     if safe != text:
         update["messages"] = [AIMessage(safe, id=last.id)]
         update["why"] = "output:cleaned"
-    elif first_turn(state):
-        # Gate 5: only a clean, in-scope, first-turn answer. A cached answer's first link is where it takes the visitor.
+    elif first_turn(state) and state.get("why") != "judge:not_on_site":
+        # Gate 5: only a clean, in-scope, first-turn answer a model wrote (never our "the site doesn't say" line).
+        # A cached answer's first link is where it takes the visitor.
         await cache.put(last_question(state), safe, [] if stay else [{"path": a["path"], "label": a["label"]} for a in actions if a["type"] == "navigate"] + links)
     return update
 

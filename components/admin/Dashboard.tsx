@@ -40,6 +40,7 @@ const shortModel = (m: string) => m.split("/").pop() ?? m;
 const OUTCOME: Record<string, string> = {
   question: "answered", refused: "refused", cached: "from cache", bank: "answer bank", navigate: "navigated",
   greeting: "greeting", contact: "contact", identity: "about Dumbledore", thanks: "thanks",
+  talk: "small talk", care: "care reply", not_on_site: "site doesn't say",
 };
 
 export function Dashboard() {

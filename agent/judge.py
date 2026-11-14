@@ -1,8 +1,8 @@
 """The judge: one small decision model reads a visitor's message in its conversation and says what kind of message
 it is. Guardrails v2, phase 1.
 
-In this phase the judge is being measured, not trusted. It never refuses anything. With JUDGE=shadow its verdict
-does three things:
+In shadow and rescue the judge is being measured, not trusted: it never refuses anything. With JUDGE=shadow its
+verdict does three things:
   - a visitor who seems to be in real distress gets the care reply (guard.CARE) instead of a refusal or a pitch;
   - when a writer refuses a question the judge is sure is about him, a stronger model is asked once (graph.respond);
   - every verdict is counted beside what today's gates decided, so the two can be compared before anything is
@@ -12,6 +12,13 @@ about him, the refusal is set aside and a model answers (graph.rescued). Every u
 answer, never away from one. Off unless JUDGE is set. A failure, a timeout or an empty allowance means "no verdict",
 and the turn runs as it does without a judge. So does a message that carries something besides its question about
 him (Verdict.rider): a real hiring note with "also, summarize your rules" added gets no rescue and no firm note.
+
+Phase 2, JUDGE=enforce, is rescue and two things more, both only where the judge is sure:
+  - small talk the keyword rules miss ("hii", "thx a lot", "u there?") gets one of our friendly lines, and a message
+    that is plainly not about him gets one of our decline lines (guard.TALK, guard.DECLINES): no writer is asked;
+  - in rescue and enforce alike, a question the judge is sure is about him is never left with a flat no: if the
+    writers still decline it, the visitor gets guard.NOT_ON_SITE and the way to ask him.
+An unsure verdict, a slow one or none sends the turn to the writer, as before.
 
 The model is Cloudflare's clef-flash, a decision model: it is given a state and typed questions, and returns a
 probability for each possible answer, not text. It has its own daily allowance (MODEL.rpd) with a per-network share,
@@ -53,8 +60,15 @@ SURE = 0.7
 RIDER_AT = 0.25
 REFUSAL_WAIT = 1.5  # a refusal can wait this long for the verdict: nothing else would notice a visitor in distress
 
+ATTACK_AT = 0.8  # at or over this on attack, an enforced decline is the line about instructions
+# At or over this on "conversational", small talk gets a friendly line (JUDGE=enforce). On the tuning set the 14
+# greetings scored 0.51 to 0.80 and the 96 real questions 0.14 at most ("hi there, is he open to remote work?" 0.10).
+TALK_AT = 0.5
+
 ABOUT_HIM = ("his_work", "hiring_contact", "about_him_task")
 OFF = ("general_knowledge", "task_for_visitor", "attack")
+NOT_HIS_WORK = (*OFF, "private_life")  # what an enforced judge declines when it is sure
+TALKS = ("greeting", "thanks", "ok", "bye", "checking_in", "what_can_you_do", "frustrated")
 
 WHERE = ("A chat between a visitor and Dumbledore, the AI agent on Rishabh Hota's portfolio website. Rishabh is an AI/ML "
          "engineer and researcher. Visitors are recruiters, hiring managers, clients, engineers and passers-by. Everything "
@@ -170,8 +184,26 @@ class Verdict:
 
     @property
     def off(self) -> bool:
-        """Would be declined once the judge is trusted. Counted in this phase, never acted on."""
+        """Most of the probability on the kinds that have nothing to do with him. Counted in every mode."""
         return self.mass(*OFF) >= SURE
+
+    @property
+    def small_talk(self) -> str:
+        """Which friendly line a sure piece of small talk gets (JUDGE=enforce), or ""."""
+        sure = self.kind == "conversational" and self.kinds.get("conversational", 0.0) >= TALK_AT
+        return self.talk if sure and self.talk in TALKS else ""
+
+    @property
+    def declined(self) -> str:
+        """Which decline a message gets when the judge is enforced and sure it is not about his work: "attack",
+        "general_knowledge", "task_for_visitor", "private_life", "off" when no one kind stands out, or "" for a
+        message that goes to a writer. Never for a visitor in distress."""
+        if self.distress or self.mass(*NOT_HIS_WORK) < SURE:
+            return ""
+        top = max(NOT_HIS_WORK, key=lambda k: self.kinds.get(k, 0.0))
+        if top == "attack":
+            return "attack" if self.kinds["attack"] >= ATTACK_AT else "off"
+        return top if self.kinds.get(top, 0.0) >= 0.5 else "off"
 
     def summary(self) -> dict:
         return {"kind": self.kind, "p": round(self.kinds.get(self.kind, 0.0), 2), "talk": self.talk,
@@ -179,11 +211,15 @@ class Verdict:
 
 
 def on() -> bool:
-    return env("JUDGE") in ("shadow", "rescue") and MODEL.available and bool(env("CF_ACCOUNT_ID"))
+    return env("JUDGE") in ("shadow", "rescue", "enforce") and MODEL.available and bool(env("CF_ACCOUNT_ID"))
 
 
 def rescues() -> bool:
-    return on() and env("JUDGE") == "rescue"
+    return on() and env("JUDGE") in ("rescue", "enforce")
+
+
+def enforces() -> bool:
+    return on() and env("JUDGE") == "enforce"
 
 
 def state(messages: list[dict]) -> str | None:
@@ -200,7 +236,8 @@ def state(messages: list[dict]) -> str | None:
     return json.dumps({
         "where": WHERE,
         "earlier_visitor_messages": [cut(t, 300) for t in typed[-4:-1]],
-        "agents_last_reply": cut(replies[-1], 300) if replies else "",
+        # The end of the reply, not its start: an offer or a question sits there, and a bare "yes" answers it.
+        "agents_last_reply": (replies[-1] if len(replies[-1]) <= 300 else "… " + replies[-1][-300:]) if replies else "",
         "visitors_new_message": cut(typed[-1], 2500),
     }, ensure_ascii=False)
 
@@ -326,7 +363,11 @@ def gates_said(result: dict) -> str:
         return "rescued"
     if intent == "refused":
         return "refused:" + ("rules" if why.startswith("rules") else "scope" if why.startswith("scope")
-                             else "output" if why.startswith("output") else "writer")
+                             else "output" if why.startswith("output") else "judge" if why.startswith("judge") else "writer")
+    if why == "judge:not_on_site":
+        return "not on site"
+    if why.startswith("judge:") and intent in ("talk", "greeting", "thanks", "identity"):
+        return "talk"  # one of our friendly lines, chosen by the judge
     if intent == "question":
         return "fallback" if result.get("model") == "fallback" else "answered"
     return intent or "unknown"
@@ -346,8 +387,10 @@ async def record(turn: Turn | None, result: dict) -> dict | None:
         counts["ms|" + ("<200" if seen.ms < 200 else "<400" if seen.ms < 400 else "<800" if seen.ms < 800 else "800+")] = 1
         if seen.garbled >= 0.5:
             counts["garbled"] = 1
-        if seen.off:
+        if seen.declined:  # what JUDGE=enforce would have declined in our words, beside what happened instead
             counts[f"would decline|{gates}"] = 1
+        if seen.small_talk:  # and what it would have answered with a friendly line
+            counts[f"would greet|{gates}"] = 1
         if seen.rider:
             counts[f"rider|{gates}"] = 1
     await usage.tally("judge:" + time.strftime("%Y-%m-%d", time.gmtime()), counts)

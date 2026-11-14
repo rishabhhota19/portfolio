@@ -286,6 +286,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                 await session_memory.forget(req.conversation_id)
         if result.get("intent") == "care":  # the judge's verdict or the writer's own signal (graph.check)
             live = False  # whatever the stream guard holds is not for the visitor
+        if result.get("why") == "judge:not_on_site":
+            live = False  # the guard holds the writers' refusal, which our own line has replaced (graph.respond)
         # One structured log line per turn (visible in Vercel logs). No message text is logged.
         print(json.dumps({"event": "agent_turn", "conversation": req.conversation_id, "ms": round((time.perf_counter() - started) * 1000), **result}, default=str))
         if result.get("model") == "none":

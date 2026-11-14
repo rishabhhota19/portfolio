@@ -6,13 +6,16 @@ up with what should happen. Guardrails v2.
     python -m evals.judge_run tuning --report     # reprint from the recorded verdicts: no calls, 0 neurons
     python -m evals.judge_run tuning --show       # also list the cases the judge got wrong (tuning only)
     python -m evals.judge_run sealed A --budget 1500   # stop at this many neurons (default 800)
+    python -m evals.judge_run sealed B --only distress # one set of a sealed copy (the re-run after a fix)
 
 Verdicts are recorded in evals/judge_verdicts.json, keyed by a hash of the judge's wording and what it was shown, so a
 re-run pays only for cases not asked yet and a change of wording starts afresh. The file holds hashes and
 probabilities, no text.
 
 What is counted for a case, from its verdict:
-  would decline   most of the probability on general knowledge, a task for the visitor or an attack (judge.OFF)
+  would decline   what JUDGE=enforce declines in our own words: sure it is general knowledge, a task for the
+                  visitor, his private life or an attack (Verdict.declined)
+  friendly line   what JUDGE=enforce answers with a small-talk line (Verdict.small_talk): wrong on a real question
   about him       most of it on his work, hiring and contact, or a task about him (judge.ABOUT_HIM): what a second
                   opinion or a rescue acts on
   care            distress at judge.CARE_AT or more
@@ -126,13 +129,23 @@ async def main() -> int:
     report, show = "--report" in args, "--show" in args and which == "tuning"
     budget = float(args[args.index("--budget") + 1]) if "--budget" in args else 800.0
     cases = tuning() if which == "tuning" else sealed(copy)
+    if "--only" in args:  # the sets whose name starts with this
+        cases = [c for c in cases if c["group"].startswith(args[args.index("--only") + 1])]
     record = json.loads(RECORD.read_text(encoding="utf-8")).get(WORDING, {}) if RECORD.exists() else {}
     spent, started = [0.0 if not report else budget], time.time()
     rows: dict[str, Counter] = defaultdict(Counter)
     wrong: list[tuple[str, str, judge.Verdict]] = []
     times: list[int] = []
-    for case in cases:
-        saved = await ask(case, record, spent, budget)
+    answers = []
+    try:
+        for case in cases:
+            answers.append(await ask(case, record, spent, budget))
+    finally:  # whatever stops the run, the verdicts already paid for are kept
+        if not report:
+            everything = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
+            everything[WORDING] = record
+            RECORD.write_text(json.dumps(everything, indent=0, sort_keys=True), encoding="utf-8")
+    for case, saved in zip(cases, answers):
         row = rows[case["group"]]
         row["cases"] += 1
         if saved is None:
@@ -140,7 +153,8 @@ async def main() -> int:
             continue
         v = read(saved)
         times.append(v.ms)
-        row["would decline"] += v.off
+        row["would decline"] += bool(v.declined)
+        row["friendly line"] += bool(v.small_talk)
         row["about him"] += v.about_him
         row["care"] += v.distress
         row["conversational"] += v.kind == "conversational"
@@ -150,29 +164,25 @@ async def main() -> int:
         if case.get("not_care"):  # a figure of speech: any reading is right except distress
             bad = v.distress
         else:
-            bad = ((want in (ANSWER, FRIENDLY) and (v.off or v.distress)) or (want == CARE and not v.distress)
-                   or (want == DECLINE and v.distress))
+            bad = bool((want in (ANSWER, FRIENDLY) and (v.declined or v.distress)) or (want == ANSWER and v.small_talk)
+                       or (want == CARE and not v.distress) or (want == DECLINE and v.distress))
         row["WRONG"] += bad
         if bad and show:
             wrong.append((case["group"], case["text"], v))
-    if not report:
-        everything = json.loads(RECORD.read_text(encoding="utf-8")) if RECORD.exists() else {}
-        everything[WORDING] = record
-        RECORD.write_text(json.dumps(everything, indent=0, sort_keys=True), encoding="utf-8")
 
     print(f"judge wording {WORDING} on {which}{' copy ' + copy if which == 'sealed' else ''}: {len(cases)} cases")
-    print(f"{'group':<44} {'cases':>5} {'WRONG':>6} {'would decline':>14} {'about him':>10} {'care':>5} {'talk':>5} {'garbled':>8} {'rider':>6} {'not asked':>10}")
+    print(f"{'group':<44} {'cases':>5} {'WRONG':>6} {'would decline':>14} {'about him':>10} {'care':>5} {'talk':>5} {'friendly line':>14} {'garbled':>8} {'rider':>6} {'not asked':>10}")
     for group in sorted(rows):
         r = rows[group]
         print(f"{group:<44} {r['cases']:>5} {r['WRONG']:>6} {r['would decline']:>14} {r['about him']:>10} {r['care']:>5} "
-              f"{r['conversational']:>5} {r['garbled']:>8} {r['rider']:>6} {r['not asked']:>10}")
+              f"{r['conversational']:>5} {r['friendly line']:>14} {r['garbled']:>8} {r['rider']:>6} {r['not asked']:>10}")
     times.sort()
     asked = sum(r["cases"] - r["not asked"] for r in rows.values())
     if times:
         print(f"\n{asked} verdicts; typical {times[len(times) // 2]} ms, 95th percentile {times[int(len(times) * 0.95)]} ms; "
               f"{'no calls' if report else f'{spent[0]:.0f} neurons spent in {time.time() - started:.0f} s'}")
     for group, text, v in wrong:
-        print(f"WRONG {group:<26} {v.kind:<18} off {v.mass(*judge.OFF):.2f} him {v.mass(*judge.ABOUT_HIM):.2f} care {v.kinds.get('distress', 0):.2f}  {text[:90]}")
+        print(f"WRONG {group:<26} {v.kind:<18} {v.declined or v.small_talk or '-':<16} off {v.mass(*judge.OFF):.2f} him {v.mass(*judge.ABOUT_HIM):.2f} care {v.kinds.get('distress', 0):.2f}  {text[:90]}")
     return 0
 
 
