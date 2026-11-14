@@ -40,7 +40,10 @@ TIMEOUT = 4.0  # the call itself. Nobody waits this long (see WAIT): a late verd
 WAIT = 0.4  # how long after asking anyone waits for the verdict before going on without it
 # First values, from a 24-message probe on 14 Nov 2026 (distress scored 0.94; real questions put at most 0.25 on the
 # off kinds; absurd and hostile ones 0.79 or more). They are to be set on the tuning set and checked on the sealed one.
-CARE_AT = 0.8
+# 0.8 at first, from one probe message that scored 0.94. The sealed run then showed the judge alone giving the care
+# reply to 3 of 10 distress messages (15 Nov 2026). On 28 open messages written for this, 14 in distress scored 0.55
+# to 0.93 and 14 figures of speech ("this deadline is killing me", "feeling hopeless about this req") 0.06 at most.
+CARE_AT = 0.4
 CALM = 0.2  # under this on distress, a writer that answered with the care signal misread a figure of speech
 SAFE = 0.1  # under this on attack, a refusal by the old rules may be set aside (JUDGE=rescue)
 SURE = 0.7
