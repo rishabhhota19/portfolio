@@ -509,6 +509,27 @@
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
+   "q": "Would he fit a Forward Deployed Engineer role?",
+   "paraphrases": [
+    "Does Rishabh have what it takes to thrive as a Forward Deployed Engineer?",
+    "Is Rishabh a good fit for a Forward Deployed Engineer position?",
+    "Can Rishabh handle the Forward Deployed Engineer responsibilities?",
+    "Would Rishabh be a solid match for the Forward Deployed Engineer role?",
+    "Is Rishabh suited for a Forward Deployed Engineer position?",
+    "Does Rishabh fit the Forward Deployed Engineer profile?",
+    "Could Rishabh succeed as a Forward Deployed Engineer?",
+    "Is Rishabh the right candidate for Forward Deployed Engineer?"
+   ],
+   "text": "**Yes — he's built exactly the kind of production systems a Forward Deployed Engineer owns.**\n- [Collaterals Agent](/projects/collaterals-agent): cut course-launch collateral creation from 7–10 days to 1 day with an N8N multi-agent system; won Best Team Award (Q3).\n- [Osteoarthritis pipeline](/experience#03-osteosconnect-ai-engineer): led clinicians and engineers to a 96%-accurate X-ray pipeline on AWS, with >90% radiologist concordance in SRM Trichy trials.\n- Skills: agentic AI orchestration, MCP, RAG in production, AWS, FastAPI, and end-to-end deployment from prototype to production.\n\nHis [résumé](/resume) has the full picture, or you can share your details with the button below and he'll get back to you.",
+   "links": [
+    {
+     "path": "/projects/collaterals-agent",
+     "label": "Collaterals Agent"
+    }
+   ],
+   "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
+  },
+  {
    "q": "Where is he based?",
    "paraphrases": [
     "Where is Rishabh located?",
