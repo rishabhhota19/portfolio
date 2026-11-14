@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from agent import judge, memory as session_memory, usage
 from agent.config import env
 from agent.graph import RECENT_CHAT, WARM_EVERY, agent, warm_prefix_cache
-from agent.guard import CARE, BriefReader, StreamGuard
+from agent.guard import CARE, BriefReader, StreamGuard, may_be_care
 from agent.pages import shown_page
 from agent.summarize import summarize
 
@@ -230,6 +230,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         live = True  # False once a call broke off mid-answer: the next model's answer is then sent whole, at the end
         final = None  # the answer as the graph finished it (after the output guard)
         care: bool | None = None  # the judge's answer to "is this visitor in distress?", once it has been asked
+        opening = ""  # the reply's first words: the page is not moved while they could still be the care signal
 
         async def distress(wait: float = judge.WAIT) -> bool:
             """Asked just before anything is shown. The judge was asked when the turn left the gates, and a model's
@@ -250,7 +251,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                 if meta.get("langgraph_node") == "respond" and isinstance(chunk, AIMessageChunk) and chunk.text:
                     if chunk.id != call:  # another call: a second opinion (nothing shown yet) or a replacement model
                         call = chunk.id
-                        brief = BriefReader()
+                        brief, opening = BriefReader(), ""
                         if output.sent:
                             live = False  # the earlier model broke off mid-answer: "replace" sends the new one whole
                         else:
@@ -258,7 +259,9 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                     body = brief.push(chunk.text)
                     if (body or brief.show) and await distress():
                         break  # nothing a model wrote is shown to a visitor in distress
-                    if brief.show and not moved and not output.sent and not any(a["type"] == "navigate" for a in result.get("actions", [])):
+                    opening += body
+                    if (brief.show and not moved and not output.sent and not may_be_care(opening)  # never before a care reply
+                            and not any(a["type"] == "navigate" for a in result.get("actions", []))):
                         if shown := shown_page(brief.show):
                             moved = shown["path"]
                             yield line(shown)
@@ -269,7 +272,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
                 for update in data.values():
                     update = update or {}
                     result["trace"] += update.get("trace", [])
-                    result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions", "economy") if k in update})
+                    result.update({k: update[k] for k in ("intent", "why", "level", "model", "usage", "actions", "economy", "rescued") if k in update})
                     if update.get("messages"):
                         final = update["messages"][-1].content
         if care:
@@ -279,6 +282,8 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         if care:  # the reply is ours, word for word: no page, no links, nothing a model wrote
             result.update({"intent": "care", "why": "judge:distress", "model": "router", "actions": []})
             final = CARE
+            if req.conversation_id:  # the graph may have finished, and remembered the turn, before the verdict came in
+                await session_memory.forget(req.conversation_id)
         if result.get("intent") == "care":  # the judge's verdict or the writer's own signal (graph.check)
             live = False  # whatever the stream guard holds is not for the visitor
         # One structured log line per turn (visible in Vercel logs). No message text is logged.

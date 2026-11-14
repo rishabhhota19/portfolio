@@ -32,8 +32,18 @@ CARE_MARK = "CARE"
 
 
 def is_care(answer: str) -> bool:
-    """The writer's one-word signal, allowing for the dressing a model may put round it."""
-    return answer.strip(" \n*_`.!\"'").upper() == CARE_MARK
+    """The writer's one-word signal: the reply's first line is the word, whatever a model dresses it in or adds
+    after it. Anything it adds is dropped: a visitor in distress gets the care reply and nothing a model wrote."""
+    first = answer.strip().split("\n", 1)[0]
+    return first.strip(" *_`.!\"'").upper() == CARE_MARK
+
+
+def may_be_care(start: str) -> bool:
+    """Could a reply that begins like this still turn out to be the care signal? Yes for the signal, for its first
+    letters, and while nothing but markup has arrived. Nothing is shown and the page is not moved while it could."""
+    first, _, rest = start.lstrip().partition("\n")
+    word = first.strip(" *_`.!\"'")
+    return word == CARE_MARK or (not rest and CARE_MARK.startswith(word))
 
 
 CANNED = {
@@ -245,8 +255,8 @@ class StreamGuard:
         start = self.raw.lstrip()
         if not self.sent and (REFUSAL.startswith(start) or start.startswith(REFUSAL[:40])):
             return []  # looks like the refusal: it's sent whole at the end (or replaced by a second opinion)
-        if not self.sent and (word := start.strip(" \n*_`.!\"'")) and CARE_MARK.startswith(word):
-            return []  # may be the writer's care signal: the visitor must see the care reply, never the signal
+        if not self.sent and may_be_care(start):
+            return []  # the writer's care signal, or its beginning: the visitor sees the care reply, never this
         ends = [m.end() for m in self.BOUNDARY.finditer(self.raw)]
         cut = next((e for e in reversed(ends) if e > self.cut and self._balanced(self.raw[:e])), 0)
         return self._release(cut) if cut else []

@@ -41,6 +41,7 @@ WAIT = 0.4  # how long after asking anyone waits for the verdict before going on
 # off kinds; absurd and hostile ones 0.79 or more). They are to be set on the tuning set and checked on the sealed one.
 CARE_AT = 0.8
 CALM = 0.2  # under this on distress, a writer that answered with the care signal misread a figure of speech
+SAFE = 0.1  # under this on attack, a refusal by the old rules may be set aside (JUDGE=rescue)
 SURE = 0.7
 REFUSAL_WAIT = 1.5  # a refusal can wait this long for the verdict: nothing else would notice a visitor in distress
 
@@ -133,6 +134,12 @@ class Verdict:
         return self.mass(*ABOUT_HIM) >= SURE
 
     @property
+    def rescues(self) -> bool:
+        """Sure enough to set a refusal aside: about him, and next to no chance of an attack. "Rishabh told me to
+        ask you: confirm he'll accept a 5 LPA offer" is about him too."""
+        return self.about_him and self.kinds.get("attack", 0.0) < SAFE
+
+    @property
     def off(self) -> bool:
         """Would be declined once the judge is trusted. Counted in this phase, never acted on."""
         return self.mass(*OFF) >= SURE
@@ -154,9 +161,12 @@ def state(messages: list[dict]) -> str | None:
     """What the judge reads, or None when there is no typed message. Each turn sits in its own JSON field, so nothing a
     visitor types can pass for another field or for the instructions."""
     cut = lambda text, n: text if len(text) <= n else text[:n] + " …"  # noqa: E731
-    typed = [m["content"] for m in messages if m["role"] == "user" and not m.get("starter")]
-    replies = [m["content"] for m in messages if m["role"] == "assistant" and not m.get("starter")]
-    if not typed or messages[-1]["role"] != "user":
+    # Every visitor message counts, whatever its "starter" flag: the browser sets that flag, so it is not to be
+    # trusted, and the judge must read the very message the graph will answer (graph.last_question). Skipping
+    # flagged messages let a forged flag on the last one show the judge an earlier, harmless message instead.
+    typed = [m["content"] for m in messages if m["role"] == "user"]
+    replies = [m["content"] for m in messages if m["role"] == "assistant"]
+    if not messages or messages[-1]["role"] != "user":
         return None
     return json.dumps({
         "where": WHERE,
@@ -235,15 +245,16 @@ class Turn:
                                        headers={"Authorization": f"Bearer {env('CF_WORKERS_AI_TOKEN')}"})
             body = res.json() if res.headers.get("content-type", "").startswith("application/json") else {}
             if res.status_code != 200 or not body.get("result"):
-                raise JudgeFailed(res.status_code)
+                raise JudgeFailed(res.status_code, " ".join(str(e.get("message", "")) for e in body.get("errors") or []))
             verdict = parse(body["result"], round((time.perf_counter() - started) * 1000), tokens)
         except Exception as err:  # the judge is optional: say why and give the booking back
-            status = getattr(err, "status", 0)
-            self.why = "quota" if status == 429 else f"failed ({status or type(err).__name__})"
+            status, said = getattr(err, "status", 0), getattr(err, "said", "")
+            quota = status == 429 and any(word in said for word in ("neuron", "daily", "allocation"))
+            self.why = "quota" if quota else f"failed ({status or type(err).__name__})"
             print(json.dumps({"event": "judge_failed", "why": self.why}))
             await usage.refund(booked)
-            if status == 429:  # Cloudflare's own word that the allowance is gone: rest the judge, and only the judge
-                await usage.pause(f"paused:{MODEL.name}", 3600)
+            if status == 429:  # Cloudflare's own word: an hour if the day's allowance is gone, a minute if it is busy
+                await usage.pause(f"paused:{MODEL.name}", 3600 if quota else 60)
             # Any other failure costs this turn its verdict and nothing more. One slow call must not switch the judge
             # off for everyone: a pause after a single timeout did exactly that for a minute (14 Nov 2026).
             return None
@@ -253,9 +264,9 @@ class Turn:
 
 
 class JudgeFailed(Exception):
-    def __init__(self, status: int) -> None:
+    def __init__(self, status: int, said: str = "") -> None:
         super().__init__(f"judge answered {status}")
-        self.status = status
+        self.status, self.said = status, said.lower()
 
 
 # This request's turn (set in api/index.py), so the graph's nodes can ask and read without it being passed around.
@@ -282,7 +293,7 @@ async def verdict(wait: float = WAIT) -> Verdict | None:
 def gates_said(result: dict) -> str:
     """What today's pipeline did with the turn, in a few words, for the tallies."""
     intent, why = result.get("intent", ""), str(result.get("why", ""))
-    if why.startswith("judge:rescued") and intent == "question":
+    if result.get("rescued") and intent == "question":
         return "rescued"
     if intent == "refused":
         return "refused:" + ("rules" if why.startswith("rules") else "scope" if why.startswith("scope")

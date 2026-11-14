@@ -53,6 +53,7 @@ class State(TypedDict, total=False):
     model: str  # which LLM answered (or router / cache / bank)
     usage: dict  # real tokens in/out, latency, switches — added to the visit's totals
     actions: list[dict]  # what Dumbledore does on the page: navigate, links
+    rescued: bool  # the old rules refused this turn and the judge set that aside (JUDGE=rescue)
     brief: str  # what the agent worked out this visitor is deciding (its hidden first line, never logged)
     show: str  # the page it chose to take them to, or "stay" ("" = it didn't say)
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
@@ -119,7 +120,7 @@ async def route(state: State) -> dict:
     if fresh(state) and (hit := await cache.get(question)):
         return say(hit["text"], "cached", started, "route", model="cache", actions=actions or link_actions(hit["links"]))
     level = difficulty(question, len(state["messages"]) - 1)
-    return {"intent": "question", "level": level, "actions": actions, **({"why": "judge:rescued"} if rescue else {}),
+    return {"intent": "question", "level": level, "actions": actions, **({"why": "judge:rescued", "rescued": True} if rescue else {}),
             "trace": step("route", started, intent=intent, level=level, rescued=rescue)}
 
 
@@ -152,7 +153,7 @@ async def scope(state: State) -> dict:
         links = link_actions(hit["links"], skip=state.get("actions", []))
         return say(hit["text"], "bank", started, "scope", model="bank", actions=state.get("actions", []) + links)
     judge.ask()  # a model will answer this turn: the judge reads it meanwhile (its verdict is in before the first words)
-    return {**({"why": "judge:rescued"} if rescue else {}), "trace": step("scope", started, gap=gap, rescued=rescue)}
+    return {**({"why": "judge:rescued", "rescued": True} if rescue else {}), "trace": step("scope", started, gap=gap, rescued=rescue)}
 
 
 async def rerank_docs(state: State) -> dict:
@@ -201,17 +202,22 @@ async def rescued() -> bool:
     if not judge.rescues():
         return False
     verdict = await judge.verdict(judge.REFUSAL_WAIT)
-    return bool(verdict and verdict.about_him)
+    return bool(verdict and verdict.rescues)
 
 
 async def second_look(state: State, reply: str) -> str:
     """Did the writer turn away something it should have answered? "" for no; otherwise which note the second opinion
     carries (prompts.SECOND_OPINION): "sure" when the judge has read the message, "soft" on a hint alone."""
     verdict = await judge.verdict() if guard.is_refusal(reply) or guard.is_care(reply) else None
-    if guard.is_care(reply):  # the judge is the better reader of distress: where it has answered, it decides
-        return "sure" if verdict and verdict.calm and verdict.about_him else "soft" if verdict and verdict.calm else ""
+    if guard.is_care(reply):
+        # The judge is the better reader of distress, so where it is sure the message is a question about him and
+        # sees no distress, a stronger model answers it. In every other case the care reply stands: a needless care
+        # reply does no harm, and the judge must never be what turns one into a refusal.
+        return "sure" if verdict and verdict.calm and verdict.about_him else ""
     if not guard.is_refusal(reply):
         return ""
+    if state.get("rescued"):
+        return ""  # the judge has already set one refusal aside this turn: a writer's own refusal now stands
     if verdict and verdict.about_him:
         # Recruiters also write "What is the notice period?", which names nobody: small models refused it, and with
         # only the hint below it got no second look at all (14 Nov 2026).
