@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="relative z-10 mt-28 border-t border-rule">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <p className="opsz-cap font-serif text-4xl leading-[1.05] sm:text-5xl">
+          <p className="font-serif text-4xl leading-[1.05] sm:text-5xl">
             Let&apos;s build something <em className="text-accent">that ships.</em>
           </p>
           <p className="mt-4 max-w-sm text-muted">

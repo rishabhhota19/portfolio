@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bodoni_Moda, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Comic_Neue } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/site/Header";
@@ -7,26 +7,17 @@ import { Footer } from "@/components/site/Footer";
 import { ChatLauncher } from "@/components/chat/ChatLauncher";
 import { VisitTracker } from "@/components/site/VisitTracker";
 import { SiteChrome } from "@/components/site/SiteChrome";
+import { AskBar } from "@/components/site/AskBar";
 import { site } from "@/lib/content";
 
-// Headlines: a high-contrast didone, with its optical-size axis so the hairlines stay readable at card sizes.
-const display = Bodoni_Moda({
+// The whole site is set in Comic Sans (Rishabh's call, 15 Nov 2026). Windows and macOS have it installed, so there
+// it costs no download at all; Comic Neue, the free look-alike, is the web font for phones and Linux, which don't.
+// It is not preloaded: a device that has Comic Sans never fetches it. The font stack is in app/globals.css.
+const comic = Comic_Neue({
+  weight: ["400", "700"],
   style: ["normal", "italic"],
   subsets: ["latin"],
-  axes: ["opsz"],
-  variable: "--font-display",
-});
-
-const body = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
-
-// The small labels aren't worth holding up the first paint: one weight, loaded when they're drawn.
-const label = IBM_Plex_Mono({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-label",
+  variable: "--font-comic",
   preload: false,
 });
 
@@ -80,7 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${display.variable} ${body.variable} ${label.variable}`}
+      className={comic.variable}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
@@ -89,21 +80,28 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(personJsonLd).replace(/</g, "\\u003c") }}
         />
       </head>
-      <body className="flex min-h-dvh flex-col">
+      <body>
         <a
           href="#main"
           className="sr-only z-50 bg-accent px-3 py-2 text-accent-ink focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
         >
           Skip to content
         </a>
+        {/* The site's own column. Its width, not the window's, decides every page's layout (app/globals.css), so the
+            pages still fit when the agent takes the left 40% of the screen. The agent itself sits outside it. */}
+        <div className="site-shell flex min-h-dvh flex-col">
+          <SiteChrome>
+            <AskBar />
+            <Header />
+          </SiteChrome>
+          <main id="main" className="relative z-10 flex-1">
+            {children}
+          </main>
+          <SiteChrome>
+            <Footer />
+          </SiteChrome>
+        </div>
         <SiteChrome>
-          <Header />
-        </SiteChrome>
-        <main id="main" className="relative z-10 flex-1">
-          {children}
-        </main>
-        <SiteChrome>
-          <Footer />
           <ChatLauncher />
           <VisitTracker />
         </SiteChrome>

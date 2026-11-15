@@ -69,6 +69,23 @@
   }
 }
 
+/* On this site sm / md / lg measure the SITE COLUMN, not the window. When Dumbledore opens he takes the left 40% of
+   a wide screen and the site keeps the right 60%: every page then lays itself out for the width it really has
+   (a 1440 px window gives the site 864 px, so it takes its tablet layout). The column is `.site-shell` (app/layout.tsx).
+   Anything outside that column (the agent panel, its tabs) uses vp-sm / vp-lg, which measure the window. */
+@custom-variant sm (@container site (min-width: 40rem));
+@custom-variant md (@container site (min-width: 48rem));
+@custom-variant lg (@container site (min-width: 64rem));
+@custom-variant vp-sm (@media (min-width: 40rem));
+@custom-variant vp-lg (@media (min-width: 64rem));
+
+/* One typeface everywhere: headlines, text and the small capital labels. */
+:root {
+  --font-display: "Comic Sans MS", "Comic Sans", var(--font-comic), "Chalkboard SE", cursive;
+  --font-body: var(--font-display);
+  --font-label: var(--font-display);
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -82,7 +99,7 @@
   --color-band-accent: var(--band-accent);
   --font-serif: var(--font-display);
   --font-sans: var(--font-body);
-  --font-mono: var(--font-label);
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace; /* code only: labels use --font-label */
 }
 
 html {
@@ -92,24 +109,14 @@ html {
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-body), ui-sans-serif, sans-serif;
+  font-family: var(--font-body);
   font-feature-settings: "kern";
   -webkit-font-smoothing: antialiased;
 }
 
-/* Headlines: Bodoni's hairlines are drawn for the size they're set at. */
+/* Headlines: the same face as the text, pulled a little tighter at size. */
 .font-serif {
-  font-optical-sizing: auto;
-  letter-spacing: -0.015em;
-}
-/* The largest sizes stop at a mid optical size: at the font's own display cut the hairlines get too thin to read on
-   an ordinary laptop screen, in the light theme most of all. */
-h1.font-serif,
-.opsz-cap {
-  font-optical-sizing: none;
-  font-variation-settings: "opsz" 18;
-  font-weight: 500;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 /* Paper grain — inline SVG noise, no extra request. It arrives just after the page: drawing it and blending it over the
@@ -141,6 +148,43 @@ body::after {
   background: radial-gradient(closest-side, var(--glow), transparent);
 }
 
+/* The site's column: a named container, so sm / md / lg (above) measure it. Above the page's grain and glow. */
+.site-shell {
+  container: site / inline-size;
+  position: relative;
+  z-index: 1;
+}
+/* Dumbledore open on a wide screen: he has the left 40%, the site the right 60%, both in use at once. Below this
+   width he covers the page instead, with Agent · Site tabs (components/chat/AgentTabs.tsx). */
+@media (min-width: 64rem) {
+  :root[data-agent="open"] .site-shell {
+    margin-left: 40vw;
+  }
+  .agent-sheet {
+    animation: agent-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+}
+@keyframes agent-in {
+  from {
+    opacity: 0;
+    transform: translateX(-1.25rem);
+  }
+}
+
+/* "Thinking": a slow light crossing the word while the first words are on their way. */
+@keyframes thinking {
+  to {
+    background-position: -200% 0;
+  }
+}
+.thinking {
+  background: linear-gradient(90deg, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: thinking 1.8s linear infinite;
+}
+
 ::selection {
   background: var(--accent);
   color: var(--accent-ink);
@@ -156,7 +200,7 @@ body::after {
 
 @layer components {
 .label {
-  font-family: var(--font-label), ui-monospace, monospace;
+  font-family: var(--font-label);
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -257,6 +301,14 @@ a.panel:hover,
   .panel-hover:hover {
     transform: none;
   }
+  .agent-sheet {
+    animation: none;
+  }
+  .thinking {
+    animation: none;
+    color: var(--muted);
+    background: none;
+  }
   .reveal,
   .pulse-dot::after,
   .caret {
@@ -275,8 +327,7 @@ a.panel:hover,
   color: var(--ink);
 }
 .prose-journal h2 {
-  font-family: var(--font-display), serif;
-  font-optical-sizing: auto;
+  font-family: var(--font-display);
   font-size: 1.85rem;
   line-height: 1.15;
   margin: 2.4rem 0 0.8rem;
@@ -318,8 +369,7 @@ a.panel:hover,
   font-weight: 650;
 }
 .prose-journal em {
-  font-family: var(--font-display), serif;
-  font-size: 1.08em;
+  font-family: var(--font-display);
 }
 .prose-journal a {
   color: var(--accent);
@@ -327,7 +377,7 @@ a.panel:hover,
   text-underline-offset: 3px;
 }
 .prose-journal code {
-  font-family: var(--font-label), monospace;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 0.88em;
   padding: 0.1em 0.4em;
   border: 1px solid var(--rule);

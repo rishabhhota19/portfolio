@@ -13,10 +13,10 @@ export function SectionHead({
   linkLabel?: string;
 }) {
   return (
-    <div className="mb-10 flex items-end justify-between gap-4">
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
       <h2 className="flex items-baseline gap-3 sm:gap-4">
         <span className="label !text-accent">{index.padStart(2, "0")}</span>
-        <span className="opsz-cap font-serif text-[2rem] leading-none sm:text-[3.4rem]">{title}</span>
+        <span className="font-serif text-[2rem] leading-none sm:text-[3.4rem]">{title}</span>
       </h2>
       {href ? (
         <Link

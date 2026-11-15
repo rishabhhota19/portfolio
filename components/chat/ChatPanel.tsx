@@ -17,6 +17,8 @@ import {
   type Lead,
   type LeadRequest,
 } from "@/lib/chat-types";
+import { agentCoversPage, useWideScreen } from "./agent-state";
+import { AgentTabs } from "./AgentTabs";
 import type { PendingQuestion } from "./ChatLauncher";
 import { LeadForm } from "./LeadForm";
 import { Markdown } from "./Markdown";
@@ -24,7 +26,8 @@ import { StreamedGreeting } from "./StreamedGreeting";
 
 type PageLink = { path: string; label: string };
 // retry: the question a failed turn can send again (shown as "Try again" on the last message)
-type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string; retry?: string };
+// thought: how long the first words of this answer took to arrive, in ms (shown as "Thought for 1.2 s")
+type UiMessage = ChatMessage & { id: string; kind?: "starter" | "notice"; links?: PageLink[]; opened?: string; retry?: string; thought?: number };
 type Status = "idle" | "waiting" | "streaming" | "offline";
 
 // A command about where the visitor already is, with no page named (agent/pages.py MOVES).
@@ -47,6 +50,8 @@ const SITE_PATH = /^\/(?!\/)[a-z0-9\-/]*(#[a-z0-9\-]+)?$/i;
 type Props = {
   open: boolean;
   onMinimize: () => void;
+  /** The visitor ended the chat (the conversation is deleted), as opposed to putting it aside. */
+  onEnd?: () => void;
   pendingQuestion: PendingQuestion | null;
   onPendingHandled: () => void;
   /** Inside the 3D page (components/chat/EmbeddedAgent.tsx): the panel fills its frame, and instead of changing this
@@ -71,8 +76,9 @@ const newId = () => crypto.randomUUID();
 
 // Temporary memory: everything below lives in React state only — no localStorage, no server copy.
 // Closing the chat (×) or leaving the site wipes it; only a summary is logged via /api/chat/end.
-export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled, embedded = false, pagePath }: Props) {
+export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingHandled, embedded = false, pagePath }: Props) {
   const router = useRouter();
+  const beside = useWideScreen() && !embedded; // a wide screen: the agent sits beside the site, not over it
   const currentPage = () => pagePath ?? window.location.pathname;
   const [messages, setMessages] = useState<UiMessage[]>([]);
   const [status, setStatus] = useState<Status>("idle");
@@ -209,8 +215,8 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       track("agent_navigate", { path, source }); // our own page path, never visitor text
       if (embedded) return tellHost({ source: "dumbledore", type: "navigate", path, focus });
       if (path !== window.location.pathname + window.location.hash) router.push(path);
-      // Phones show the chat full-screen: step aside so the visitor sees the page they asked for.
-      if (focus && window.matchMedia("(max-width: 639px)").matches) onMinimize();
+      // Phones and tablets show the chat full-screen: step aside so the visitor sees the page they asked for.
+      if (focus && agentCoversPage()) onMinimize();
     },
     [router, onMinimize, embedded],
   );
@@ -241,7 +247,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         const top = what === "top" ? 0 : what === "bottom" ? document.documentElement.scrollHeight : window.scrollY + (what === "down" ? page : -page);
         window.scrollTo({ top, behavior: "smooth" });
       }
-      if (window.matchMedia("(max-width: 639px)").matches) onMinimize(); // the chat covers a phone: step aside
+      if (agentCoversPage()) onMinimize(); // the chat covers a phone: step aside
     },
     [embedded, goTo, router, onMinimize],
   );
@@ -264,7 +270,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       const history = newestWithin(asked.slice(-LIMITS.maxHistory), LIMITS.maxHistoryChars);
       if (retryOf) {
         track("chat_retry");
-        updateMessage(retryOf, { kind: undefined, content: "", retry: undefined });
+        updateMessage(retryOf, { kind: undefined, content: "", retry: undefined, thought: undefined });
       } else {
         append({ role: "user", content: text });
         track("chat_question", { page: currentPage() }); // never the question text
@@ -278,6 +284,8 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       const controller = new AbortController();
       abortRef.current = controller;
       let full = ""; // the answer so far: a connection that drops part-way keeps it
+      const askedAt = performance.now();
+      let thought: number | undefined; // how long the first words took, once they arrive
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -314,6 +322,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
           } catch {
             return;
           }
+          if (thought === undefined && (event.type === "text" || event.type === "replace")) thought = performance.now() - askedAt;
           if (event.type === "text") full += event.text;
           else if (event.type === "replace") full = event.text; // the output guard changed what was shown
           else if (event.type === "links") {
@@ -334,7 +343,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             updateMessage(replyId, { opened: event.label });
             goTo(event.path, "agent", event.focus);
           }
-          updateMessage(replyId, { content: full });
+          updateMessage(replyId, { content: full, thought });
         };
         for (;;) {
           const { value, done } = await reader.read();
@@ -395,6 +404,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
     token.current = null;
     logged.current = { count: 0, ended: false };
     conversation.current = null;
+    onEnd?.();
     onMinimize();
   };
 
@@ -434,6 +444,21 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
 
   const busy = status === "waiting" || status === "streaming";
   const showStarters = greeted && (messages.length === 0 || status === "offline"); // they follow the greeting
+  // Before the first question, beside the site: the greeting and the question field sit in the middle of the sheet,
+  // and the field goes to the bottom once the conversation starts. Same elements either way, only placed differently.
+  const centred = beside && messages.length === 0 && !showLead;
+
+  const leadButton =
+    !leadSent && !showLead ? (
+      <button
+        type="button"
+        onClick={() => setShowLead(true)}
+        className="rounded-full border border-rule px-3.5 py-2 text-left text-[0.82rem] text-muted transition-colors duration-300 hover:border-accent hover:text-accent"
+      >
+        ✉ Share your details
+      </button>
+    ) : null;
+  const seconds = (ms: number) => `${ms < 9950 ? (ms / 1000).toFixed(1) : Math.round(ms / 1000)} s`;
 
   return (
     <section
@@ -447,13 +472,28 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       className={
         embedded
           ? "fixed inset-0 z-50 flex flex-col bg-paper" // the host page draws the frame
-          : // A sheet of dark glass with one tight corner, the one it grows from: never a plain rectangle.
-            "fixed inset-0 z-50 flex flex-col bg-paper sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(700px,calc(100dvh-3rem))] sm:w-[440px] sm:overflow-hidden sm:rounded-[2rem] sm:rounded-br-[0.6rem] sm:border sm:border-accent/30 sm:bg-paper/80 sm:shadow-[0_50px_120px_-30px_rgba(0,0,0,0.75)] sm:backdrop-blur-2xl"
+          : // Phones and tablets: the whole screen, with Agent · Site tabs. Wide screens: a sheet over the left 40%,
+            // the site beside it (app/globals.css moves it), with one tight corner where the two meet.
+            "agent-sheet fixed inset-0 z-50 flex flex-col bg-paper vp-lg:inset-auto vp-lg:bottom-3 vp-lg:left-3 vp-lg:top-3 vp-lg:w-[calc(40vw-1.5rem)] vp-lg:overflow-hidden vp-lg:rounded-[2rem] vp-lg:rounded-tr-[0.6rem] vp-lg:border vp-lg:border-accent/30 vp-lg:bg-surface/70 vp-lg:shadow-[var(--lift)]"
       }
     >
+      {!embedded ? (
+        <div className="flex items-center justify-between px-4 pt-3 vp-lg:hidden">
+          <AgentTabs
+            view="agent"
+            onPick={(view) => {
+              if (view === "site") onMinimize();
+            }}
+          />
+          <button type="button" onClick={endChat} className="rounded-full px-3 py-2 text-sm text-muted transition-colors duration-300 hover:text-accent" aria-label="End chat and delete this conversation">
+            End chat
+          </button>
+        </div>
+      ) : null}
+
       {/* Header */}
-      <header className="flex items-center gap-3 px-5 pb-3 pt-5">
-        <span className="grid size-11 place-items-center rounded-full border border-accent/60 font-serif text-xl italic text-accent" aria-hidden>
+      <header className="flex items-center gap-3 px-5 pb-3 pt-4 vp-lg:pt-5">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full border border-accent/60 font-serif text-xl italic text-accent" aria-hidden>
           D
         </span>
         <div className="min-w-0 flex-1">
@@ -468,12 +508,15 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             {status === "offline" ? "Resting a moment · quick answers below" : "Answers from his real work · takes you to any page"}
           </p>
         </div>
-        <button type="button" onClick={onMinimize} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Minimize — keeps the chat while you browse">
-          —
-        </button>
-        <button type="button" onClick={endChat} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-accent" aria-label="End chat and delete this conversation" title="End chat — deletes this conversation">
-          ✕
-        </button>
+        {/* Embedded and beside the site, two round buttons; on a phone the tabs row above does both jobs. */}
+        <div className={embedded ? "flex" : "hidden vp-lg:flex"}>
+          <button type="button" onClick={onMinimize} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Put the agent away — keeps the chat while you browse">
+            —
+          </button>
+          <button type="button" onClick={endChat} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-accent" aria-label="End chat and delete this conversation" title="End chat — deletes this conversation">
+            ✕
+          </button>
+        </div>
       </header>
 
       {/* Messages. One hidden status line announces each finished answer; a live region on the list would re-read
@@ -481,73 +524,85 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       <p className="sr-only" role="status" aria-live="polite">
         {announce}
       </p>
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4 [scrollbar-color:var(--rule)_transparent] [scrollbar-width:thin]">
-        {/* Dumbledore speaks without a bubble; only the visitor's words sit in a shape. */}
-        <div className="max-w-[94%] font-serif text-[1.2rem] leading-snug">
-          <StreamedGreeting key={chatRun} active={open} onDone={() => setGreeted(true)} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        {centred ? <div className="flex-1" aria-hidden /> : null}
+        <div
+          ref={scrollRef}
+          className={`overflow-y-auto px-5 py-4 [scrollbar-color:var(--rule)_transparent] [scrollbar-width:thin] ${centred ? "flex-none" : "flex-1"}`}
+        >
+          <div className="mx-auto w-full max-w-2xl space-y-4">
+            {/* Dumbledore speaks without a bubble; only the visitor's words sit in a shape. */}
+            <div className={`font-serif leading-snug ${centred ? "text-[1.55rem]" : "max-w-[94%] text-[1.2rem]"}`}>
+              <StreamedGreeting key={chatRun} active={open} onDone={() => setGreeted(true)} />
+            </div>
+
+            {messages.map((m) =>
+              m.role === "user" ? (
+                <div key={m.id} className="ml-auto w-fit max-w-[85%] rounded-[1.4rem] rounded-br-md border border-accent/30 bg-accent/10 px-4 py-2.5 text-[0.95rem] leading-relaxed">
+                  {m.content}
+                </div>
+              ) : (
+                <div
+                  key={m.id}
+                  className={`max-w-[94%] text-[0.95rem] leading-relaxed [overflow-wrap:anywhere] ${
+                    m.kind === "notice" ? "rounded-2xl border border-dashed border-rule px-4 py-3 text-muted" : "px-0.5"
+                  }`}
+                >
+                  {m.content ? (
+                    <>
+                      {m.thought !== undefined && m.kind !== "notice" ? <p className="mb-1.5 text-xs text-muted">Thought for {seconds(m.thought)}</p> : null}
+                      <Markdown text={m.content} onPage={embedded ? (href) => goTo(href, "button") : undefined} />
+                    </>
+                  ) : (
+                    <span className="thinking text-sm">Thinking…</span>
+                  )}
+                  {m.opened ? (
+                    // The chat covers the page it just moved on a phone or tablet, so one tap shows it. (Embedded, this
+                    // frame is always narrow: it's the 3D page's width that says whether it's a phone.)
+                    (embedded ? window.parent.innerWidth < 640 : !beside) ? (
+                      <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline">
+                        ↗ Opened {m.opened}: see it
+                      </button>
+                    ) : (
+                      <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p>
+                    )
+                  ) : null}
+                  {m.retry && m.id === messages[messages.length - 1]?.id ? (
+                    <button
+                      type="button"
+                      onClick={() => ask(m.retry ?? "", m.id)}
+                      disabled={busy}
+                      className="mt-2 rounded-full border border-accent/50 px-3 py-1.5 text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink disabled:opacity-40"
+                    >
+                      Try again
+                    </button>
+                  ) : null}
+                  {m.links?.length ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {m.links.map((l) => (
+                        <button
+                          key={l.path}
+                          type="button"
+                          onClick={() => goTo(l.path, "button")}
+                          title={l.label}
+                          className="max-w-full truncate rounded-full border border-accent/50 px-3 py-1.5 text-left text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink"
+                        >
+                          Take me to {l.label} →
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ),
+            )}
+
+            {showLead ? <LeadForm onSubmit={submitLead} onCancel={() => setShowLead(false)} /> : null}
+          </div>
         </div>
 
-        {messages.map((m) =>
-          m.role === "user" ? (
-            <div key={m.id} className="ml-auto w-fit max-w-[85%] rounded-[1.4rem] rounded-br-md border border-accent/30 bg-accent/10 px-4 py-2.5 text-[0.95rem] leading-relaxed">
-              {m.content}
-            </div>
-          ) : (
-            <div
-              key={m.id}
-              className={`max-w-[94%] text-[0.95rem] leading-relaxed [overflow-wrap:anywhere] ${
-                m.kind === "notice" ? "rounded-2xl border border-dashed border-rule px-4 py-3 text-muted" : "px-0.5"
-              }`}
-            >
-              {m.content ? (
-                <Markdown text={m.content} onPage={embedded ? (href) => goTo(href, "button") : undefined} />
-              ) : (
-                <span className="label inline-flex items-center gap-2">
-                  Retrieving from his work<span className="caret">▍</span>
-                </span>
-              )}
-              {m.opened ? (
-                // A phone's chat covers the page it just moved, so one tap shows it. (Embedded, this frame is always
-                // narrow: it's the 3D page's width that says whether it's a phone.)
-                (embedded ? window.parent.innerWidth : window.innerWidth) < 640 ? (
-                  <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline">
-                    ↗ Opened {m.opened}: see it
-                  </button>
-                ) : (
-                  <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p>
-                )
-              ) : null}
-              {m.retry && m.id === messages[messages.length - 1]?.id ? (
-                <button
-                  type="button"
-                  onClick={() => ask(m.retry ?? "", m.id)}
-                  disabled={busy}
-                  className="mt-2 rounded-full border border-accent/50 px-3 py-1.5 text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink disabled:opacity-40"
-                >
-                  Try again
-                </button>
-              ) : null}
-              {m.links?.length ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {m.links.map((l) => (
-                    <button
-                      key={l.path}
-                      type="button"
-                      onClick={() => goTo(l.path, "button")}
-                      title={l.label}
-                      className="max-w-full truncate rounded-full border border-accent/50 px-3 py-1.5 text-left text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink"
-                    >
-                      Take me to {l.label} →
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ),
-        )}
-
+        {/* Ready-made questions: under the question field while the sheet is centred, above it otherwise. */}
         {showStarters ? (
-          <div className="flex flex-wrap gap-2 pt-1">
+          <div className={`mx-auto flex w-full max-w-2xl flex-wrap gap-2 px-5 ${centred ? "order-1 pt-4" : "pb-1"}`}>
             {starters.map((s) => (
               <button
                 key={s.q}
@@ -558,87 +613,79 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
                 {s.q}
               </button>
             ))}
+            {centred ? leadButton : null}
           </div>
         ) : null}
 
-        {showLead ? <LeadForm onSubmit={submitLead} onCancel={() => setShowLead(false)} /> : null}
-      </div>
-
-      {/* Composer */}
-      <div className="px-4 pb-4 pt-2">
-        <div className="mb-2 flex items-center justify-between gap-2 empty:hidden">
-          {!leadSent && !showLead ? (
-            <button
-              type="button"
-              onClick={() => setShowLead(true)}
-              className="rounded-full border border-rule px-3 py-1.5 text-xs text-muted transition-colors duration-300 hover:border-accent hover:text-accent"
-            >
-              ✉ Share your details
-            </button>
-          ) : null}
-          {tokens > 0 ? (
-            <span
-              className="label ml-auto !text-[0.62rem]"
-              title="Tokens this chat counted against the AI models' free limits. Prompt tokens a model served from its cache are free and not included."
-            >
-              This chat · {tokens.toLocaleString("en-IN")} tokens of free quota
-            </span>
-          ) : null}
-        </div>
-        {/* One pill: the words and the send button share it. */}
-        <form
-          onSubmit={onSubmit}
-          className="flex items-end gap-2 rounded-[1.7rem] border border-rule bg-surface py-1.5 pl-5 pr-1.5 transition-colors duration-300 focus-within:border-accent/70"
-        >
-          <label htmlFor="agent-input" className="sr-only">
-            Ask Dumbledore about Rishabh
-          </label>
-          <textarea
-            id="agent-input"
-            ref={inputRef}
-            value={input}
-            onChange={(e) => {
-              setCut(e.target.value.length > LIMITS.maxMessageChars); // a paste longer than a message may be
-              setInput(clip(e.target.value, LIMITS.maxMessageChars));
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                ask(input);
-              }
-            }}
-            rows={1}
-            placeholder={status === "offline" ? "Dumbledore is resting a moment — try again shortly" : "Ask about his work, or “take me to…”"}
-            disabled={status === "offline"}
-            className="max-h-32 min-h-[2.6rem] flex-1 resize-none bg-transparent py-2.5 text-[0.95rem] outline-none focus-visible:outline-none placeholder:text-muted placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={busy || !input.trim() || status === "offline"}
-            aria-label="Send"
-            className="grid size-[2.6rem] shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition-opacity duration-300 disabled:bg-rule disabled:text-muted"
+        {/* Composer */}
+        <div className="mx-auto w-full max-w-2xl px-4 pt-2">
+          <div className="mb-2 flex items-center justify-between gap-2 empty:hidden">
+            {centred ? null : leadButton}
+            {tokens > 0 ? (
+              <span
+                className="label ml-auto !text-[0.62rem]"
+                title="Tokens this chat counted against the AI models' free limits. Prompt tokens a model served from its cache are free and not included."
+              >
+                This chat · {tokens.toLocaleString("en-IN")} tokens of free quota
+              </span>
+            ) : null}
+          </div>
+          {/* One pill: the words and the send button share it. */}
+          <form
+            onSubmit={onSubmit}
+            className="flex items-end gap-2 rounded-[1.7rem] border border-rule bg-surface py-1.5 pl-5 pr-1.5 transition-colors duration-300 focus-within:border-accent/70"
           >
-            {busy ? (
-              "…"
-            ) : (
-              <svg viewBox="0 0 16 16" className="size-4" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
-              </svg>
-            )}
-          </button>
-        </form>
-        {/* Shown only near the limit: a long paste (a job description) must never be cut without a word. The notice
-            sits in a region that is always there, so a screen reader announces it when it appears; the running count
-            is for the eye only, or it would be read out on every keystroke. */}
-        <p className={`label text-right !text-[0.62rem] ${cut || input.length >= LIMITS.maxMessageChars * 0.8 ? "mt-2" : "sr-only"}`}>
-          <span aria-live="polite">{cut ? "Cut to fit: check the must-haves are still there · " : ""}</span>
-          {input.length >= LIMITS.maxMessageChars * 0.8 ? (
-            <span aria-hidden>
-              {input.length.toLocaleString("en-IN")} / {LIMITS.maxMessageChars.toLocaleString("en-IN")}
-            </span>
-          ) : null}
-        </p>
-        <p className="mt-2.5 px-2 text-[0.7rem] leading-snug text-muted">
+            <label htmlFor="agent-input" className="sr-only">
+              Ask Dumbledore about Rishabh
+            </label>
+            <textarea
+              id="agent-input"
+              ref={inputRef}
+              value={input}
+              onChange={(e) => {
+                setCut(e.target.value.length > LIMITS.maxMessageChars); // a paste longer than a message may be
+                setInput(clip(e.target.value, LIMITS.maxMessageChars));
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  ask(input);
+                }
+              }}
+              rows={1}
+              placeholder={status === "offline" ? "Dumbledore is resting a moment — try again shortly" : "Ask about his work, or “take me to…”"}
+              disabled={status === "offline"}
+              className="max-h-32 min-h-[2.6rem] flex-1 resize-none bg-transparent py-2.5 text-[0.95rem] outline-none focus-visible:outline-none placeholder:text-muted placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={busy || !input.trim() || status === "offline"}
+              aria-label="Send"
+              className="grid size-[2.6rem] shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition-opacity duration-300 disabled:bg-rule disabled:text-muted"
+            >
+              {busy ? (
+                "…"
+              ) : (
+                <svg viewBox="0 0 16 16" className="size-4" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
+                </svg>
+              )}
+            </button>
+          </form>
+          {/* Shown only near the limit: a long paste (a job description) must never be cut without a word. The notice
+              sits in a region that is always there, so a screen reader announces it when it appears; the running count
+              is for the eye only, or it would be read out on every keystroke. */}
+          <p className={`label text-right !text-[0.62rem] ${cut || input.length >= LIMITS.maxMessageChars * 0.8 ? "mt-2" : "sr-only"}`}>
+            <span aria-live="polite">{cut ? "Cut to fit: check the must-haves are still there · " : ""}</span>
+            {input.length >= LIMITS.maxMessageChars * 0.8 ? (
+              <span aria-hidden>
+                {input.length.toLocaleString("en-IN")} / {LIMITS.maxMessageChars.toLocaleString("en-IN")}
+              </span>
+            ) : null}
+          </p>
+        </div>
+        {centred ? <div className="order-2 flex-1" aria-hidden /> : null}
+        <p className="order-3 mx-auto w-full max-w-2xl px-6 pb-4 pt-2.5 text-[0.7rem] leading-snug text-muted">
           This chat lives only in this tab; ending it or leaving the site deletes it. A short summary is kept so Rishabh can
           follow up.
         </p>

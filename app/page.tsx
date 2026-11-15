@@ -32,7 +32,7 @@ export default function Home() {
         >
           I turn new AI research into <em className="text-accent">systems that ship.</em>
         </h1>
-        <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_27rem] lg:items-end lg:gap-16">
+        <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_27rem] lg:items-end lg:gap-16">
           <div className="reveal" style={{ ["--i" as string]: 2 }}>
             <p className="max-w-xl text-lg leading-relaxed text-muted sm:text-xl">
               Agents and multi-agent orchestration, LLM fine-tuning and serving, medical-imaging models, and research on
@@ -54,10 +54,10 @@ export default function Home() {
           </div>
 
           {/* The agent, where a picture would be: one question bar that opens Dumbledore. */}
-          <div className="reveal max-lg:order-first" style={{ ["--i" as string]: 3 }}>
+          <div className="reveal order-first lg:order-none" style={{ ["--i" as string]: 3 }}>
             <p className="label mb-3 flex items-center gap-2.5">
               <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
-              Don&apos;t scroll. Ask my agent.
+              Start with a question
             </p>
             <AskAgentButton
               aria-label="Ask Dumbledore, my AI agent"
@@ -91,7 +91,7 @@ export default function Home() {
         <dl className="grid grid-cols-2 gap-x-8 gap-y-10 border-y border-rule py-10 lg:grid-cols-4 lg:gap-x-12">
           {stats.map((s) => (
             <div key={s.value}>
-              <dt className="opsz-cap font-serif text-5xl leading-none sm:text-6xl">{s.value}</dt>
+              <dt className="font-serif text-5xl leading-none sm:text-6xl">{s.value}</dt>
               <dd className="mt-3 max-w-[15rem] text-sm leading-relaxed text-muted sm:text-base">{s.label}</dd>
             </div>
           ))}
@@ -111,7 +111,7 @@ export default function Home() {
                 </div>
                 <h3
                   className={`mt-8 font-serif leading-[1.05] transition-colors duration-500 group-hover:text-accent ${
-                    i === 0 ? "opsz-cap max-w-3xl text-4xl sm:text-6xl" : "text-3xl sm:text-[2.6rem]"
+                    i === 0 ? "max-w-3xl text-4xl sm:text-6xl" : "text-3xl sm:text-[2.6rem]"
                   }`}
                 >
                   {p.title}
@@ -180,7 +180,7 @@ export default function Home() {
             aria-hidden
           />
           <p className="label relative !text-band-accent">04 · Dumbledore, the agent</p>
-          <h2 className="opsz-cap relative mt-5 max-w-3xl font-serif text-5xl leading-[1.02] sm:text-7xl">
+          <h2 className="relative mt-5 max-w-3xl font-serif text-5xl leading-[1.02] sm:text-7xl">
             Skip the scroll. <em className="text-band-accent">Just ask.</em>
           </h2>
           <p className="relative mt-6 max-w-xl text-lg leading-relaxed text-band-ink/70">
