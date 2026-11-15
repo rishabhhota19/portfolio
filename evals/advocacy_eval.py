@@ -33,7 +33,7 @@ from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
 from agent import graph  # noqa: E402
 from agent.config import KNOWLEDGE  # noqa: E402
-from evals import baseline  # noqa: E402
+from evals import again, baseline  # noqa: E402
 
 HERE = Path(__file__).parent
 WORD_LIMIT = 125  # the prompt asks for under 110: this catches a model ignoring it
@@ -113,8 +113,8 @@ async def main() -> int:
             # ran 136 to 163 words in 4 of 20 asks on an unchanged agent (14 Nov 2026), and each one failed the run. A
             # miss of form (too long, no next step, a missing name) is asked once more and fails only if it fails
             # twice. An invented number or a role sold dishonestly gets no second ask.
-            print(f"again {case['id']:<12} first answer: {'; '.join(row['why'])}")
-            await asyncio.sleep(DELAY_SECONDS)
+            print(f"again {case['id']:<12} first answer by {row['model'].split('/')[-1]}: {'; '.join(row['why'])}")
+            await again.wait(row["level"], row["model"], DELAY_SECONDS)
             row = {**await answered(case), "first_why": row["why"]}
         rows.append(row)
         mark = "NO MODEL" if row["model"] in graph.UNANSWERED else "ok  " if not row["why"] else "FAIL"

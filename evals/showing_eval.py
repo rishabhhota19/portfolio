@@ -24,6 +24,7 @@ os.environ["ANSWER_CACHE"] = "off"
 from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
 from agent import graph  # noqa: E402
+from evals import again  # noqa: E402
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 4
@@ -71,7 +72,7 @@ async def main() -> int:
         if os.environ.get("SHOW_ANSWERS"):
             print("      " + answer.replace("\n", "\n      "))
         return {"id": case["id"], "stay": want == "stay", "right": right, "no_model": no_model, "wrote": wrote_it,
-                "leak": leak, "long": long, "words": words(answer)}
+                "leak": leak, "long": long, "words": words(answer), "level": state.get("level", ""), "model": state.get("model", "")}
 
     rows = []
     for i, case in enumerate(cases):
@@ -83,7 +84,7 @@ async def main() -> int:
             # twice (the same five cases failed one CI run and passed ten local runs, 15 Nov 2026). A leak of the
             # hidden line counts at once.
             print(f"again {case['id']:<17} first reply: {'too long' if row['long'] else 'wrong page'}")
-            await asyncio.sleep(DELAY_SECONDS)
+            await again.wait(row["level"], row["model"], DELAY_SECONDS)
             row = await shown(case)
         rows.append(row)
     rows = [r for r in rows if not r["no_model"]]
