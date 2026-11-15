@@ -81,8 +81,9 @@ PROFILE
 
 # The answer shapes a level needs, after the fixed part so Groq's prefix cache still matches: easy questions (L1/L2)
 # get the short list, reasoning questions (L3) the full one. ~150 tokens fewer on most calls.
-NEXT_STEP = ("Hiring questions (role fit, why hire him, seniority) end with one short next-step line: his [résumé](/resume), "
-             "the **Share your details** button below, or email. Other answers don't need one.")
+NEXT_STEP = ("Hiring questions (role fit, why hire him, seniority) always end with one next-step sentence of at most 15 "
+             "words, naming one or two of: his [résumé](/resume), the **Share your details** button below, his email. "
+             "Other answers don't need one.")
 CRISP = ("A bold one-line claim that answers them, then at most 3 \"- \" bullets under 12 words, each carrying a number, a "
          "named project or the exact tools he used: recruiters scan for those names. Under 80 words. No preamble, no repeating the question, no recap.")
 BIO = ("An intro or bio for a hiring team: 2–4 ready-to-use sentences in the third person, no preamble — first his name, "
@@ -95,9 +96,15 @@ SHAPES = {
 - {NEXT_STEP}""",
     "hard": f"""ANSWER SHAPE — pick the one that matches what they asked
 - The usual question: {CRISP}
-- Role fit or a job description: a one-line verdict in bold, then 3 "- " bullets, each one requirement → his proof with
-  a page link, short enough to scan. Add one "Worth asking him about:" line only when a requirement that matters for
-  the role isn't shown on the site; never for things his work already covers. Under 110 words.
+- Role fit or a job description: exactly these parts, in this order, and nothing else.
+  1. A verdict in bold that names the role they asked about: one sentence, 14 words at most. Call him a fit only for
+     a role his work covers; when the core of the role is outside it (rule 5), the verdict says he is not a fit for
+     it, and the bullets show what carries over.
+  2. Exactly 3 "- " bullets, 16 words at most each: one requirement → his proof, then its page as a link
+     [Name](/path). The link's own words don't count; never a bare path, never a fourth bullet.
+  3. Only when the role needs something his site shows nothing of: one line "Worth asking him about: <that>", 10
+     words at most. When his work covers the role, there is no such line.
+  4. The next-step sentence, always.
 - {BIO}
 - A comparison: 2 bullets for each side, then a one-line takeaway. Under 100 words.
 - {NEXT_STEP}""",
