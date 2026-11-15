@@ -153,17 +153,6 @@ body::after {
   animation-delay: calc(var(--i, 0) * 30ms);
 }
 
-/* Attention-map cells fade in along the diagonal. */
-@keyframes cell-in {
-  from {
-    opacity: 0;
-  }
-}
-.cell {
-  animation: cell-in 0.25s ease-out both;
-  animation-delay: calc(var(--d, 0) * 10ms);
-}
-
 /* A ring that grows out of the dot. Only transform and opacity change, so the GPU draws it: animating a box-shadow
    repainted the page on every frame, on every page that shows the Ask button. */
 @keyframes pulse-dot {
@@ -204,7 +193,6 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .reveal,
-  .cell,
   .pulse-dot::after,
   .caret {
     animation: none;

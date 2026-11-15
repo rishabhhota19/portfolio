@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AttentionGrid } from "@/components/site/AttentionGrid";
 import { SectionHead, StatusChip, Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
 import { experience, featuredProjects, projectMeta, publications, site } from "@/lib/content";
@@ -22,11 +21,11 @@ export default function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-14 sm:px-8 sm:pt-20 lg:grid-cols-[1.3fr_1fr]">
+      <section className="mx-auto max-w-6xl px-5 pb-16 pt-14 sm:px-8 sm:pt-20">
         <div>
           <p className="label reveal">Sr. AI Researcher · Simplilearn · {site.location}</p>
           <h1
-            className="reveal mt-4 font-serif text-[3.4rem] leading-[0.98] tracking-tight sm:text-[5.2rem]"
+            className="reveal mt-4 max-w-5xl font-serif text-[3.4rem] leading-[0.98] tracking-tight sm:text-[5.2rem] lg:text-[6.5rem]"
             style={{ ["--i" as string]: 1 }}
           >
             I turn new AI research into <em className="text-accent">systems that ship.</em>
@@ -56,14 +55,6 @@ export default function Home() {
             </Link>
           </div>
         </div>
-
-        <figure className="reveal rounded-sm border border-rule bg-surface/70 p-5" style={{ ["--i" as string]: 2 }}>
-          <AttentionGrid />
-          <figcaption className="mt-3 border-t border-rule pt-3 text-sm text-muted">
-            <span className="label text-ink">Fig. 1</span> — Causal self-attention over the sentence above (illustrative).
-            My research asks whether quantum-inspired attention earns its keep at a matched compute budget.
-          </figcaption>
-        </figure>
       </section>
 
       {/* Spec strip */}

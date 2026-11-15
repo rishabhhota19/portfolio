@@ -11,13 +11,6 @@ const INK = "#15140f";
 const ACCENT = "#d9431f";
 
 export default async function Image() {
-  // A small "attention map" motif, matching the site's hero figure.
-  const cells = Array.from({ length: 36 }, (_, i) => {
-    const row = Math.floor(i / 6);
-    const col = i % 6;
-    return col > row ? 0 : Math.max(0.15, 1 - (row - col) * 0.22);
-  });
-
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", background: PAPER, padding: 72, color: INK }}>
@@ -36,22 +29,6 @@ export default async function Image() {
             <div style={{ width: 14, height: 14, borderRadius: 7, background: ACCENT, marginRight: 14 }} />
             Ask Dumbledore, my AI agent → {site.url.replace("https://", "")}
           </div>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", width: 6 * 58, alignContent: "center" }}>
-          {cells.map((w, i) => (
-            <div
-              key={i}
-              style={{
-                width: 50,
-                height: 50,
-                margin: 4,
-                borderRadius: 4,
-                background: w ? ACCENT : "transparent",
-                opacity: w || 1,
-                border: w ? "none" : "2px solid #d9d2c3",
-              }}
-            />
-          ))}
         </div>
       </div>
     ),
