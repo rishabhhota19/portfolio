@@ -344,6 +344,9 @@ async def enforce_checks() -> None:
     check("endpoint: a streamed refusal followed by a streamed answer shows the answer alone", not any(guard.REFUSAL[:30] in piece for piece in r["said"]) and "best discussed directly" in r["text"], r["said"])
     r = stream("What has he built with agents?", verdict("his_work"), "**He built the Collaterals Agent.** It runs in production.", mode="rescue")
     check("endpoint: an ordinary streamed answer arrives in pieces, whole", "".join(r["said"]).startswith("**He built the Collaterals Agent.**") and "replace" not in r["kinds"], r["said"])
+    r = stream("What tools powered the Collaterals Agent?", verdict("his_work"), "- BRIEF line first\n- then the claim. More words here.", "**N8N, with Google Docs.**", mode="rescue")
+    check("endpoint: a streamed reply that talks about its hidden line never reaches the visitor; the second writer's answer does",
+          not any("BRIEF" in piece for piece in r["said"]) and r["text"] == "**N8N, with Google Docs.**", r["said"])
     STREAMED = False
     check("a page button is one known page, offered and never opened", graph.page_button({"docs": [{"url": "/projects/collaterals-agent"}], "relevance": 0.8})
           == [{"type": "links", "links": [{"path": "/projects/collaterals-agent", "label": graph.pages.shown_page("/projects/collaterals-agent")["label"]}], "auto": False}])
@@ -395,6 +398,14 @@ async def empty_reply_checks() -> None:
 
     s = await turn(ask, None, None, mode="")
     check("no model free: the short version too, counted the same way", len(s["answer"]) > 80 and s["model"] in graph.UNANSWERED, s["model"])
+
+    plan = "- BRIEF line first\n- then the bold claim\n- three bullets about the Collaterals Agent"  # a weak writer thinking aloud
+    s = await turn(ask, None, plan, real, mode="")
+    check("a reply that talks about the hidden line is not shown: a second writer answers", s["answer"] == real and len(seen) == 2, (s["answer"], seen))
+    s = await turn(ask, None, plan, plan, mode="")
+    check("…and if that one does it too, the visitor gets the short version from the site", "BRIEF" not in s["answer"] and s["model"] == "fallback", s["answer"])
+    check("an ordinary answer with the word 'brief' in it is left alone", guard.check("Here is a brief intro: he builds agents.") is None and guard.check(real) is None)
+    check("a second hidden line in mid-answer is cleaned away, not blocked", guard.check("**He builds agents.**\nBRIEF: fit for the role | SHOW: /projects\nMore.") is None)
 
     loose = "BRIEF: asks whether he has run LangGraph in production. SHOW: /projects/portfolio-agent"  # no bar between the two
     s = await turn("Would he fit our senior AI role?", None, loose, real, mode="")

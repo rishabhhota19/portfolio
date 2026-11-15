@@ -190,12 +190,20 @@ SECRETS = re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b|\b[A-Z0-9]{5}(-[A-Z0-9]{5}){3,4}\b
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 
 
+# The hidden first line's own words in the reply itself, once a stray hidden line has been cleaned away: the model is
+# describing its instructions. The small fallback writer once answered a follow-up with a plan that began
+# "- BRIEF line first" (CI, 15 Nov 2026). Capitals only: "a brief intro" is an ordinary answer.
+HIDDEN_WORDS = re.compile(r"\bBRIEF\b|\bSHOW:")
+
+
 def check(answer: str) -> str | None:
     """Things that replace the whole answer with the refusal: code and leaked instructions."""
     if CODE.search(answer):
         return "code"
     if PROMPT_MARKERS.search(answer):
         return "prompt_leak"
+    if HIDDEN_WORDS.search(_HIDDEN_LINE.sub("", answer)):
+        return "hidden_line"
     return None
 
 

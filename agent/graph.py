@@ -315,8 +315,9 @@ async def respond(state: State) -> dict:
         return None
 
     def empty(reply: router.Answer) -> bool:
-        """Nothing for the visitor in it: the hidden first line alone, in any shape the output check would remove."""
-        return not guard.clean(reply.text).strip()
+        """Nothing for the visitor in it: the hidden first line alone, in any shape the output check would remove, or
+        a reply that talks about that line instead of answering (guard.HIDDEN_WORDS)."""
+        return not guard.clean(reply.text).strip() or guard.check(reply.text) == "hidden_line"
 
     answers = [await router.run(llm.candidates(level), tier, prompt_for)]
     brief, show = "", ""
