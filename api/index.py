@@ -9,12 +9,14 @@ Run locally:  npm run agent   →  http://127.0.0.1:8000
 import asyncio
 import hmac
 import json
+import os
 import re
 import sys
 import time
 from pathlib import Path
 from typing import Literal
 
+IMPORTS_BEGAN = time.perf_counter()  # the boot log says how long the imports below took (most of a cold start)
 sys.path.insert(0, str(Path(__file__).parent.parent))  # makes the `agent` package importable on Vercel
 
 import sentry_sdk
@@ -70,6 +72,20 @@ if env("NEXT_PUBLIC_SENTRY_DSN") and env("VERCEL"):  # deployed only: local runs
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 BOOTED = time.time()  # when this server instance started (the warm-up log shows how fresh it was)
+IMPORTS_MS = round((time.perf_counter() - IMPORTS_BEGAN) * 1000)
+
+
+def process_age_ms() -> int | None:
+    """How long ago this Python process started (Linux only): what the runtime spent before this file ran."""
+    try:
+        started_ticks = int(Path("/proc/self/stat").read_text().rsplit(")", 1)[1].split()[19])
+        uptime = float(Path("/proc/uptime").read_text().split()[0])
+        return round((uptime - started_ticks / os.sysconf("SC_CLK_TCK")) * 1000)
+    except Exception:
+        return None
+
+
+BEFORE_IMPORTS_MS = None if (age := process_age_ms()) is None else age - IMPORTS_MS  # interpreter and runtime start
 
 
 class Message(BaseModel):
@@ -156,7 +172,9 @@ def preload() -> None:
             embeddings._local(("warm",))  # loads the ONNX model and runs it once
     except Exception as err:
         print(f"[boot] preload failed: {type(err).__name__}")
-    print(json.dumps({"event": "boot", "ms": round((time.perf_counter() - started) * 1000)}))
+    # A cold start, in its parts: the runtime before this file ran, this file's imports, and the loading just done.
+    print(json.dumps({"event": "boot", "ms": round((time.perf_counter() - started) * 1000), "imports_ms": IMPORTS_MS,
+                      "before_imports_ms": BEFORE_IMPORTS_MS}))
 
 
 preload()
