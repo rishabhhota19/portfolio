@@ -328,6 +328,10 @@ async def enforce_checks() -> None:
               s["answer"].startswith(guard.NOT_ON_SITE) and s["intent"] == "not_on_site" and len(seen) == 2 and not any(a["type"] == "navigate" for a in s.get("actions", [])), (s["intent"], s["answer"]))
     s = await turn(plain, verdict("hiring_contact"), guard.REFUSAL, guard.REFUSAL, mode="shadow")
     check("shadow: there the writers' refusal stands", guard.is_refusal(s["answer"]) and s["intent"] == "refused", s["answer"])
+    s = await turn(plain, verdict("hiring_contact"), guard.REFUSAL, "**Not shared publicly: best discussed directly.**", mode="rescue", after=judge.WAIT + 0.4)
+    check("a writer that refuses before the verdict is in: the refusal waits for it, and the second writer is asked", len(seen) == 2 and not guard.is_refusal(s["answer"]), (seen, s["answer"]))
+    s = await turn(plain, verdict("hiring_contact"), guard.REFUSAL, guard.REFUSAL, mode="rescue", after=judge.WAIT + 0.4)
+    check("…and if that one refuses too, our line", s["answer"].startswith(guard.NOT_ON_SITE), s["answer"])
     s = await turn(plain, verdict("hiring_contact", extra=0.8), guard.REFUSAL, mode="enforce")
     check("…and it stands in any mode when something else rides on the question", guard.is_refusal(s["answer"]) and len(seen) == 1, s["answer"])
 

@@ -247,7 +247,10 @@ async def rescued() -> bool:
 async def second_look(state: State, reply: str) -> str:
     """Did the writer turn away something it should have answered? "" for no; otherwise which note the second opinion
     carries (prompts.SECOND_OPINION): "sure" when the judge has read the message, "soft" on a hint alone."""
-    verdict = await judge.verdict() if guard.is_refusal(reply) or guard.is_care(reply) else None
+    # A refusal or a care signal waits for the verdict as long as any refusal may (judge.REFUSAL_WAIT). With the
+    # usual short wait, Groq's small writer had refused before the verdict was in, and "What's the work authorization
+    # status?" stayed refused on the live site 2 times in 5 (15 Nov 2026).
+    verdict = await judge.verdict(judge.REFUSAL_WAIT) if guard.is_refusal(reply) or guard.is_care(reply) else None
     if guard.is_care(reply):
         # The judge is the better reader of distress, so where it is sure the message is a question about him and
         # sees no distress, a stronger model answers it. In every other case the care reply stands: a needless care
@@ -342,7 +345,7 @@ async def respond(state: State) -> dict:
 
     model, why = answer.model, ""
     if guard.is_refusal(answer.text) and not state.get("rescued") and judge.rescues():
-        verdict = await judge.verdict()
+        verdict = await judge.verdict(judge.REFUSAL_WAIT)
         if verdict and verdict.rescues:  # the same bar as a rescue: about him, no sign of an attack, nothing riding
             # Never a flat no to a question the judge is sure is about him. Both writers declined it, firm note and
             # all ("What's the work authorization status?" on the live site, 2 of 2, 15 Nov 2026), so the visitor
