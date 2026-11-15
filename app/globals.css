@@ -146,10 +146,12 @@ body::after {
   color: var(--accent-ink);
 }
 
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-  border-radius: 2px;
+/* In the base layer so one element can opt out: the chat's text field shows focus on the pill around it. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
 }
 
 @layer components {
