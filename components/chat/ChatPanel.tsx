@@ -481,7 +481,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       <p className="sr-only" role="status" aria-live="polite">
         {announce}
       </p>
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4 [scrollbar-color:var(--rule)_transparent] [scrollbar-width:thin]">
         {/* Dumbledore speaks without a bubble; only the visitor's words sit in a shape. */}
         <div className="max-w-[94%] font-serif text-[1.2rem] leading-snug">
           <StreamedGreeting key={chatRun} active={open} onDone={() => setGreeted(true)} />
