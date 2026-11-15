@@ -1,12 +1,12 @@
 "use client";
 
-import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
-// Last-resort error page (if even the root layout fails). Reports the error to Sentry.
+// Last-resort error page (if even the root layout fails). Reports the error to Sentry, which it loads only now:
+// this file is part of every page's first load.
 export default function GlobalError({ error, retry }: { error: unknown; retry: () => void }) {
   useEffect(() => {
-    Sentry.captureException(error);
+    import("@/lib/sentry-client").then(({ captureException }) => captureException(error)).catch(() => {});
   }, [error]);
 
   return (
