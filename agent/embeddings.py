@@ -23,7 +23,8 @@ from .config import DATA_DIR, env
 from .llm import FreeModel
 
 MODEL = "BAAI/bge-small-en-v1.5"
-FOLDER = DATA_DIR / "embeddings"  # model files, index.faiss, scope.npz, stamps.json
+FOLDER = DATA_DIR / "embeddings"  # model files, index.npy, scope.npz, stamps.json
+INDEX = FOLDER / "index.npy"  # the chunks' vectors (rag.py searches them)
 
 
 @dataclass(frozen=True)
@@ -36,7 +37,7 @@ class Engine:
 
     @property
     def ready(self) -> bool:
-        built = (FOLDER / "index.faiss").exists()
+        built = INDEX.exists()
         return built and ((FOLDER / "model_quantized.onnx").exists() if self.remote is None else self.remote.available)
 
     async def embed(self, texts: list[str], timeout: float = 5) -> np.ndarray:
@@ -95,11 +96,10 @@ async def embed(texts: list[str]) -> tuple[Engine | None, np.ndarray | None]:
 def _session():
     """The local model, loaded once per server instance (~0.2 s), on one thread — a function has one vCPU."""
     import onnxruntime as ort  # imported on first use
-    from tokenizers import Tokenizer
 
-    tokenizer = Tokenizer.from_file(str(FOLDER / "tokenizer.json"))
-    tokenizer.enable_truncation(512)
-    tokenizer.enable_padding()
+    from .wordpiece import WordPiece
+
+    tokenizer = WordPiece(FOLDER / "tokenizer.json")  # the model's tokenizer, without the 27 MB library (wordpiece.py)
     options = ort.SessionOptions()
     options.intra_op_num_threads = 1
     return tokenizer, ort.InferenceSession(str(FOLDER / "model_quantized.onnx"), options, providers=["CPUExecutionProvider"])
@@ -107,8 +107,8 @@ def _session():
 
 def _local(texts: tuple[str, ...]) -> np.ndarray:
     tokenizer, session = _session()
-    encoded = tokenizer.encode_batch(list(texts))
-    ids = np.array([e.ids for e in encoded], dtype="int64")
-    mask = np.array([e.attention_mask for e in encoded], dtype="int64")
+    token_ids, attention = tokenizer.batch(list(texts))
+    ids = np.array(token_ids, dtype="int64")
+    mask = np.array(attention, dtype="int64")
     hidden = session.run(None, {"input_ids": ids, "attention_mask": mask, "token_type_ids": np.zeros_like(ids)})[0]
     return normalize(hidden[:, 0])  # BGE models use the first ([CLS]) token as the sentence vector

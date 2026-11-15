@@ -6,10 +6,11 @@ langgraph==1.2.19
 langchain-core==1.7.3
 langchain-openai==1.1.9
 openai==1.109.1
-faiss-cpu==1.15.1
 numpy==2.5.4
 onnxruntime==1.31.1  # the local embedding engine (agent/embeddings.py): the first route; Cloudflare is the backup
-tokenizers==0.23.3
+# Not here on purpose: faiss-cpu and tokenizers. With them the function is over the size at which Vercel installs
+# every package on each cold start (about 2 s). agent/rag.py and agent/wordpiece.py do their jobs; requirements-dev.txt
+# keeps both as the references the evals compare against.
 rank-bm25==0.2.2
 httpx==0.28.1
 upstash-redis==1.8.0

@@ -105,7 +105,7 @@ def check_secret(secret: str | None) -> None:
 
 def loaded() -> bool:
     """Whether this instance already holds what a first answer loads: the chunks, the scope and answer banks and, when
-    built in, the FAISS index and the local embedding model. Each sits in an lru_cache once loaded."""
+    built in, the chunks' vectors and the local embedding model. Each sits in an lru_cache once loaded."""
     from agent import cache, embeddings, rag, scope
 
     parts = [rag.load, scope.bank, cache.bank] + ([rag.index, embeddings._session] if embeddings.ENGINES[0].ready else [])

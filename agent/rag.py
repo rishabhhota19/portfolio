@@ -1,17 +1,21 @@
 """Retrieval (the "R" in RAG).
 
-    question ─┬─► FAISS  (meaning: embeddings) ─┐
-              └─► BM25   (exact keywords)  ─────┴─► Reciprocal Rank Fusion ─► re-rank ─► top 6 (the tier uses 2 / 4 / 6)
+    question ─┬─► vectors (meaning: embeddings) ─┐
+              └─► BM25    (exact keywords)  ─────┴─► Reciprocal Rank Fusion ─► re-rank ─► top 6 (the tier uses 2 / 4 / 6)
 
-The chunks (agent/data/chunks.json) and the FAISS index (agent/data/embeddings/) are built by
+The chunks (agent/data/chunks.json) and their vectors (agent/data/embeddings/index.npy) are built by
 `python -m agent.build_index`. How a question gets embedded (and what happens if it can't be) is in embeddings.py.
+
+The vector search is exact cosine similarity in NumPy: one matrix product over the site's 49 chunks. It was a FAISS
+flat index (IndexFlatIP), which computes the same thing; evals/index_eval.py checks, on every eval question, that
+the two return the same chunks in the same order. FAISS is 66 MB installed, and with it the function was over the
+size at which Vercel stops bundling packages and installs them on every cold start instead (15 Nov 2026).
 """
 
 import json
 import re
 from functools import lru_cache
 
-import faiss
 import httpx
 import numpy as np
 from rank_bm25 import BM25Okapi
@@ -37,9 +41,16 @@ def load():
 
 
 @lru_cache
-def index():
-    """The FAISS index of the chunks (inner product on unit vectors = cosine similarity), loaded once."""
-    return faiss.read_index(str(embeddings.FOLDER / "index.faiss"))
+def index() -> np.ndarray:
+    """The chunks' unit vectors, one row each, loaded once (inner product on unit vectors = cosine similarity)."""
+    return np.load(embeddings.INDEX)
+
+
+def nearest(vector: np.ndarray, k: int) -> tuple[list[int], list[float]]:
+    """The k chunks closest in meaning to this unit vector, best first, and how close each is."""
+    scores = index() @ vector.astype("float32").reshape(-1)
+    top = np.argsort(-scores, kind="stable")[:k]
+    return [int(i) for i in top], [float(scores[i]) for i in top]
 
 
 def reciprocal_rank_fusion(rankings: list[list[int]], k: int = 60) -> list[int]:
@@ -52,7 +63,7 @@ def reciprocal_rank_fusion(rankings: list[list[int]], k: int = 60) -> list[int]:
 
 
 async def search(query: str, vector: np.ndarray | None = None, k: int = 8) -> tuple[list[dict], float]:
-    """Hybrid search: FAISS + BM25, fused with RRF. Returns up to k candidate chunks, and how close the best one is
+    """Hybrid search: vectors + BM25, fused with RRF. Returns up to k candidate chunks, and how close the best one is
     in meaning (cosine 0–1; the scope check uses it). Pass `vector` if the query is already embedded; if it can't be
     embedded at all, it's keyword search only."""
     chunks, bm25 = load()
@@ -63,9 +74,8 @@ async def search(query: str, vector: np.ndarray | None = None, k: int = 8) -> tu
     dense: list[int] = []
     relevance = 0.0
     if vector is not None:
-        scores, ids = index().search(vector.reshape(1, -1).astype("float32"), k)
-        dense = [int(i) for i in ids[0] if i >= 0]
-        relevance = float(scores[0][0]) if dense else 0.0
+        dense, closeness = nearest(vector, k)
+        relevance = closeness[0] if dense else 0.0
 
     scores = bm25.get_scores(tokenize(query))
     sparse = [int(i) for i in np.argsort(-scores)[:k] if scores[i] > 0]

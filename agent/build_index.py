@@ -2,9 +2,9 @@
 
     npm run agent:index
 
-1. chunks: every page split into ~900-character pieces (agent/data/chunks.json) — for FAISS and BM25.
+1. chunks: every page split into ~900-character pieces (agent/data/chunks.json) — for the vector search and BM25.
 2. with the shared embedding model (agent/embeddings.py), run locally — free, no quota, same vectors every time:
-   the FAISS index of the chunks and the scope bank (agent/scope.py), in agent/data/embeddings/.
+   the chunks' vectors (index.npy) and the scope bank (agent/scope.py), in agent/data/embeddings/.
    Rebuilt only when the chunks, the examples or the model change (stamps.json).
 """
 
@@ -12,12 +12,11 @@ import asyncio
 import hashlib
 import json
 
-import faiss
 import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from .config import DATA_DIR
-from .embeddings import ENGINES, FOLDER, MODEL
+from .embeddings import ENGINES, FOLDER, INDEX, MODEL
 from .scope import IN_SCOPE, OUT_OF_SCOPE
 
 
@@ -43,15 +42,13 @@ def main() -> None:
     examples = IN_SCOPE + OUT_OF_SCOPE
     stamp = hashlib.sha1(json.dumps([MODEL, chunks, examples]).encode()).hexdigest()[:16]
     stamps = FOLDER / "stamps.json"
-    if stamps.exists() and json.loads(stamps.read_text()).get("data") == stamp:
+    if INDEX.exists() and stamps.exists() and json.loads(stamps.read_text()).get("data") == stamp:
         print(f"Index and scope bank already up to date ({len(chunks)} chunks, {len(examples)} examples).")
         return
 
     local = ENGINES[0]
     vectors = asyncio.run(local.embed([c["text"] for c in chunks], timeout=60))
-    index = faiss.IndexFlatIP(vectors.shape[1])  # inner product on unit vectors = cosine similarity
-    index.add(vectors)
-    faiss.write_index(index, str(FOLDER / "index.faiss"))
+    np.save(INDEX, vectors.astype("float32"))  # unit vectors, one row a chunk: rag.py searches them by inner product
     labels = np.array([1] * len(IN_SCOPE) + [0] * len(OUT_OF_SCOPE), dtype="int8")
     np.savez(FOLDER / "scope.npz", vectors=asyncio.run(local.embed(examples, timeout=60)), labels=labels, texts=np.array(examples))
     # "knowledge": the content this index was built from, so a running agent can tell when its content moved on
