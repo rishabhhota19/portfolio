@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
+import { Bodoni_Moda, IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/site/Header";
@@ -9,14 +9,15 @@ import { VisitTracker } from "@/components/site/VisitTracker";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { site } from "@/lib/content";
 
-const display = Instrument_Serif({
-  weight: "400",
+// Headlines: a high-contrast didone, with its optical-size axis so the hairlines stay readable at card sizes.
+const display = Bodoni_Moda({
   style: ["normal", "italic"],
   subsets: ["latin"],
+  axes: ["opsz"],
   variable: "--font-display",
 });
 
-const body = Schibsted_Grotesk({
+const body = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-body",
 });
@@ -47,13 +48,13 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f1ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#0a0e13" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f2ea" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0c0e" },
   ],
 };
 
 // Sets data-theme before first paint so there's no light/dark flash.
-const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}catch(e){}})()`;
+const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}if(location.pathname.indexOf('/agent-embed')===0){t='descent'}document.documentElement.dataset.theme=t}catch(e){}})()`;
 
 // Analytics (both cookieless, each off until its env var is set):
 // Cloudflare Web Analytics for traffic, Umami for custom events (chat opened, lead submitted, …).

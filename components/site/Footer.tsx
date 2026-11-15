@@ -3,13 +3,13 @@ import { site } from "@/lib/content";
 
 export function Footer() {
   return (
-    <footer className="relative z-10 mt-24 border-t border-rule">
-      <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="relative z-10 mt-28 border-t border-rule">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <p className="font-serif text-3xl leading-tight">
+          <p className="opsz-cap font-serif text-4xl leading-[1.05] sm:text-5xl">
             Let&apos;s build something <em className="text-accent">that ships.</em>
           </p>
-          <p className="mt-3 max-w-sm text-sm text-muted">
+          <p className="mt-4 max-w-sm text-muted">
             Recruiting for an AI, GenAI or research-engineering role? Ask Dumbledore, my AI agent, or write to me directly.
           </p>
         </div>

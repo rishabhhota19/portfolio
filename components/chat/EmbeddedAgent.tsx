@@ -18,7 +18,7 @@ export function EmbeddedAgent() {
   const [pending, setPending] = useState<PendingQuestion | null>(null);
 
   useEffect(() => {
-    document.documentElement.dataset.theme = "dark"; // the descent is dark; the chat matches it
+    document.documentElement.dataset.theme = "descent"; // the descent keeps its own teal-on-navy (app/globals.css)
     const onMessage = (e: MessageEvent<HostMessage>) => {
       if (e.origin !== window.location.origin || e.data?.source !== "into-the-agent") return;
       if (e.data.type === "ask") setPending({ text: e.data.question ?? "", id: Date.now() });

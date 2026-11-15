@@ -17,7 +17,7 @@ type Props = {
 };
 
 const field =
-  "w-full rounded-sm border border-rule bg-paper px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-accent";
+  "w-full rounded-xl border border-rule bg-paper px-3.5 py-2.5 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-accent";
 
 export function LeadForm({ onSubmit, onCancel }: Props) {
   const [state, setState] = useState<"idle" | "sending" | "error">("idle");
@@ -43,7 +43,7 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={handle} className="space-y-2.5 rounded-sm border border-rule bg-surface p-4">
+    <form onSubmit={handle} className="space-y-2.5 rounded-3xl border border-rule bg-surface p-5">
       <p className="font-serif text-xl leading-tight">Share your details</p>
       <p className="text-xs text-muted">Rishabh gets an email with your note and a short summary of this chat.</p>
       <div className="grid grid-cols-2 gap-2">
@@ -83,7 +83,7 @@ export function LeadForm({ onSubmit, onCancel }: Props) {
         <button
           type="submit"
           disabled={state === "sending"}
-          className="rounded-full bg-ink px-4 py-2 text-sm text-paper disabled:opacity-60"
+          className="rounded-full bg-accent px-4 py-2 text-sm text-accent-ink disabled:opacity-60"
         >
           {state === "sending" ? "Sending…" : "Send to Rishabh"}
         </button>

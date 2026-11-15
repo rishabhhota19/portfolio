@@ -15,10 +15,10 @@ export default function PublicationsPage() {
       </PageIntro>
       <ol className="mx-auto max-w-6xl divide-y divide-rule border-y border-rule px-5 sm:px-8">
         {publications.map((p, i) => (
-          <li key={p.slug} id={p.slug} className="grid scroll-mt-24 gap-4 py-8 md:grid-cols-[4rem_1fr_14rem]">
-            <span className="label pt-1">[{i + 1}]</span>
+          <li key={p.slug} id={p.slug} className="grid scroll-mt-24 gap-4 py-12 md:grid-cols-[4rem_1fr_14rem]">
+            <span className="label pt-1 !text-accent">{String(i + 1).padStart(2, "0")}</span>
             <div>
-              <h2 className="font-serif text-2xl leading-snug sm:text-[1.75rem]">{p.title}</h2>
+              <h2 className="font-serif text-[1.7rem] leading-[1.15] sm:text-[2.2rem]">{p.title}</h2>
               {p.authors ? <p className="mt-1 text-sm text-muted">{p.authors}</p> : null}
               <div className="prose-journal mt-4 max-w-2xl text-[0.98rem]" dangerouslySetInnerHTML={{ __html: p.html }} />
             </div>
@@ -29,8 +29,8 @@ export default function PublicationsPage() {
                 {p.date ? <span className="block">{p.date}</span> : null}
               </p>
               {p.link ? (
-                <a href={p.link} target="_blank" rel="noreferrer" data-umami-event="paper_click" data-umami-event-paper={p.slug} className="label link-underline text-accent">
-                  Read paper ↗
+                <a href={p.link} target="_blank" rel="noreferrer" data-umami-event="paper_click" data-umami-event-paper={p.slug} className="link-underline text-sm text-accent">
+                  Read the paper ↗
                 </a>
               ) : null}
             </div>

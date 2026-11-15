@@ -16,7 +16,7 @@ function inline(text: string, keyPrefix: string, onPage?: OnPage): ReactNode[] {
     if (part.length > 2 && part.startsWith("*") && part.endsWith("*")) return <em key={key}>{inline(part.slice(1, -1), key, onPage)}</em>;
     if (part.startsWith("`") && part.endsWith("`"))
       return (
-        <code key={key} className="rounded border border-rule px-1 font-mono text-[0.85em]">
+        <code key={key} className="rounded-md border border-rule px-1 font-mono text-[0.85em]">
           {part.slice(1, -1)}
         </code>
       );

@@ -15,7 +15,7 @@ export function ThreeDButton() {
     <a
       href="/3d"
       data-umami-event="three_d_open"
-      className="group fixed left-4 top-3.5 z-50 inline-flex items-center gap-2 rounded-full border border-rule bg-paper/85 p-2 text-sm shadow-[0_8px_30px_-14px_rgba(0,0,0,0.45)] backdrop-blur-[3px] transition-colors hover:border-accent hover:text-accent sm:left-6 sm:px-3 sm:py-2"
+      className="group fixed left-4 top-3.5 z-50 inline-flex items-center gap-2 rounded-full border border-rule bg-paper/85 p-2 text-sm shadow-[0_8px_30px_-14px_rgba(0,0,0,0.45)] backdrop-blur-[3px] transition-colors duration-500 hover:border-accent hover:text-accent sm:left-6 sm:top-4 sm:px-3.5 sm:py-2"
       aria-label="Into the Agent: the 3D version of this portfolio"
       title="Into the Agent: the 3D version"
     >

@@ -62,11 +62,13 @@ export function ChatLauncher() {
             setOpen(true);
             track("chat_open", { source: "floating button" });
           }}
-          className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5 rounded-full border border-rule bg-ink py-3 pl-4 pr-5 text-sm text-paper shadow-[0_10px_40px_-12px_rgba(0,0,0,0.45)] transition-transform hover:-translate-y-0.5"
+          className="group fixed bottom-4 right-4 z-40 flex items-center gap-2.5 rounded-full border border-accent/50 bg-paper/85 py-2.5 pl-3.5 pr-4 text-sm shadow-[var(--lift)] backdrop-blur-md transition-[transform,border-color] duration-500 hover:-translate-y-0.5 hover:border-accent sm:bottom-6 sm:right-6 sm:py-3 sm:pl-4 sm:pr-5"
           aria-label="Ask Dumbledore, my AI agent (opens a chat about Rishabh's work)"
         >
           <span className="pulse-dot inline-block size-2.5 rounded-full bg-accent" aria-hidden />
-          Ask Dumbledore
+          {/* Phones: the short word, so the button never sits on top of a line of the page. */}
+          <span className="sm:hidden">Ask</span>
+          <span className="hidden sm:inline">Ask Dumbledore</span>
         </button>
       ) : null}
     </>

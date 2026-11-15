@@ -21,13 +21,13 @@ export default function ResumePage() {
             data-umami-event="resume_download"
             data-umami-event-from="resume page"
             download="Rishabh-Hota-Resume.pdf"
-            className="rounded-full bg-ink px-5 py-3 text-paper transition-transform hover:-translate-y-0.5"
+            className="rounded-full bg-accent px-6 py-3 text-accent-ink transition-transform duration-500 hover:-translate-y-0.5"
           >
             Download PDF
           </a>
           <AskAgentButton
             question="Give me a 30-second summary of Rishabh's résumé for an AI Engineer role."
-            className="rounded-full border border-rule px-5 py-3 transition-colors hover:border-ink"
+            className="rounded-full border border-rule px-6 py-3 transition-colors duration-500 hover:border-accent hover:text-accent"
           >
             Ask for a 30-second summary
           </AskAgentButton>
@@ -35,7 +35,7 @@ export default function ResumePage() {
         <object
           data={site.resume}
           type="application/pdf"
-          className="mt-8 hidden h-[80vh] w-full rounded-sm border border-rule md:block"
+          className="mt-10 hidden h-[80vh] w-full overflow-hidden rounded-[1.5rem] border border-rule md:block"
           aria-label="Résumé PDF preview"
         >
           <p className="p-6 text-muted">

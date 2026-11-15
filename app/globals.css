@@ -1,23 +1,43 @@
 @import "tailwindcss";
 
-/* "Journal & Lightbox": printed-journal light theme, X-ray-lightbox dark theme. */
+/* "Obsidian & Champagne": black-tie dark theme, ivory light theme. The accent is a metal, used on a few percent of
+   a screen (links, hairlines, the main action), never as a fill behind text blocks and never as a gradient. */
 :root {
-  --paper: #f4f1ea;
-  --surface: #fbf9f4;
-  --ink: #15140f;
-  --muted: #6b665c;
-  --rule: #d9d2c3;
-  --accent: #d9431f;
-  --accent-ink: #ffffff;
-  --glow: transparent;
-  --grain-opacity: 0.35;
-  --band: #15140f;
-  --band-ink: #f4f1ea;
-  --band-accent: #ff6a45;
+  --paper: #f6f2ea;
+  --surface: #fffdf8;
+  --ink: #17150f;
+  --muted: #5f594d;
+  --rule: rgba(23, 21, 15, 0.13);
+  --accent: #8a672c;
+  --accent-ink: #fffdf8;
+  --glow: rgba(138, 103, 44, 0.07);
+  --grain-opacity: 0.3;
+  --band: #17150f;
+  --band-ink: #f6f2ea;
+  --band-accent: #cdae72;
+  --lift: 0 24px 60px -32px rgba(23, 21, 15, 0.35);
   color-scheme: light;
 }
 
 :root[data-theme="dark"] {
+  --paper: #0c0c0e;
+  --surface: #151518;
+  --ink: #f3efe6;
+  --muted: #a8a295;
+  --rule: rgba(243, 239, 230, 0.11);
+  --accent: #cdae72;
+  --accent-ink: #0c0c0e;
+  --glow: rgba(205, 174, 114, 0.09);
+  --grain-opacity: 0.16;
+  --band: #151518;
+  --band-ink: #f3efe6;
+  --band-accent: #cdae72;
+  --lift: 0 30px 80px -36px rgba(0, 0, 0, 0.9);
+  color-scheme: dark;
+}
+
+/* The chat inside the 3D descent (/agent-embed) keeps that world's teal-on-navy, whatever the written site wears. */
+:root[data-theme="descent"] {
   --paper: #0a0e13;
   --surface: #10171f;
   --ink: #e6edf2;
@@ -25,26 +45,26 @@
   --rule: #1e2a36;
   --accent: #6fe3ec;
   --accent-ink: #061014;
-  --glow: rgba(111, 227, 236, 0.16);
-  --grain-opacity: 0.18;
-  --band: #0f1922;
-  --band-ink: #e6edf2;
-  --band-accent: #6fe3ec;
+  --glow: transparent;
+  --grain-opacity: 0;
+  --lift: none;
   color-scheme: dark;
 }
 
 /* No-JS fallback: follow the OS until the theme script sets data-theme. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --paper: #0a0e13;
-    --surface: #10171f;
-    --ink: #e6edf2;
-    --muted: #8796a3;
-    --rule: #1e2a36;
-    --accent: #6fe3ec;
-    --accent-ink: #061014;
-    --glow: rgba(111, 227, 236, 0.16);
-    --grain-opacity: 0.18;
+    --paper: #0c0c0e;
+    --surface: #151518;
+    --ink: #f3efe6;
+    --muted: #a8a295;
+    --rule: rgba(243, 239, 230, 0.11);
+    --accent: #cdae72;
+    --accent-ink: #0c0c0e;
+    --glow: rgba(205, 174, 114, 0.09);
+    --grain-opacity: 0.16;
+    --band: #151518;
+    --lift: 0 30px 80px -36px rgba(0, 0, 0, 0.9);
     color-scheme: dark;
   }
 }
@@ -73,8 +93,23 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body), ui-sans-serif, sans-serif;
-  font-feature-settings: "ss01", "kern";
+  font-feature-settings: "kern";
   -webkit-font-smoothing: antialiased;
+}
+
+/* Headlines: Bodoni's hairlines are drawn for the size they're set at. */
+.font-serif {
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+}
+/* The largest sizes stop at a mid optical size: at the font's own display cut the hairlines get too thin to read on
+   an ordinary laptop screen, in the light theme most of all. */
+h1.font-serif,
+.opsz-cap {
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 18;
+  font-weight: 500;
+  letter-spacing: -0.025em;
 }
 
 /* Paper grain — inline SVG noise, no extra request. It arrives just after the page: drawing it and blending it over the
@@ -94,7 +129,7 @@ body::before {
   animation: grain-in 1ms 1.2s forwards;
 }
 
-/* Lightbox glow behind the page in dark mode. */
+/* A low, warm light from the top-right corner. */
 body::after {
   content: "";
   position: fixed;
@@ -120,10 +155,30 @@ body::after {
 @layer components {
 .label {
   font-family: var(--font-label), ui-monospace, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* A soft panel: the one card shape of the site. Never a hard-cornered box. */
+.panel {
+  border: 1px solid var(--rule);
+  border-radius: 1.5rem;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 92%, transparent), color-mix(in oklab, var(--surface) 55%, transparent));
+}
+a.panel,
+.panel-hover {
+  transition:
+    border-color 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+a.panel:hover,
+.panel-hover:hover {
+  border-color: color-mix(in oklab, var(--accent) 55%, transparent);
+  transform: translateY(-3px);
+  box-shadow: var(--lift);
 }
 
 .link-underline {
@@ -131,7 +186,7 @@ body::after {
   background-size: 0% 1px;
   background-position: 0 100%;
   background-repeat: no-repeat;
-  transition: background-size 0.35s ease;
+  transition: background-size 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 .link-underline:hover {
   background-size: 100% 1px;
@@ -192,6 +247,14 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  a.panel,
+  .panel-hover {
+    transition: none;
+  }
+  a.panel:hover,
+  .panel-hover:hover {
+    transform: none;
+  }
   .reveal,
   .pulse-dot::after,
   .caret {
@@ -211,6 +274,7 @@ body::after {
 }
 .prose-journal h2 {
   font-family: var(--font-display), serif;
+  font-optical-sizing: auto;
   font-size: 1.85rem;
   line-height: 1.15;
   margin: 2.4rem 0 0.8rem;
@@ -263,8 +327,8 @@ body::after {
 .prose-journal code {
   font-family: var(--font-label), monospace;
   font-size: 0.88em;
-  padding: 0.1em 0.35em;
+  padding: 0.1em 0.4em;
   border: 1px solid var(--rule);
-  border-radius: 3px;
+  border-radius: 0.45em;
 }
 }

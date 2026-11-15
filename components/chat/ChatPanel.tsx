@@ -447,30 +447,31 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       className={
         embedded
           ? "fixed inset-0 z-50 flex flex-col bg-paper" // the host page draws the frame
-          : "fixed inset-0 z-50 flex flex-col bg-paper sm:inset-auto sm:bottom-5 sm:right-5 sm:h-[min(660px,calc(100dvh-2.5rem))] sm:w-[410px] sm:rounded-sm sm:border sm:border-rule sm:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)]"
+          : // A sheet of dark glass with one tight corner, the one it grows from: never a plain rectangle.
+            "fixed inset-0 z-50 flex flex-col bg-paper sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[min(700px,calc(100dvh-3rem))] sm:w-[440px] sm:overflow-hidden sm:rounded-[2rem] sm:rounded-br-[0.6rem] sm:border sm:border-accent/30 sm:bg-paper/80 sm:shadow-[0_50px_120px_-30px_rgba(0,0,0,0.75)] sm:backdrop-blur-2xl"
       }
     >
       {/* Header */}
-      <header className="flex items-center gap-3 border-b border-rule px-4 py-3">
-        <span className="grid size-9 place-items-center rounded-full bg-ink font-serif text-lg text-paper" aria-hidden>
+      <header className="flex items-center gap-3 px-5 pb-3 pt-5">
+        <span className="grid size-11 place-items-center rounded-full border border-accent/60 font-serif text-xl italic text-accent" aria-hidden>
           D
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate font-medium leading-tight">
             Dumbledore <span className="font-normal text-muted">· Rishabh&apos;s AI agent</span>
           </p>
-          <p className="label flex items-center gap-1.5 !text-[0.62rem]">
+          <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted">
             <span
-              className={`inline-block size-1.5 rounded-full ${status === "offline" ? "bg-muted" : "bg-accent pulse-dot"}`}
+              className={`inline-block size-1.5 shrink-0 rounded-full ${status === "offline" ? "bg-muted" : "bg-accent pulse-dot"}`}
               aria-hidden
             />
             {status === "offline" ? "Resting a moment · quick answers below" : "Answers from his real work · takes you to any page"}
           </p>
         </div>
-        <button type="button" onClick={onMinimize} className="label rounded px-2 py-1 hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Minimize — keeps the chat while you browse">
+        <button type="button" onClick={onMinimize} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-ink" aria-label="Minimize chat (keeps this conversation)" title="Minimize — keeps the chat while you browse">
           —
         </button>
-        <button type="button" onClick={endChat} className="label rounded px-2 py-1 hover:text-accent" aria-label="End chat and delete this conversation" title="End chat — deletes this conversation">
+        <button type="button" onClick={endChat} className="grid size-9 place-items-center rounded-full text-muted transition-colors duration-300 hover:bg-surface hover:text-accent" aria-label="End chat and delete this conversation" title="End chat — deletes this conversation">
           ✕
         </button>
       </header>
@@ -480,21 +481,22 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       <p className="sr-only" role="status" aria-live="polite">
         {announce}
       </p>
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        <div className="max-w-[88%] rounded-sm border border-rule bg-surface px-3.5 py-2.5 text-[0.93rem] leading-relaxed">
+      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        {/* Dumbledore speaks without a bubble; only the visitor's words sit in a shape. */}
+        <div className="max-w-[94%] font-serif text-[1.2rem] leading-snug">
           <StreamedGreeting key={chatRun} active={open} onDone={() => setGreeted(true)} />
         </div>
 
         {messages.map((m) =>
           m.role === "user" ? (
-            <div key={m.id} className="ml-auto w-fit max-w-[85%] rounded-sm bg-ink px-3.5 py-2.5 text-[0.93rem] leading-relaxed text-paper">
+            <div key={m.id} className="ml-auto w-fit max-w-[85%] rounded-[1.4rem] rounded-br-md border border-accent/30 bg-accent/10 px-4 py-2.5 text-[0.95rem] leading-relaxed">
               {m.content}
             </div>
           ) : (
             <div
               key={m.id}
-              className={`max-w-[92%] text-[0.93rem] leading-relaxed [overflow-wrap:anywhere] ${
-                m.kind === "notice" ? "rounded-sm border border-dashed border-rule px-3.5 py-2.5 text-muted" : "px-0.5"
+              className={`max-w-[94%] text-[0.95rem] leading-relaxed [overflow-wrap:anywhere] ${
+                m.kind === "notice" ? "rounded-2xl border border-dashed border-rule px-4 py-3 text-muted" : "px-0.5"
               }`}
             >
               {m.content ? (
@@ -520,7 +522,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
                   type="button"
                   onClick={() => ask(m.retry ?? "", m.id)}
                   disabled={busy}
-                  className="mt-2 rounded-full border border-accent/50 px-2.5 py-1 text-xs text-accent transition-colors hover:bg-accent hover:text-paper disabled:opacity-40"
+                  className="mt-2 rounded-full border border-accent/50 px-3 py-1.5 text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink disabled:opacity-40"
                 >
                   Try again
                 </button>
@@ -533,7 +535,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
                       type="button"
                       onClick={() => goTo(l.path, "button")}
                       title={l.label}
-                      className="max-w-full truncate rounded-full border border-accent/50 px-2.5 py-1 text-left text-xs text-accent transition-colors hover:bg-accent hover:text-paper"
+                      className="max-w-full truncate rounded-full border border-accent/50 px-3 py-1.5 text-left text-xs text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink"
                     >
                       Take me to {l.label} →
                     </button>
@@ -545,13 +547,13 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
         )}
 
         {showStarters ? (
-          <div className="flex flex-wrap gap-1.5 pt-1">
+          <div className="flex flex-wrap gap-2 pt-1">
             {starters.map((s) => (
               <button
                 key={s.q}
                 type="button"
                 onClick={() => pickStarter(s.q, s.a)}
-                className="rounded-full border border-rule px-3 py-1.5 text-left text-xs transition-colors hover:border-accent hover:text-accent"
+                className="rounded-full border border-rule px-3.5 py-2 text-left text-[0.82rem] text-muted transition-colors duration-300 hover:border-accent hover:text-accent"
               >
                 {s.q}
               </button>
@@ -563,13 +565,13 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
       </div>
 
       {/* Composer */}
-      <div className="border-t border-rule px-3 pb-3 pt-2.5">
+      <div className="px-4 pb-4 pt-2">
         <div className="mb-2 flex items-center justify-between gap-2 empty:hidden">
           {!leadSent && !showLead ? (
             <button
               type="button"
               onClick={() => setShowLead(true)}
-              className="label rounded-full border border-rule px-2.5 py-1 !text-[0.64rem] transition-colors hover:border-accent hover:text-accent"
+              className="rounded-full border border-rule px-3 py-1.5 text-xs text-muted transition-colors duration-300 hover:border-accent hover:text-accent"
             >
               ✉ Share your details
             </button>
@@ -583,7 +585,11 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             </span>
           ) : null}
         </div>
-        <form onSubmit={onSubmit} className="flex items-end gap-2">
+        {/* One pill: the words and the send button share it. */}
+        <form
+          onSubmit={onSubmit}
+          className="flex items-end gap-2 rounded-[1.7rem] border border-rule bg-surface py-1.5 pl-5 pr-1.5 transition-colors duration-300 focus-within:border-accent/70"
+        >
           <label htmlFor="agent-input" className="sr-only">
             Ask Dumbledore about Rishabh
           </label>
@@ -604,14 +610,21 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             rows={1}
             placeholder={status === "offline" ? "Dumbledore is resting a moment — try again shortly" : "Ask about his work, or “take me to…”"}
             disabled={status === "offline"}
-            className="max-h-32 min-h-[2.6rem] flex-1 resize-none rounded-sm border border-rule bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-muted placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap focus:border-accent disabled:opacity-60"
+            className="max-h-32 min-h-[2.6rem] flex-1 resize-none bg-transparent py-2.5 text-[0.95rem] outline-none focus-visible:outline-none placeholder:text-muted placeholder-shown:overflow-hidden placeholder-shown:text-ellipsis placeholder-shown:whitespace-nowrap disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={busy || !input.trim() || status === "offline"}
-            className="h-[2.6rem] rounded-sm bg-ink px-4 text-sm text-paper transition-opacity disabled:opacity-40"
+            aria-label="Send"
+            className="grid size-[2.6rem] shrink-0 place-items-center rounded-full bg-accent text-accent-ink transition-opacity duration-300 disabled:bg-rule disabled:text-muted"
           >
-            {busy ? "…" : "Send"}
+            {busy ? (
+              "…"
+            ) : (
+              <svg viewBox="0 0 16 16" className="size-4" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />
+              </svg>
+            )}
           </button>
         </form>
         {/* Shown only near the limit: a long paste (a job description) must never be cut without a word. The notice
@@ -625,7 +638,7 @@ export function ChatPanel({ open, onMinimize, pendingQuestion, onPendingHandled,
             </span>
           ) : null}
         </p>
-        <p className="mt-2 text-[0.68rem] leading-snug text-muted">
+        <p className="mt-2.5 px-2 text-[0.7rem] leading-snug text-muted">
           This chat lives only in this tab; ending it or leaving the site deletes it. A short summary is kept so Rishabh can
           follow up.
         </p>

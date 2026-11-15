@@ -60,16 +60,16 @@ async function Project({ params }: Pick<PageProps<"/projects/[slug]">, "params">
           />
         </div>
         <aside className="lg:sticky lg:top-8 lg:self-start">
-          <div className="rounded-sm border border-rule bg-surface/60 p-5">
+          <div className="panel p-6">
             <p className="label">Stack</p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-4 flex flex-wrap gap-2">
               {project.tags.map((t) => (
                 <Tag key={t}>{t}</Tag>
               ))}
             </div>
             <AskAgentButton
               question={`Tell me more about the ${project.title} project — what did Rishabh build, and what was the impact?`}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-2.5 text-sm text-paper transition-transform hover:-translate-y-0.5"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border border-accent/50 px-4 py-3 text-sm transition-colors duration-500 hover:border-accent hover:text-accent"
             >
               <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
               Ask Dumbledore about this
@@ -77,9 +77,9 @@ async function Project({ params }: Pick<PageProps<"/projects/[slug]">, "params">
           </div>
         </aside>
       </div>
-      <div className="mt-20 border-t border-rule pt-6">
+      <div className="mt-24 border-t border-rule pt-8">
         <span className="label">Next project</span>
-        <Link href={`/projects/${next.slug}`} className="group mt-2 block font-serif text-3xl transition-colors hover:text-accent">
+        <Link href={`/projects/${next.slug}`} className="group mt-3 block font-serif text-4xl transition-colors duration-500 hover:text-accent sm:text-5xl">
           {next.title} <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
         </Link>
       </div>

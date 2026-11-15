@@ -15,12 +15,12 @@ export function NavLinks() {
 
   return (
     <nav aria-label="Main" className="order-last lg:order-none lg:ml-auto">
-      <ul className="hidden items-center gap-6 lg:flex">
+      <ul className="hidden items-center gap-7 lg:flex">
         {links.map((l) => (
           <li key={l.href}>
             <Link
               href={l.href}
-              className={`label link-underline pb-0.5 transition-colors hover:text-ink ${isActive(l.href) ? "text-ink" : ""}`}
+              className={`link-underline pb-1 text-[0.92rem] transition-colors duration-500 hover:text-ink ${isActive(l.href) ? "text-accent" : "text-muted"}`}
               aria-current={isActive(l.href) ? "page" : undefined}
             >
               {l.label}
@@ -31,7 +31,7 @@ export function NavLinks() {
 
       <button
         type="button"
-        className="label rounded border border-rule px-2.5 py-1.5 lg:hidden"
+        className="label rounded-full border border-rule px-2.5 py-2 !tracking-[0.08em] lg:hidden"
         aria-expanded={open}
         aria-controls="mobile-nav"
         onClick={() => setOpen((v) => !v)}
@@ -41,7 +41,7 @@ export function NavLinks() {
       {open ? (
         <ul
           id="mobile-nav"
-          className="absolute inset-x-0 top-full z-30 flex flex-col border-b border-rule bg-paper px-5 py-3 lg:hidden"
+          className="absolute inset-x-3 top-full z-30 flex flex-col rounded-3xl border border-rule bg-paper px-6 py-4 shadow-[var(--lift)] lg:hidden"
         >
           {links.map((l) => (
             <li key={l.href}>
