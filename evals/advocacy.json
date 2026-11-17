@@ -18,7 +18,7 @@
     "exclude": ["(?<!not a )(?<!n't a )\\b(strong|great|perfect|excellent|ideal|good) (fit|match)\\b(?! for:| for (an? |the )?(AI|ML|GenAI|Agentic|LLM|Applied|Research))"] },
   { "id": "why-hire", "kind": "selling", "next_step": true,
     "q": "Why should we hire him over other candidates?",
-    "include": ["\\]\\(/", "Collaterals|LCSNet|QFPViT|96\\s?%"] },
+    "include": ["\\]\\(/", "Launch System|LCSNet|QFPViT|98\\s?%"] },
   { "id": "weaknesses", "kind": "negative framing", "next_step": false, "allow": ["deficit-talk", "gap-talk"],
     "q": "What are his weaknesses?",
     "include": [],

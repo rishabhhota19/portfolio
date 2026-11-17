@@ -1,25 +1,42 @@
 ---
 title: AI-Powered Osteoarthritis Classification & Reporting
-summary: End-to-end knee X-ray grading on AWS — 96% accuracy, more than 90% concordance with radiologists, ahead of competitor RBKnee.
+summary: "Knee X-ray to a doctor's report in under two minutes: Kellgren–Lawrence grading at 98% accuracy and AUC, double-checked by segmentation of the radiological findings, tested in a randomised controlled trial and deployed at Fortis."
 org: OsteosConnect
 period: Jan 2024 – Sep 2024
-tags: [Computer Vision, Medical Imaging, AWS, SageMaker, Feedback loop]
+tags: [Computer Vision, Medical Imaging, Segmentation, TensorFlow, AWS, EC2 H100, Lambda, API Gateway]
 featured: true
 order: 2
-keywords: [osteoarthritis, oa, knee, x-ray, medical imaging, sagemaker, s3, lambda, ec2, emr, radiologist, rbknee, srm trichy, healthcare, classification]
+keywords: [osteoarthritis, oa, knee, x-ray, medical imaging, kellgren lawrence, kl grade, segmentation, osteophytes, sclerosis, joint space, randomised controlled trial, rct, srm chennai, fortis, nagarbhavi, tensorflow, h100, lambda, api gateway, ec2, fda, patents, radiologist, rbknee, healthcare, classification, report]
 ---
 
 ## What it does
-Doctors capture a knee X-ray on a React web app or an Android app. The system grades osteoarthritis automatically and produces a web-based report.
+A doctor uploads a knee X-ray. **In under two minutes** the system grades the osteoarthritis, finds and measures every
+radiological finding, writes the report and forwards it to the doctor.
 
 ## How it works
-- **Flow:** capture on React/Android → encrypted upload to S3 → Lambda trigger → SageMaker/EC2 inference → prediction → Lambda → report written to the EMR.
-- A **closed feedback loop** retrains the model on doctor-validated labels, so it keeps improving with real clinical use.
-- Earlier, as an intern, Rishabh ran EDA on DICOM images and built baseline classifiers (logistic regression, random forest) before moving to deep learning.
+1. **Grade.** A classification model grades the X-ray on the **Kellgren–Lawrence (KL) scale** at **98% accuracy and
+   AUC**.
+2. **Find.** Purpose-built image segmentation models locate the radiological findings: **osteophytes, subchondral
+   sclerosis and the gap between the joints** (joint-space narrowing).
+3. **Double-check.** The findings are matched against the step-1 grade, so a grade the evidence doesn't support is
+   caught before it reaches a doctor.
+4. **Measure.** The system calculates the **length and area** of each finding.
+5. **Report.** It writes the report and forwards it to the doctor, end to end in less than two minutes.
 
-## Results
-- **96% classification accuracy.**
-- More than 90% concordance with radiologists in trials at SRM Trichy.
-- Outperformed competitor RBKnee.
-- Rishabh led the clinicians and engineers who delivered it.
-- Follow-on research, "OA Classification and Reporting using Agentic AI and Deep Neural Networks", is ongoing with OsteosConnect.
+Every model was **custom-built** in-house, with patent filings and FDA approval in mind.
+
+## Clinical validation and deployment
+- Tested at **SRM, Chennai** as part of a **randomised controlled trial** of osteoarthritis patients, under the
+  supervision of **Dr. Mahesh Magadum**.
+- More than 90% concordance with radiologists; outperformed competitor RBKnee.
+- **Deployed and scaled at Fortis Hospital, Nagarbhavi, Bengaluru.**
+
+## Stack
+- **TensorFlow** for every model: the KL classifier and the segmentation models.
+- Training and inference on **AWS EC2 with an H100 GPU cluster**.
+- Serving through **AWS Lambda** functions behind **API Gateway**, with the report delivered to the doctor.
+
+## Rishabh's role
+He led the clinicians and engineers who delivered it. Earlier, as an intern, he ran EDA on DICOM images and built the
+baseline classifiers (logistic regression, random forest) before the move to deep learning. Follow-on research, "OA
+Classification and Reporting using Agentic AI and Deep Neural Networks", is ongoing with OsteosConnect.

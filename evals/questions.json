@@ -1,6 +1,6 @@
 [
   { "id": "current-role", "kind": "fact", "q": "What is Rishabh's current role?", "include": ["S(r\\.?|enior) AI Researcher", "Simplilearn"], "url": "/experience" },
-  { "id": "oa-accuracy", "kind": "fact", "q": "How accurate was his osteoarthritis model?", "include": ["96\\s?%"], "url": "/projects/oa-classification" },
+  { "id": "oa-accuracy", "kind": "fact", "q": "How accurate was his osteoarthritis model?", "include": ["98\\s?%"], "url": "/projects/oa-classification" },
   { "id": "launch-teams", "kind": "fact", "q": "Which teams does his Product Launch System connect?", "include": ["product", "content", "design"], "url": "/projects/product-launch-system" },
   { "id": "launch-versions", "kind": "fact", "q": "How many versions of the Product Launch System has he shipped?", "include": ["88"], "url": "/projects/product-launch-system" },
   { "id": "award", "kind": "fact", "q": "Which award did he win at Simplilearn?", "include": ["Best Team Award"] },

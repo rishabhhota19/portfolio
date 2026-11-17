@@ -1,11 +1,11 @@
 [
   {
     "q": "What does Rishabh do right now?",
-    "a": "He's a **Sr. AI Researcher at Simplilearn** in Bengaluru (since Mar 2026). He researches new AI tech hands-on and turns it into agentic automation for complex business workflows. Before that he was an AI Researcher at Simplilearn, and an AI Engineer at OsteosConnect, where he led a 96%-accurate osteoarthritis X-ray pipeline on AWS."
+    "a": "He's a **Sr. AI Researcher at Simplilearn** in Bengaluru (since Mar 2026). He researches new AI tech hands-on and turns it into agentic automation for complex business workflows. Before that he was an AI Researcher at Simplilearn, and an AI Engineer at OsteosConnect, where he led an osteoarthritis X-ray pipeline graded at 98% accuracy, tested in a randomised controlled trial and deployed at Fortis."
   },
   {
     "q": "What's his strongest project?",
-    "a": "Two stand out:\n- **[Product Launch System](/projects/product-launch-system):** AI automation with a human in the loop, one unified system that connects three teams (product, content review and design) from programme sheet to editable Illustrator artwork; **88 tested versions in eleven weeks**, in use as an internal tool.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **96% accuracy** and more than 90% agreement with radiologists, ahead of competitor RBKnee."
+    "a": "Two stand out:\n- **[Product Launch System](/projects/product-launch-system):** AI automation with a human in the loop, one unified system that connects three teams (product, content review and design) from programme sheet to editable Illustrator artwork; **88 tested versions in eleven weeks**, in use as an internal tool.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **98% accuracy and AUC** on Kellgren–Lawrence grading, report to the doctor in under 2 minutes, deployed at Fortis Hospital."
   },
   {
     "q": "Tell me about his research",

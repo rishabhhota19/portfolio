@@ -8,6 +8,6 @@ order: 3
 keywords: [osteosconnect, osteoarthritis, oa, x-ray, medical imaging, healthcare, aws, radiologists, rbknee, srm trichy]
 ---
 
-- Led a team of clinicians and engineers to deliver a 96%-accurate osteoarthritis classification pipeline: X-ray → S3 → Lambda → EC2 → prediction → Lambda → EMR.
-- Surpassed competitor RBKnee and achieved more than 90% concordance with radiologists in SRM Trichy trials.
+- Led a team of clinicians and engineers to deliver an osteoarthritis pipeline that turns a knee X-ray into a doctor's report in under two minutes: Kellgren–Lawrence grading at 98% accuracy and AUC, custom segmentation of osteophytes, sclerosis and joint space to double-check the grade, and measured findings (TensorFlow; AWS EC2 H100 cluster, Lambda, API Gateway).
+- Tested in a randomised controlled trial of OA patients at SRM, Chennai (supervised by Dr. Mahesh Magadum); deployed at Fortis Hospital, Nagarbhavi, Bengaluru. More than 90% concordance with radiologists; surpassed competitor RBKnee.
 - Implemented a continuous feedback loop that retrains the model on doctor-validated ground truth.

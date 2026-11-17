@@ -9,7 +9,7 @@ summary: Always-on context for the recruiter agent. Keep this short; details liv
 
 **Experience:** 3+ years turning AI research into production prototypes and AWS-hosted pipelines.
 - Simplilearn — Sr. AI Researcher (Mar 2026 – present), AI Researcher (Mar 2025 – Mar 2026).
-- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.
+- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to an osteoarthritis X-ray pipeline: Kellgren–Lawrence grading at 98% accuracy and AUC, segmentation double-check, report to the doctor in under 2 minutes; tested in a randomised controlled trial at SRM Chennai; deployed at Fortis Nagarbhavi, Bengaluru; >90% concordance with radiologists; outperformed competitor RBKnee.
 - Smartknower (Bangalore) — Data Science & ML Intern (Nov 2020 – Jan 2021).
 
 **Education:** B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).
