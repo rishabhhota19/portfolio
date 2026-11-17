@@ -58,7 +58,7 @@ export default function Home() {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
               <BookCall from="hero" className="btn-lg">
-                Book a 15-min call
+                Book a 30-min call
               </BookCall>
               <a href={site.resume} data-umami-event="resume_download" data-umami-event-from="home" className="link-underline py-3">
                 Download résumé

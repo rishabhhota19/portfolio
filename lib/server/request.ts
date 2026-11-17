@@ -37,6 +37,18 @@ export function verifyChatToken(conversationId: string, token: string | null | u
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
+/** The approve / decline links in Rishabh's email for a call request: only someone holding the link can decide. */
+export function decisionToken(eventId: string, action: "approve" | "decline") {
+  return createHmac("sha256", secret("CHAT_TOKEN_SECRET")).update(`booking:${action}:${eventId}`).digest("base64url");
+}
+
+export function verifyDecision(eventId: string, action: "approve" | "decline", token: string | null | undefined) {
+  if (!token) return false;
+  const expected = Buffer.from(decisionToken(eventId, action));
+  const given = Buffer.from(token);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
 /** Location (from Vercel's edge, city-level) and device (from the user agent) — nothing the visitor typed. */
 export function requestMeta(req: Request) {
   const ua = req.headers.get("user-agent") ?? "";

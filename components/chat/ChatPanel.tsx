@@ -475,7 +475,7 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
     append({
       role: "assistant",
       kind: "notice",
-      content: `Done, ${name.split(" ")[0] || "there"}: you're on Rishabh's calendar for ${when}. The Google Meet invite is in your inbox.`,
+      content: `Sent, ${name.split(" ")[0] || "there"}: ${when} is held for you. Once Rishabh approves, the Google Meet invite lands in your inbox.`,
     });
   };
   const bookButton =

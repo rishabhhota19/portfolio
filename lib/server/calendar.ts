@@ -4,8 +4,9 @@ import "server-only";
  * Booking a call with Rishabh, straight into his Google Calendar.
  *
  * The site holds one OAuth refresh token for his own Google account (scripts/google-calendar-auth.mjs makes it), so it
- * can read when he is busy and add an event, with the visitor as a guest and a Google Meet link; Google emails them
- * the invite and puts it in their calendar. Nothing else on his calendar is read: free/busy says only when, never
+ * can read when he is busy and add events. A visitor's booking is a request: a yellow "pending" hold on his calendar
+ * and an email to him. Only when he approves (app/book/decide) does it become the real call, with the visitor as a
+ * guest and a Google Meet link, and Google emails them the invite. Nothing else on his calendar is read: free/busy says only when, never
  * what.
  *
  * His rules are RULES below: weekdays, 10 am to 9 pm India time, 30-minute calls with 15 minutes clear either side,
@@ -71,7 +72,7 @@ async function google<T>(path: string, init: RequestInit = {}): Promise<T> {
     signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`google calendar ${res.status} on ${path.split("?")[0].split("/").slice(0, 3).join("/")}`);
-  return (await res.json()) as T;
+  return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
 type Span = { start: number; end: number };
@@ -143,6 +144,9 @@ export async function openSlots(now = Date.now()): Promise<{ day: string; slots:
   return [...days].map(([day, slots]) => ({ day, slots }));
 }
 
+/** A new event id in the form Google accepts (letters a–v and digits): the request's id from the start. */
+export const newEventId = () => `rh${crypto.randomUUID().replace(/-/g, "")}`;
+
 /** Is this exact start time still bookable? Checked again just before booking: someone may have taken it. */
 export async function stillOpen(startIso: string, now = Date.now()) {
   const start = Date.parse(startIso);
@@ -155,43 +159,106 @@ export async function stillOpen(startIso: string, now = Date.now()) {
 
 export type Booking = { start: string; name: string; email: string; company: string; topic: string };
 
-/** Puts the call on his calendar with a Meet link and the visitor as a guest; Google sends them the invite. */
-export async function book(b: Booking, extra = ""): Promise<{ id: string; meet: string; link: string }> {
-  const { calendarId } = config();
+const eventPath = (id = "") =>
+  `/calendars/${encodeURIComponent(config().calendarId)}/events${id ? `/${encodeURIComponent(id)}` : ""}`;
+const who = (b: Pick<Booking, "name" | "company">) => (b.company ? `${b.name} (${b.company})` : b.name);
+
+/**
+ * A visitor asks for a call: it goes on his calendar as a yellow "pending" hold, which keeps the slot from being
+ * booked twice. Nobody is invited and there is no Meet link until he approves it (approve() below), so the visitor
+ * gets nothing from Google until then.
+ */
+export async function requestCall(id: string, b: Booking, links: { approve: string; decline: string }): Promise<{ id: string }> {
   const start = Date.parse(b.start);
-  const who = b.company ? `${b.name} (${b.company})` : b.name;
-  const event = await google<{ id: string; hangoutLink?: string; htmlLink: string }>(
-    `/calendars/${encodeURIComponent(calendarId)}/events?conferenceDataVersion=1&sendUpdates=all`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        summary: `Call: ${who} × Rishabh Hota`,
-        description: description(b, extra),
-        start: { dateTime: new Date(start).toISOString(), timeZone: RULES.timeZone },
-        end: { dateTime: new Date(start + RULES.minutes * MIN).toISOString(), timeZone: RULES.timeZone },
-        attendees: [{ email: b.email, displayName: b.name }],
-        conferenceData: { createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } } },
-        extendedProperties: { private: { source: "portfolio" } },
-        guestsCanInviteOthers: true,
-        reminders: { useDefault: true },
-      }),
-    },
-  );
-  return { id: event.id, meet: event.hangoutLink ?? "", link: event.htmlLink };
+  return google<{ id: string }>(`${eventPath()}?sendUpdates=none`, {
+    method: "POST",
+    body: JSON.stringify({
+      id, // ours, so the approve and decline links can be signed before the event exists
+      summary: `Pending: call request from ${who(b)}`,
+      description: description(b, decisionLinks(links)),
+      start: { dateTime: new Date(start).toISOString(), timeZone: RULES.timeZone },
+      end: { dateTime: new Date(start + RULES.minutes * MIN).toISOString(), timeZone: RULES.timeZone },
+      status: "tentative",
+      colorId: "5", // yellow: waiting on him
+      transparency: "opaque", // still counts as busy, so the slot isn't offered again
+      extendedProperties: {
+        private: { source: "portfolio", state: "pending", name: b.name, email: b.email, company: b.company, topic: b.topic.slice(0, 900) },
+      },
+      reminders: { useDefault: false, overrides: [] },
+    }),
+  });
 }
 
-/** Adds the chat summary once it is ready (after the visitor already has their confirmation). No new email goes out. */
-export async function addNotes(id: string, b: Booking, notes: string) {
-  const { calendarId } = config();
-  await google(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(id)}?sendUpdates=none`, {
+type Stored = {
+  id: string;
+  status: string;
+  description?: string;
+  start: { dateTime?: string };
+  extendedProperties?: { private?: Record<string, string> };
+};
+export type Request = Booking & { id: string; notes: string };
+
+/** The request as it was made, or null if it is gone, was not made by the site, or was already decided. */
+export async function pending(id: string): Promise<Request | null> {
+  let e: Stored;
+  try {
+    e = await google<Stored>(eventPath(id));
+  } catch {
+    return null;
+  }
+  const p = e.extendedProperties?.private ?? {};
+  if (e.status === "cancelled" || p.source !== "portfolio" || p.state !== "pending" || !e.start.dateTime) return null;
+  // What the description says after the visitor's own words (the chat summary), without the approve/decline links.
+  const description = e.description ?? "";
+  const from = description.indexOf(CHAT_NOTES);
+  const notes = from < 0 ? "" : description.slice(from).split(`\n${APPROVE}`)[0].trim();
+  return { id, start: new Date(e.start.dateTime).toISOString(), name: p.name ?? "", email: p.email ?? "", company: p.company ?? "", topic: p.topic ?? "", notes };
+}
+
+/** He said yes: the hold becomes the real call, with a Meet link and the visitor invited. Google emails them. */
+export async function approve(b: Request): Promise<{ meet: string }> {
+  const event = await google<{ hangoutLink?: string }>(`${eventPath(b.id)}?conferenceDataVersion=1&sendUpdates=all`, {
     method: "PATCH",
-    body: JSON.stringify({ description: description(b, notes) }),
+    body: JSON.stringify({
+      summary: `Call: ${who(b)} × Rishabh Hota`,
+      description: description(b, b.notes),
+      status: "confirmed",
+      colorId: "10", // green
+      attendees: [{ email: b.email, displayName: b.name }],
+      conferenceData: { createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: "hangoutsMeet" } } },
+      extendedProperties: {
+        private: { source: "portfolio", state: "approved", name: b.name, email: b.email, company: b.company, topic: b.topic.slice(0, 900) },
+      },
+      guestsCanInviteOthers: true,
+      reminders: { useDefault: true },
+    }),
+  });
+  return { meet: event.hangoutLink ?? "" };
+}
+
+/** He said no: the hold goes and the slot is free again. (The visitor was never invited, so Google sends nothing.) */
+export async function decline(id: string) {
+  await google(`${eventPath(id)}?sendUpdates=none`, { method: "DELETE" }).catch((err) => {
+    if (!String(err).includes(" 410 ")) throw err; // already gone
+  });
+}
+
+export const CHAT_NOTES = "From the chat with Dumbledore:";
+const APPROVE = "Approve (sends them the invite and a Meet link): ";
+const decisionLinks = (links: { approve: string; decline: string }) =>
+  `${APPROVE}${links.approve}\nDecline (frees the slot, emails them a note): ${links.decline}`;
+
+/** Adds the chat summary to the pending request once it is ready, above the approve and decline links. */
+export async function addNotes(id: string, b: Booking, summary: string, links: { approve: string; decline: string }) {
+  await google(`${eventPath(id)}?sendUpdates=none`, {
+    method: "PATCH",
+    body: JSON.stringify({ description: description(b, `${CHAT_NOTES}\n${summary}\n\n${decisionLinks(links)}`) }),
   });
 }
 
 function description(b: Booking, extra: string) {
   return [
-    `Booked on rishabh-hota.vercel.app`,
+    `Requested on rishabh-hota.vercel.app`,
     ``,
     `Name: ${b.name}`,
     `Email: ${b.email}`,

@@ -166,7 +166,7 @@ export function Header() {
             </div>
           </nav>
           <div className="flex flex-col gap-2.5 border-t border-rule px-6 pb-8 pt-4">
-            <BookCall from="menu" className="btn-lg w-full">Book a 15-min call</BookCall>
+            <BookCall from="menu" className="btn-lg w-full">Book a 30-min call</BookCall>
             {chat ? (
               <button type="button" onClick={ask} className="btn-ghost btn-lg w-full !border-accent !text-accent">
                 <SparkleIcon />

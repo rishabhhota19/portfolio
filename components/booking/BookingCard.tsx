@@ -35,8 +35,9 @@ const time = (iso: string, timeZone?: string) => fmt(iso, { hour: "numeric", min
 const dayKey = (iso: string) => fmt(iso, { year: "numeric", month: "2-digit", day: "2-digit" });
 
 /**
- * "Book a call": open times from his Google Calendar, then name, email and what it's about. Booking puts it on his
- * calendar with a Meet link, and Google emails the visitor the invite. Times show in the visitor's own time zone.
+ * "Book a call": open times from his Google Calendar, then name, email and what it's about. That sends him a request
+ * (the slot is held); when he approves, Google emails the visitor the invite and Meet link. Times show in the
+ * visitor's own time zone.
  */
 export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compact = false }: Props) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
@@ -44,7 +45,7 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
   const [slot, setSlot] = useState("");
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState("");
-  const [done, setDone] = useState<{ when: string; meet: string; email: string } | null>(null);
+  const [done, setDone] = useState<{ when: string; email: string } | null>(null);
 
   const fetchSlots = () =>
     fetch("/api/book", { cache: "no-store" })
@@ -86,7 +87,7 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
       const res = await fetch("/api/book", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const said = (await res.json().catch(() => ({}))) as { ok?: boolean; when?: string; meet?: string; message?: string; error?: string };
       if (!res.ok || !said.ok) {
-        setProblem(said.message ?? "Booking didn't go through. Please email him instead.");
+        setProblem(said.message ?? "That didn't go through. Please email him instead.");
         if (said.error === "taken") {
           setSlot("");
           fetchSlots();
@@ -95,10 +96,10 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
       }
       track("book_done", { from });
       const when = `${fmt(slot, { weekday: "long", day: "numeric", month: "long" })}, ${time(slot)}`;
-      setDone({ when, meet: said.meet ?? "", email: body.email });
+      setDone({ when, email: body.email });
       onBooked?.(when, body.name);
     } catch {
-      setProblem("Booking didn't go through. Please email him instead.");
+      setProblem("That didn't go through. Please email him instead.");
     } finally {
       setSending(false);
     }
@@ -109,17 +110,15 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
   if (done) {
     return (
       <div className={shell} role="status">
-        <p className="label !text-accent">Booked</p>
-        <p className={`mt-2 font-serif leading-tight ${compact ? "text-xl" : "text-3xl"}`}>You&apos;re on Rishabh&apos;s calendar.</p>
+        <p className="label !text-accent">Request sent</p>
+        <p className={`mt-2 font-serif leading-tight ${compact ? "text-xl" : "text-3xl"}`}>Rishabh will confirm your time.</p>
         <p className="mt-3 text-sm">
           <span className="font-medium">{done.when}</span> · {load.state === "ready" ? load.minutes : 30} min · Google Meet
         </p>
-        <p className="mt-1.5 text-sm text-muted">The invite is on its way to {done.email}. Accept it to add it to your calendar.</p>
-        {done.meet ? (
-          <a href={done.meet} target="_blank" rel="noreferrer" className="btn-ghost mt-4 w-fit !text-sm">
-            Meet link ↗
-          </a>
-        ) : null}
+        <p className="mt-1.5 text-sm text-muted">
+          The time is held for you. Once he approves, Google sends the invite and Meet link to {done.email}, usually
+          within a day.
+        </p>
       </div>
     );
   }
@@ -154,7 +153,7 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
         </div>
       ) : (
         <>
-          <div className="-mx-1 mt-5 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Day">
+          <div className="mt-5 grid grid-cols-[repeat(auto-fill,minmax(3.4rem,1fr))] gap-1.5" role="tablist" aria-label="Day">
             {days.map((d) => {
               const on = d === chosen;
               return (
@@ -167,7 +166,7 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
                     setDay(dayKey(d[0]));
                     setSlot("");
                   }}
-                  className={`flex min-w-[3.6rem] shrink-0 flex-col items-center rounded-2xl border px-2.5 py-2 transition-colors duration-300 ${
+                  className={`flex flex-col items-center rounded-2xl border px-1 py-2 transition-colors duration-300 ${
                     on ? "border-accent bg-accent text-accent-ink" : "border-rule hover:border-accent"
                   }`}
                 >
@@ -238,7 +237,7 @@ export function BookingCard({ from, topic = "", chat, onBooked, onCancel, compac
         ) : null}
         {slot ? (
           <button type="submit" disabled={sending} className="btn-primary !text-sm disabled:opacity-60">
-            {sending ? "Booking…" : `Book ${fmt(slot, { weekday: "short", day: "numeric", month: "short" })}, ${time(slot)}`}
+            {sending ? "Sending…" : `Request ${fmt(slot, { weekday: "short", day: "numeric", month: "short" })}, ${time(slot)}`}
           </button>
         ) : null}
       </div>

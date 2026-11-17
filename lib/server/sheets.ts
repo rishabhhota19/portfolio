@@ -94,8 +94,30 @@ async function send(items: Item[]) {
   return false;
 }
 
+export type Mail = { to?: string; subject: string; body: string; html?: string; replyTo?: string; name?: string };
+
+/** An email sent by the Sheet's script from Rishabh's own Gmail (integrations/google-sheets/Code.gs). No `to` = him. */
+export async function sendMail(mail: Mail) {
+  if (!process.env.GOOGLE_SHEETS_WEBHOOK_URL || !process.env.GOOGLE_SHEETS_SECRET) return false;
+  try {
+    const res = await fetch(process.env.GOOGLE_SHEETS_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ secret: process.env.GOOGLE_SHEETS_SECRET, mail }),
+      redirect: "follow",
+      signal: AbortSignal.timeout(20_000),
+    });
+    const text = await res.text();
+    if (res.ok && text.includes('"mailed":1')) return true;
+    console.error("[sheets] mail failed:", res.status, text.slice(0, 200));
+  } catch (err) {
+    console.error("[sheets] mail error:", err);
+  }
+  return false;
+}
+
 /**
- * Upserts a visit's row. If the Sheet is busy (Apps Script runs one write at a time and at most 30 at once),
+ *Upserts a visit's row. If the Sheet is busy (Apps Script runs one write at a time and at most 30 at once),
  * the row is queued and sent with the next successful write — so a burst of visitors loses nothing.
  * notify: also have the script email the row to you (lead alerts when Resend isn't set up).
  */

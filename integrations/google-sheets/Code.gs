@@ -83,6 +83,17 @@ function doPost(e) {
     var body = JSON.parse(e.postData.contents);
     var expected = PropertiesService.getScriptProperties().getProperty('SHARED_SECRET');
     if (!expected || body.secret !== expected) return json_({ ok: false, error: 'unauthorized' });
+    // An email from the site ("Book a call": the approval request to you, a decline note to the visitor). Sent from
+    // your Gmail; `to` empty = you. Sent before any sheet work, so a busy sheet never holds it up.
+    if (body.mail) {
+      var m = body.mail;
+      var out = { to: m.to || Session.getEffectiveUser().getEmail(), subject: String(m.subject).slice(0, 200), body: String(m.body) };
+      if (m.html) out.htmlBody = String(m.html);
+      if (m.replyTo) out.replyTo = m.replyTo;
+      if (m.name) out.name = m.name;
+      MailApp.sendEmail(out);
+      if (!body.items && !body.row) return json_({ ok: true, mailed: 1 });
+    }
     // A batch of { row, notify } items (the site queues writes that failed while the sheet was busy).
     var items = (body.items || [{ row: body.row, notify: body.notify }]).filter(function (it) {
       return it && it.row && it.row.sessionId;

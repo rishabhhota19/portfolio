@@ -13,7 +13,7 @@ export function Footer() {
             Let&apos;s <em className="text-accent">talk.</em>
           </p>
           <p className="mt-4 max-w-md text-muted">
-            Hiring for an AI role, or need something built? A 15-minute call is the fastest way. Or ask Dumbledore first.
+            Hiring for an AI role, or need something built? A 30-minute call is the fastest way. Or ask Dumbledore first.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
