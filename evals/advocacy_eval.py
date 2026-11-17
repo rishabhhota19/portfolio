@@ -45,7 +45,7 @@ TRIVIA = {  # what a neutral reviewer writes and an agent doesn't; a case may al
     "gap-talk": r"\bgaps?\b|no explicit mention|not explicitly (mentioned|stated|listed|called out)",
     "deficit-talk": r"\blacks?\b|\black of\b|\bweakness(es)?\b|\bunfortunately\b|\bfalls? short\b",
 }
-NEXT_STEP = (r"r[ée]sum[ée]|Share your details|e-?mail|reach out|get in touch|LinkedIn|contact|talk (to|with) him|"
+NEXT_STEP = (r"Book a call|r[ée]sum[ée]|Share your details|e-?mail|reach out|get in touch|LinkedIn|contact|talk (to|with) him|"
              r"(set up|book|schedule) a (call|chat)|ask him|interview")
 
 

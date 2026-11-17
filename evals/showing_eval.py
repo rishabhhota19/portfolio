@@ -41,6 +41,8 @@ def words(answer: str) -> int:
 def where_it_went(state: dict) -> str:
     """The page the visitor ends up on: the agent's choice, or a page the answer named if it didn't choose ("stay" if none)."""
     actions = state.get("actions", [])
+    if any(a["type"] == "book" for a in actions):  # it opened the booking card ("SHOW: book")
+        return "#book"
     if nav := next((a for a in actions if a["type"] == "navigate"), None):
         return nav["path"]
     links = next((a for a in actions if a["type"] == "links"), None)

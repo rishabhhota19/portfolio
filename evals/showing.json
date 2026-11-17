@@ -33,5 +33,7 @@
   { "id": "stay-offtopic", "q": "What's the capital of France?", "show": "stay" },
   { "id": "stay-asked", "q": "What papers has he written?", "history": ["Stop moving the page, I want to stay here"], "show": "stay" },
 
-  { "id": "follow-up", "q": "What stack did it use?", "history": ["What did the Collaterals Agent achieve?"], "show": "^(/projects/collaterals-agent|stay)$" }
+  { "id": "follow-up", "q": "What stack did it use?", "history": ["What did the Collaterals Agent achieve?"], "show": "^(/projects/collaterals-agent|stay)$" },
+  { "id": "book-call", "q": "Can I set up a quick call with him this week?", "show": "^#book$" },
+  { "id": "book-interview", "q": "We'd like to interview him for our GenAI lead role. How do we get time with him?", "show": "^#book$" }
 ]

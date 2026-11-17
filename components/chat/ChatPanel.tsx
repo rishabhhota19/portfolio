@@ -21,6 +21,10 @@ import { agentCoversPage, useWideScreen } from "./agent-state";
 import { AgentTabs } from "./AgentTabs";
 import type { PendingQuestion } from "./ChatLauncher";
 import { LeadForm } from "./LeadForm";
+import dynamic from "next/dynamic";
+
+// The booking card loads when Dumbledore (or the visitor) opens it, not with the chat.
+const BookingCard = dynamic(() => import("@/components/booking/BookingCard").then((m) => m.BookingCard), { ssr: false });
 import { Markdown } from "./Markdown";
 import { StreamedGreeting } from "./StreamedGreeting";
 
@@ -42,7 +46,8 @@ type AgentEvent =
   | { type: "navigate"; path: string; label: string; focus?: boolean }
   | { type: "ui"; move: UiMove }
   | { type: "links"; links: PageLink[]; auto?: boolean }
-  | { type: "usage"; tokens: number };
+  | { type: "usage"; tokens: number }
+  | { type: "book" }; // Dumbledore offers a time with Rishabh: the booking card opens under the answer
 
 // Only this site's own pages: the agent can't send anyone elsewhere, and router.push never sees a javascript: URL.
 const SITE_PATH = /^\/(?!\/)[a-z0-9\-/]*(#[a-z0-9\-]+)?$/i;
@@ -85,6 +90,12 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
   const [input, setInput] = useState("");
   const [showLead, setShowLead] = useState(false);
   const [leadSent, setLeadSent] = useState(false);
+  const [booking, setBooking] = useState<{ topic: string } | null>(null); // the booking card is open in the chat
+  const [booked, setBooked] = useState(false);
+  const bookedRef = useRef(false); // read by the stream handler, which outlives a render
+  useEffect(() => {
+    bookedRef.current = booked;
+  }, [booked]);
   const [tokens, setTokens] = useState(0); // tokens this chat counted against the free limits (cached prompt tokens are free)
   const [announce, setAnnounce] = useState(""); // what a screen reader hears: each finished answer once, not every streamed line
   const [chatRun, setChatRun] = useState(0); // counts chats in this tab, so each new one streams the greeting again
@@ -176,7 +187,7 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, showLead]);
+  }, [messages, showLead, booking]);
 
   useEffect(() => {
     if (open) inputRef.current?.focus();
@@ -335,7 +346,10 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
               goTo(first.path, "agent", false); // the answer stays in view; on a phone the visitor steps out to the page
             } else updateMessage(replyId, { links: [first, ...rest].filter(Boolean) });
           } else if (event.type === "usage") setTokens((t) => t + (Number(event.tokens) || 0));
-          else if (event.type === "ui") {
+          else if (event.type === "book") {
+            // The question that led here is what they want to talk about; they can change it in the card.
+            if (!bookedRef.current) setBooking({ topic: text.length > 12 ? text.slice(0, 600) : "" });
+          } else if (event.type === "ui") {
             navigated = true;
             moveUi(event.move);
           } else if (event.type === "navigate" && SITE_PATH.test(event.path)) {
@@ -399,6 +413,8 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
     setStatus("idle");
     setShowLead(false);
     setLeadSent(false);
+    setBooking(null);
+    setBooked(false);
     setInput("");
     setTokens(0);
     token.current = null;
@@ -446,8 +462,35 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
   const showStarters = greeted && (messages.length === 0 || status === "offline"); // they follow the greeting
   // Before the first question, beside the site: the greeting and the question field sit in the middle of the sheet,
   // and the field goes to the bottom once the conversation starts. Same elements either way, only placed differently.
-  const centred = beside && messages.length === 0 && !showLead;
+  const centred = beside && messages.length === 0 && !showLead && !booking;
 
+  const bookingChat = () => {
+    const end = endPayload("lead_submitted");
+    return { sessionId: end.sessionId, conversationId: end.conversationId, token: end.token, messages: end.messages };
+  };
+  const onBooked = (when: string, name: string) => {
+    setBooked(true);
+    setBooking(null);
+    logged.current = { count: transcript(messagesRef.current).length, ended: false };
+    append({
+      role: "assistant",
+      kind: "notice",
+      content: `Done, ${name.split(" ")[0] || "there"}: you're on Rishabh's calendar for ${when}. The Google Meet invite is in your inbox.`,
+    });
+  };
+  const bookButton =
+    !booked && !booking ? (
+      <button
+        type="button"
+        onClick={() => {
+          setShowLead(false);
+          setBooking({ topic: "" });
+        }}
+        className="rounded-full border border-accent/50 px-3.5 py-2 text-left text-[0.82rem] text-accent transition-colors duration-300 hover:bg-accent hover:text-accent-ink"
+      >
+        Book a call
+      </button>
+    ) : null;
   const leadButton =
     !leadSent && !showLead ? (
       <button
@@ -597,6 +640,9 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
             )}
 
             {showLead ? <LeadForm onSubmit={submitLead} onCancel={() => setShowLead(false)} /> : null}
+            {booking ? (
+              <BookingCard compact from="chat" topic={booking.topic} chat={bookingChat} onBooked={onBooked} onCancel={() => setBooking(null)} />
+            ) : null}
           </div>
         </div>
 
@@ -613,6 +659,7 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
                 {s.q}
               </button>
             ))}
+            {centred ? bookButton : null}
             {centred ? leadButton : null}
           </div>
         ) : null}
@@ -620,7 +667,12 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
         {/* Composer */}
         <div className="mx-auto w-full max-w-2xl px-4 pt-2">
           <div className="mb-2 flex items-center justify-between gap-2 empty:hidden">
-            {centred ? null : leadButton}
+            {centred ? null : (
+              <span className="flex flex-wrap gap-2">
+                {bookButton}
+                {leadButton}
+              </span>
+            )}
             {tokens > 0 ? (
               <span
                 className="label ml-auto !text-[0.62rem]"

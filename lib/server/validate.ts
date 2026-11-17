@@ -47,6 +47,26 @@ export const leadRequest = endRequest.extend({
   }),
 });
 
+// "Book a call": the visitor's details and the slot. `chat` only when they booked from inside a conversation, so
+// the event can carry a summary of it (signed like the lead form's).
+export const bookRequest = z.object({
+  start: z.iso.datetime(),
+  name: z.string().trim().min(1).max(80),
+  email: z.email().max(120),
+  company: z.string().trim().max(80).default(""),
+  topic: z.string().trim().min(3).max(600),
+  page: z.string().max(200).default("/"),
+  from: z.string().max(60).default(""),
+  chat: z
+    .object({
+      sessionId: z.uuid().optional(),
+      conversationId: z.uuid(),
+      token: z.string().max(200).nullable(),
+      messages: endRequest.shape.messages,
+    })
+    .optional(),
+});
+
 const short = (max: number) => z.string().trim().max(max).default("");
 
 export const visitRequest = z.object({

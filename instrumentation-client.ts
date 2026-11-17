@@ -6,6 +6,7 @@ initBotId({
   protect: [
     { path: "/api/chat", method: "POST" },
     { path: "/api/lead", method: "POST" },
+    { path: "/api/book", method: "POST" },
     { path: "/api/admin/login", method: "POST" },
   ],
 });

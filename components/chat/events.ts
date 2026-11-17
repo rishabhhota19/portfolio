@@ -13,3 +13,10 @@ export function openAgent(question?: string, source?: string) {
 export function hideAgent() {
   window.dispatchEvent(new Event(HIDE_AGENT_EVENT));
 }
+
+// "Book a call" opens the booking card over the page (components/booking/BookingDialog.tsx), from any button.
+export const OPEN_BOOKING_EVENT = "booking:open";
+
+export function openBooking(from: string) {
+  window.dispatchEvent(new CustomEvent<{ from: string }>(OPEN_BOOKING_EVENT, { detail: { from } }));
+}

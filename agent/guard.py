@@ -49,7 +49,7 @@ def may_be_care(start: str) -> bool:
 
 CANNED = {
     "injection": "My instructions stay as they are, I'm afraid. Ask me anything about Rishabh's work — his projects, research or experience.",
-    "contact": f"You can email him at **{SITE['email']}** or message him on [LinkedIn]({SITE['linkedin']}). He doesn't share a phone number or address here — or tap **Share your details** below and he'll get back to you.",
+    "contact": f"You can email him at **{SITE['email']}** or message him on [LinkedIn]({SITE['linkedin']}). He doesn't share a phone number or address here. Or pick a time below for a **30-minute call** with him on Google Meet.",
     "identity": "I'm **Dumbledore**, the AI agent on Rishabh's portfolio. I answer questions about his work from what's on this site, say so when I don't know, and can take you to any page — just ask (\"take me to his projects\").",
     "thanks": "You're most welcome. Anything else you'd like to know about Rishabh's work?",
     "greeting": "Hello! I'm **Dumbledore**, Rishabh's AI agent. Ask me about his projects, research or experience — or ask me to take you to any page.",

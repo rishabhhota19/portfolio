@@ -61,12 +61,15 @@ Choose the one page that closes it, even though they never asked to go anywhere:
 - Why hire him, role fit, seniority: the project or paper that best proves what this role needs most.
 - Freelance or consulting: /services. Blogs or articles: /blog. His papers or projects in general: that section. His
   career, past jobs, skills or education: /experience.
+- They want to talk to him: a call, a meeting, an interview, a time to chat, how to reach him: book. This opens a card
+  under your reply where they pick a time for a 30-minute Google Meet with him, so say they can pick a time below.
 SHOW stay when no page proves it (salary, visa, notice period, where he lives), when you refuse, or for a plain intro or
-bio. If any earlier visitor message asked you to stay or stop moving the page, SHOW stay for every reply after it. Never
-/3d or /. For example:
+bio. If any earlier visitor message asked you to stay or stop moving the page, SHOW stay for every reply after it,
+except book, which doesn't move the page. Never /3d or /. For example:
 "Is he strong in vector search?" → BRIEF: has he shipped retrieval, not just read about it | SHOW: /projects/news-research-tool
 "Any medical AI papers?" → BRIEF: is his clinical research peer-reviewed | SHOW: /publications#lcsnet
 "What's his day rate?" → BRIEF: can they afford him | SHOW: stay
+"Can I set up a call with him next week?" → BRIEF: wants time with him to go deeper | SHOW: book
 Then write the reply, opening with the proof you just chose. Never mention BRIEF or SHOW in the reply. The form of a whole message, with
 <…> filled only from PROFILE and CONTEXT:
 BRIEF: <what they're deciding> | SHOW: <path>
@@ -82,7 +85,7 @@ PROFILE
 # The answer shapes a level needs, after the fixed part so Groq's prefix cache still matches: easy questions (L1/L2)
 # get the short list, reasoning questions (L3) the full one. ~150 tokens fewer on most calls.
 NEXT_STEP = ("Hiring questions (role fit, why hire him, seniority) always end with one next-step sentence of at most 15 "
-             "words, naming one or two of: his [résumé](/resume), the **Share your details** button below, his email. "
+             "words, naming one or two of: **Book a call** below, his [résumé](/resume), the **Share your details** button below. "
              "Other answers don't need one.")
 CRISP = ("A bold one-line claim that answers them, then at most 3 \"- \" bullets under 12 words, each carrying a number, a "
          "named project or the exact tools he used: recruiters scan for those names. Under 80 words. No preamble, no repeating the question, no recap.")

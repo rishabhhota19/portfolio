@@ -107,8 +107,8 @@ async def route(state: State) -> dict:
         return say(guard.reply_for(intent), "refused", started, "route", why=f"rules:{intent}")
     if rescue:
         intent = "question"  # the judge is sure this is about him: a keyword's refusal is set aside
-    if intent != "question":
-        return say(guard.reply_for(intent), intent, started, "route")
+    if intent != "question":  # "how do I reach him?" also opens the booking card under the reply
+        return say(guard.reply_for(intent), intent, started, "route", **({"actions": [dict(pages.BOOK)]} if intent == "contact" else {}))
 
     if moved := pages.move(question):  # "go back", "next", "scroll down": the chat does it where the visitor is
         return say(pages.MOVE_REPLY[moved], "navigate", started, "route", actions=[{"type": "ui", "move": moved}])
@@ -375,8 +375,8 @@ async def respond(state: State) -> dict:
 # ── 6. check (Gate 4: output, Gate 5: cache) ────────────────────────────────
 
 HIRING = re.compile(r"\b(fit|hire|hiring|role|position|job description|jd|candidate|junior|senior|recruit\w*)\b", re.I)
-NEXT_STEP = re.compile(r"r[ée]sum[ée]|share your details|e-?mail|reach out|get in touch|linkedin|contact|talk to him|ask him", re.I)
-NEXT_STEP_LINE = "\n\nNext step: his [résumé](/resume), or **Share your details** below for a reply from Rishabh himself."
+NEXT_STEP = re.compile(r"book a call|r[ée]sum[ée]|share your details|e-?mail|reach out|get in touch|linkedin|contact|talk to him|ask him", re.I)
+NEXT_STEP_LINE = "\n\nNext step: **Book a call** below to talk to Rishabh himself, or read his [résumé](/resume)."
 
 async def check(state: State) -> dict:
     started = time.perf_counter()

@@ -1,11 +1,12 @@
-import type { ReactNode } from "react";
-import { site } from "@/lib/content";
+"use client";
 
-/** Where "Book a call" goes: the Google Calendar booking page once content/site.json has one (`booking`), and until
- * then an email with the subject already filled in, so the button always leads somewhere. */
-export const bookingHref =
-  site.booking || `mailto:${site.email}?subject=${encodeURIComponent("15-min call with Rishabh")}`;
-const external = bookingHref.startsWith("http");
+import type { MouseEvent, ReactNode } from "react";
+import site from "@/content/site.json";
+import { openBooking } from "@/components/chat/events";
+
+/** Before the page's JavaScript has loaded, "Book a call" is a plain email link with the subject filled in; after
+ * that, a click opens the booking card instead (components/booking/BookingDialog.tsx). */
+export const bookingHref = `mailto:${site.email}?subject=${encodeURIComponent("Call with Rishabh")}`;
 
 export function CalendarIcon({ className = "size-[1.05em]" }: { className?: string }) {
   return (
@@ -39,7 +40,11 @@ export function BookCall({ from, className = "", children = "Book a call" }: { f
   return (
     <a
       href={bookingHref}
-      {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
+      onClick={(e: MouseEvent) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+        e.preventDefault();
+        openBooking(from);
+      }}
       data-umami-event="book_call"
       data-umami-event-from={from}
       className={`btn-primary ${className}`}

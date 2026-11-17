@@ -317,7 +317,7 @@ async def chat(req: ChatRequest, x_agent_secret: str | None = Header(None), x_ca
         if final is not None and final != output.sent:  # canned replies, or the graph's guard changed the answer
             yield line({"type": "replace" if output.sent else "text", "text": final})
         for action in result.get("actions", []):
-            if not (action["type"] == "navigate" and action["path"] == moved):
+            if not (action["type"] in ("navigate", "book") and action["path"] == moved):  # already sent mid-stream
                 yield line(action)
         # This turn's tokens as the free limits count them (Groq's cached prompt tokens are free), 0 when no model was
         # needed; the chat shows the running total.

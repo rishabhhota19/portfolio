@@ -5,6 +5,7 @@ import "./globals.css";
 import { Header } from "@/components/site/Header";
 import { Footer } from "@/components/site/Footer";
 import { ChatLauncher } from "@/components/chat/ChatLauncher";
+import { BookingDialog } from "@/components/booking/BookingDialog";
 import { VisitTracker } from "@/components/site/VisitTracker";
 import { SiteChrome } from "@/components/site/SiteChrome";
 import { site } from "@/lib/content";
@@ -101,6 +102,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </div>
         <SiteChrome>
           <ChatLauncher />
+          <BookingDialog />
           <VisitTracker />
         </SiteChrome>
         {/* Analytics load when the browser is idle, so they never compete with the page itself. */}

@@ -174,8 +174,15 @@ def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> li
     return out[:2]
 
 
+# "SHOW: book": not a page but the booking card, opened in the chat under the answer (components/booking/BookingCard).
+BOOK = {"type": "book", "path": "#book", "label": "Book a call"}
+
+
 def shown_page(path: str) -> dict | None:
-    """The agent's chosen page as an action, if it's a page we have (a wrong anchor still gets the right page)."""
+    """The agent's chosen page as an action, if it's a page we have (a wrong anchor still gets the right page), or the
+    booking card when it chose "book"."""
+    if path.lower() in ("book", "#book"):
+        return dict(BOOK)
     for candidate in (path, path.split("#")[0]):
         if candidate in SECTIONS and candidate not in ("/", "/3d"):
             return {"type": "navigate", "path": candidate, "label": SECTIONS[candidate][0], "focus": False}
