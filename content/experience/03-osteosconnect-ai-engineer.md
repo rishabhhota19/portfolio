@@ -9,5 +9,5 @@ keywords: [osteosconnect, osteoarthritis, oa, x-ray, medical imaging, healthcare
 ---
 
 - Led a team of clinicians and engineers to deliver an osteoarthritis pipeline that turns a knee X-ray into a doctor's report in under two minutes: Kellgren–Lawrence grading at 98% accuracy and AUC, custom segmentation of osteophytes, sclerosis and joint space to double-check the grade, and measured findings (TensorFlow; AWS EC2 H100 cluster, Lambda, API Gateway).
-- Tested in a randomised controlled trial of OA patients at SRM, Chennai (supervised by Dr. Mahesh Magadum); deployed at Fortis Hospital, Nagarbhavi, Bengaluru. More than 90% concordance with radiologists; surpassed competitor RBKnee.
+- Tested in a randomised controlled trial of OA patients at SRM, Trichy (supervised by Dr. Mahesh Magadum); deployed at Fortis Hospital, Nagarbhavi, Bengaluru. More than 90% concordance with radiologists; surpassed competitor RBKnee.
 - Implemented a continuous feedback loop that retrains the model on doctor-validated ground truth.

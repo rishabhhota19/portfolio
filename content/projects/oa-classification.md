@@ -6,7 +6,7 @@ period: Jan 2024 – Sep 2024
 tags: [Computer Vision, Medical Imaging, Segmentation, TensorFlow, AWS, EC2 H100, Lambda, API Gateway]
 featured: true
 order: 2
-keywords: [osteoarthritis, oa, knee, x-ray, medical imaging, kellgren lawrence, kl grade, segmentation, osteophytes, sclerosis, joint space, randomised controlled trial, rct, srm chennai, fortis, nagarbhavi, tensorflow, h100, lambda, api gateway, ec2, fda, patents, radiologist, rbknee, healthcare, classification, report]
+keywords: [osteoarthritis, oa, knee, x-ray, medical imaging, kellgren lawrence, kl grade, segmentation, osteophytes, sclerosis, joint space, randomised controlled trial, rct, srm trichy, fortis, nagarbhavi, tensorflow, h100, lambda, api gateway, ec2, fda, patents, radiologist, rbknee, healthcare, classification, report]
 ---
 
 ## What it does
@@ -26,7 +26,7 @@ radiological finding, writes the report and forwards it to the doctor.
 Every model was **custom-built** in-house, with patent filings and FDA approval in mind.
 
 ## Clinical validation and deployment
-- Tested at **SRM, Chennai** as part of a **randomised controlled trial** of osteoarthritis patients, under the
+- Tested at **SRM, Trichy** as part of a **randomised controlled trial** of osteoarthritis patients, under the
   supervision of **Dr. Mahesh Magadum**.
 - More than 90% concordance with radiologists; outperformed competitor RBKnee.
 - **Deployed and scaled at Fortis Hospital, Nagarbhavi, Bengaluru.**
