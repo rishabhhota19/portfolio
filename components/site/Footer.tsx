@@ -2,6 +2,7 @@ import Link from "next/link";
 import { site } from "@/lib/content";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
 import { BookCall, SparkleIcon } from "./cta";
+import { DocumentIcon, GitHubIcon, LinkedInIcon, MailIcon } from "./icons";
 
 export function Footer() {
   return (
@@ -30,18 +31,22 @@ export function Footer() {
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <span className="label mb-1">Contact</span>
-          <a className="link-underline w-fit" href={`mailto:${site.email}`} data-umami-event="email_click">
+          <a className="link-underline inline-flex w-fit items-center gap-2" href={`mailto:${site.email}`} data-umami-event="email_click">
+            <MailIcon className="size-4 text-accent" />
             {site.email}
           </a>
-          <a className="link-underline w-fit" href={site.linkedin} target="_blank" rel="noreferrer" data-umami-event="linkedin_click">
+          <a className="link-underline inline-flex w-fit items-center gap-2" href={site.linkedin} target="_blank" rel="noreferrer" data-umami-event="linkedin_click">
+            <LinkedInIcon className="size-4 text-accent" />
             LinkedIn ↗
           </a>
           {site.github ? (
-            <a className="link-underline w-fit" href={site.github} target="_blank" rel="noreferrer" data-umami-event="github_click">
+            <a className="link-underline inline-flex w-fit items-center gap-2" href={site.github} target="_blank" rel="noreferrer" data-umami-event="github_click">
+              <GitHubIcon className="size-4 text-accent" />
               GitHub ↗
             </a>
           ) : null}
-          <a className="link-underline w-fit" href={site.resume} data-umami-event="resume_download" data-umami-event-from="footer">
+          <a className="link-underline inline-flex w-fit items-center gap-2" href={site.resume} data-umami-event="resume_download" data-umami-event-from="footer">
+            <DocumentIcon className="size-4 text-accent" />
             Résumé (PDF)
           </a>
         </div>
