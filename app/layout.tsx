@@ -7,7 +7,6 @@ import { Footer } from "@/components/site/Footer";
 import { ChatLauncher } from "@/components/chat/ChatLauncher";
 import { VisitTracker } from "@/components/site/VisitTracker";
 import { SiteChrome } from "@/components/site/SiteChrome";
-import { AskBar } from "@/components/site/AskBar";
 import { site } from "@/lib/content";
 
 // The whole site is set in Comic Sans (Rishabh's call, 15 Nov 2026). Windows and macOS have it installed, so there
@@ -91,7 +90,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             pages still fit when the agent takes the left 40% of the screen. The agent itself sits outside it. */}
         <div className="site-shell flex min-h-dvh flex-col">
           <SiteChrome>
-            <AskBar />
             <Header />
           </SiteChrome>
           <main id="main" className="relative z-10 flex-1">

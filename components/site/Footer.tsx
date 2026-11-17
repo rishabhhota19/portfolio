@@ -1,17 +1,32 @@
 import Link from "next/link";
 import { site } from "@/lib/content";
+import { AskAgentButton } from "@/components/chat/AskAgentButton";
+import { BookCall, SparkleIcon } from "./cta";
 
 export function Footer() {
   return (
     <footer className="relative z-10 mt-28 border-t border-rule">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
+      {/* Let's talk: the last call to action on every page. */}
+      <div className="mx-auto flex max-w-6xl flex-wrap items-end justify-between gap-8 border-b border-rule px-5 py-14 sm:px-8">
         <div>
-          <p className="font-serif text-4xl leading-[1.05] sm:text-5xl">
-            Let&apos;s build something <em className="text-accent">that ships.</em>
+          <p className="font-serif text-5xl leading-[1.02] sm:text-6xl">
+            Let&apos;s <em className="text-accent">talk.</em>
           </p>
-          <p className="mt-4 max-w-sm text-muted">
-            Recruiting for an AI, GenAI or research-engineering role? Ask Dumbledore, my AI agent, or write to me directly.
+          <p className="mt-4 max-w-md text-muted">
+            Hiring for an AI role, or need something built? A 15-minute call is the fastest way. Or ask Dumbledore first.
           </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <BookCall from="footer" className="btn-lg" />
+          <AskAgentButton className="btn-ghost btn-lg">
+            <SparkleIcon /> Ask Dumbledore
+          </AskAgentButton>
+        </div>
+      </div>
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
+        <div>
+          <p className="font-serif text-2xl">{site.name}</p>
+          <p className="mt-2 max-w-sm text-sm text-muted">Sr. AI Researcher · {site.location}</p>
         </div>
         <div className="flex flex-col gap-2 text-sm">
           <span className="label mb-1">Contact</span>

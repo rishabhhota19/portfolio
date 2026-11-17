@@ -1,7 +1,25 @@
 import Link from "next/link";
 import { SectionHead, StatusChip, Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
+import { BookCall, CubeIcon } from "@/components/site/cta";
 import { experience, featuredProjects, projectMeta, publications, site } from "@/lib/content";
+
+const paths = [
+  {
+    kicker: "For recruiters",
+    title: "Hiring for an AI role?",
+    body: "Sr. AI Researcher, three-plus years from paper to production: agents, fine-tuning and medical imaging. One paper published, two under review.",
+    from: "recruiters",
+    second: { href: site.resume, label: "Download résumé", event: "resume_download" },
+  },
+  {
+    kicker: "For teams and founders",
+    title: "Need something built?",
+    body: "Agents, RAG over your documents, small models tuned and served on your own hardware, and research turned into a working prototype.",
+    from: "clients",
+    second: { href: "/services", label: "See services", event: "services_click" },
+  },
+];
 
 const stats = [
   { value: "96%", label: "Accuracy, knee X-ray OA grading on AWS" },
@@ -38,26 +56,24 @@ export default function Home() {
               Agents and multi-agent orchestration, LLM fine-tuning and serving, medical-imaging models, and research on
               when quantum-inspired attention actually helps. Three-plus years taking ideas from paper to production.
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-7 gap-y-3">
-              <a
-                href={site.resume}
-                data-umami-event="resume_download"
-                data-umami-event-from="home"
-                className="rounded-full border border-rule px-5 py-3 transition-colors duration-500 hover:border-accent hover:text-accent"
-              >
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <BookCall from="hero" className="btn-lg">
+                Book a 15-min call
+              </BookCall>
+              <a href={site.resume} data-umami-event="resume_download" data-umami-event-from="home" className="link-underline py-3">
                 Download résumé
               </a>
-              <Link href="/projects" className="link-underline py-3">
+              <Link href="/projects" className="link-underline py-3 text-muted">
                 See the work <span aria-hidden>→</span>
               </Link>
             </div>
           </div>
 
           {/* The agent, where a picture would be: one question bar that opens Dumbledore. */}
-          <div className="reveal order-first lg:order-none" style={{ ["--i" as string]: 3 }}>
+          <div className="reveal" style={{ ["--i" as string]: 3 }}>
             <p className="label mb-3 flex items-center gap-2.5">
               <span className="pulse-dot inline-block size-2 rounded-full bg-accent" aria-hidden />
-              Start with a question
+              Or ask my live AI agent
             </p>
             <AskAgentButton
               aria-label="Ask Dumbledore, my AI agent"
@@ -96,6 +112,61 @@ export default function Home() {
             </div>
           ))}
         </dl>
+      </section>
+
+      {/* Two ways in: the two kinds of visitor, each with its own next step. */}
+      <section aria-label="Two ways in" className="mx-auto max-w-6xl px-5 pt-16 sm:px-8 sm:pt-20">
+        <div className="grid gap-4 md:grid-cols-2">
+          {paths.map((p) => (
+            <div key={p.kicker} className="panel flex flex-col p-7 sm:p-9">
+              <p className="label !text-accent">{p.kicker}</p>
+              <h2 className="mt-4 font-serif text-3xl leading-tight sm:text-4xl">{p.title}</h2>
+              <p className="mt-3 max-w-md leading-relaxed text-muted">{p.body}</p>
+              <div className="mt-auto flex flex-wrap gap-3 pt-7">
+                <BookCall from={p.from} />
+                <a href={p.second.href} data-umami-event={p.second.event} data-umami-event-from={p.from} className="btn-ghost">
+                  {p.second.label}
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* The 3D site, shown as a product of its own, so people want to open it. */}
+      <section aria-label="Into the Agent, the 3D tour" className="mx-auto max-w-6xl px-5 pt-16 sm:px-8 sm:pt-20">
+        <a
+          href="/3d"
+          data-umami-event="three_d_open"
+          data-umami-event-from="home card"
+          className="panel group grid overflow-hidden !border-accent/35 md:grid-cols-[1.35fr_1fr]"
+        >
+          <div className="relative aspect-[16/10] overflow-hidden bg-black md:aspect-auto md:min-h-[22rem]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- a plain still, no optimiser needed */}
+            <img
+              src="/tour-preview.webp"
+              alt="Inside the 3D tour: a lit steel shaft descending around the agent's glowing red core"
+              loading="lazy"
+              decoding="async"
+              width={1024}
+              height={640}
+              className="tour-still absolute inset-0 size-full object-cover"
+            />
+            <span className="absolute left-4 top-4 rounded-full bg-accent px-3 py-1 text-xs font-bold text-accent-ink">New</span>
+          </div>
+          <div className="flex flex-col justify-center gap-4 p-7 sm:p-10">
+            <p className="label flex items-center gap-2 !text-accent">
+              <CubeIcon className="size-4" /> Into the Agent · 3D
+            </p>
+            <h2 className="font-serif text-3xl leading-tight sm:text-4xl">Walk inside the agent that answers for me.</h2>
+            <p className="leading-relaxed text-muted">
+              A scroll-driven descent through my work, seven chambers down, with Dumbledore at its core. Built in three.js.
+            </p>
+            <span className="btn-ghost mt-2 w-fit !border-accent !text-accent">
+              Open the 3D tour <span aria-hidden className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+            </span>
+          </div>
+        </a>
       </section>
 
       {/* Selected work */}

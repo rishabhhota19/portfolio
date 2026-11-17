@@ -14,7 +14,7 @@ const ChatPanel = dynamic(() => import("./ChatPanel").then((m) => m.ChatPanel), 
 export type PendingQuestion = { text: string; id: number };
 
 /**
- * Where Dumbledore lives on the written site. There is no chat popup: opened (from the ask bar, or any "ask" button
+ * Where Dumbledore lives on the written site. There is no chat popup: opened (from the header, or any "ask" button
  * on a page), he takes the left 40% of a wide screen and the site keeps the right 60%, both in use at once. Phones
  * and tablets have no room for that, so he covers the page and Agent · Site tabs switch between the two.
  */
@@ -51,7 +51,7 @@ export function ChatLauncher() {
     };
   }, []);
 
-  // The stylesheet moves the site aside while he is on screen, and the ask bar reads the same mark (agent-state.ts).
+  // The stylesheet moves the site aside while he is on screen, and the header reads the same mark (agent-state.ts).
   const admin = pathname.startsWith("/admin"); // the private dashboard has no visitor chat
   const shown = open && !admin;
   useEffect(() => {

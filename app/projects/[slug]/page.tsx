@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArticleSkeleton, Tag } from "@/components/site/bits";
 import { AskAgentButton } from "@/components/chat/AskAgentButton";
+import { BookCall, SparkleIcon } from "@/components/site/cta";
 import { getProject, projectMeta, projects } from "@/lib/content";
 
 export function generateStaticParams() {
@@ -77,7 +78,23 @@ async function Project({ params }: Pick<PageProps<"/projects/[slug]">, "params">
           </div>
         </aside>
       </div>
-      <div className="mt-24 border-t border-rule pt-8">
+      {/* Every project ends with a way to act on it. */}
+      <div className="panel mt-20 flex flex-wrap items-center justify-between gap-6 p-7 sm:p-10">
+        <div>
+          <p className="font-serif text-3xl leading-tight sm:text-4xl">Want this for your team?</p>
+          <p className="mt-2 max-w-md text-muted">Talk it through with Rishabh, or ask Dumbledore how {project.title} was built.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <BookCall from={`project ${project.slug}`} />
+          <AskAgentButton
+            question={`How did Rishabh build ${project.title}, and could he build something like it for my team?`}
+            className="btn-ghost"
+          >
+            <SparkleIcon /> Ask Dumbledore
+          </AskAgentButton>
+        </div>
+      </div>
+      <div className="mt-16 border-t border-rule pt-8">
         <span className="label">Next project</span>
         <Link href={`/projects/${next.slug}`} className="group mt-3 block font-serif text-4xl transition-colors duration-500 hover:text-accent sm:text-5xl">
           {next.title} <span className="inline-block transition-transform group-hover:translate-x-1">→</span>
