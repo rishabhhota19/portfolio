@@ -5,7 +5,7 @@
   },
   {
     "q": "What's his strongest project?",
-    "a": "Two stand out:\n- **Collaterals Agent (Simplilearn):** an N8N multi-agent system — a Head Agent coordinating a Researcher and an Analyst — that cut course-launch collateral from **7–10 days to 1 day**. It won the Best Team Award.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **96% accuracy** and more than 90% agreement with radiologists, ahead of competitor RBKnee."
+    "a": "Two stand out:\n- **[Product Launch System](/projects/product-launch-system):** AI automation with a human in the loop, one unified system that connects three teams (product, content review and design) from programme sheet to editable Illustrator artwork; **88 tested versions in eleven weeks**, in use as an internal tool.\n- **Osteoarthritis X-ray grading (OsteosConnect):** **96% accuracy** and more than 90% agreement with radiologists, ahead of competitor RBKnee."
   },
   {
     "q": "Tell me about his research",
@@ -13,7 +13,7 @@
   },
   {
     "q": "Has he built agentic AI in production?",
-    "a": "Yes. At Simplilearn his N8N-based **Collaterals Agent** runs launch content end to end: a Head Agent, a Researcher (SerpAPI) and an Analyst, a fine-tuned GPT, and Google Docs output. He also built **TurboTrade**, a LangChain + Groq copilot over Zerodha's Kite **MCP** server with OAuth scopes and reversible, logged actions. Agentic orchestration is a core part of his current role."
+    "a": "Yes. His **[Product Launch System](/projects/product-launch-system)** runs programme launches end to end as an internal tool: director, drafter, learner and builder agents, a person approving every step that needs judgement, and three teams on one set of files. He also built **TurboTrade**, a LangChain + Groq copilot over Zerodha's Kite **MCP** server with OAuth scopes and reversible, logged actions. Agentic orchestration is a core part of his current role."
   },
   {
     "q": "What's his tech stack?",

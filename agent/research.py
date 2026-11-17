@@ -42,7 +42,7 @@ async def search_site(query: str) -> list[dict]:
 
 @tool
 def open_page(path: str) -> list[dict]:
-    """Read one of his pages in full, by its path from PAGES (e.g. /projects/collaterals-agent)."""
+    """Read one of his pages in full, by its path from PAGES (e.g. /projects/product-launch-system)."""
     clean = path.split("#")[0].rstrip("/") or "/"
     if clean not in PATHS:
         return []

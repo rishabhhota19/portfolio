@@ -348,9 +348,9 @@ async def enforce_checks() -> None:
     check("endpoint: a streamed reply that talks about its hidden line never reaches the visitor; the second writer's answer does",
           not any("BRIEF" in piece for piece in r["said"]) and r["text"] == "**N8N, with Google Docs.**", r["said"])
     STREAMED = False
-    check("a page button is one known page, offered and never opened", graph.page_button({"docs": [{"url": "/projects/collaterals-agent"}], "relevance": 0.8})
-          == [{"type": "links", "links": [{"path": "/projects/collaterals-agent", "label": graph.pages.shown_page("/projects/collaterals-agent")["label"]}], "auto": False}])
-    check("…and nothing is offered when the site has nothing close", graph.page_button({"docs": [{"url": "/projects/collaterals-agent"}], "relevance": 0.3}) == [] and graph.page_button({}) == [])
+    check("a page button is one known page, offered and never opened", graph.page_button({"docs": [{"url": "/projects/product-launch-system"}], "relevance": 0.8})
+          == [{"type": "links", "links": [{"path": "/projects/product-launch-system", "label": graph.pages.shown_page("/projects/product-launch-system")["label"]}], "auto": False}])
+    check("…and nothing is offered when the site has nothing close", graph.page_button({"docs": [{"url": "/projects/product-launch-system"}], "relevance": 0.3}) == [] and graph.page_button({}) == [])
     r = stream(passes, says("general_knowledge"), "should never be asked", mode="enforce")
     check("endpoint: an enforced decline arrives whole, with no page move", r["text"] in guard.DECLINES["general_knowledge"] and "navigate" not in r["kinds"] and r["meta"].get("intent") == "refused", (r["text"], r["kinds"]))
 

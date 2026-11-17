@@ -148,7 +148,7 @@
       }
     ]
   },
-  "core": "Rishabh Hota — AI/ML Researcher & Engineer (Bengaluru, India)\n\nNow: Sr. AI Researcher at Simplilearn (on-site, Bengaluru), since Mar 2026. Works on automating complex workflows, agentic orchestration, open source, and hands-on research into new AI tech. Before that, AI Researcher at Simplilearn (Mar 2025 – Mar 2026).\n\nExperience: 3+ years turning AI research into production prototypes and AWS-hosted pipelines.\n- Simplilearn — Sr. AI Researcher (Mar 2026 – present), AI Researcher (Mar 2025 – Mar 2026).\n- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.\n- Smartknower (Bangalore) — Data Science & ML Intern (Nov 2020 – Jan 2021).\n\nEducation: B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).\n\nHeadline wins:\n- Built an N8N-based multi-agent \"Collaterals Agent\" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).\n- His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).\n- Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.\n\nCore strengths: agentic AI and multi-agent orchestration, MCP, RAG in production, Graph RAG, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.\n\nRoles he fits: AI Engineer, GenAI / LLM Engineer, Agentic AI Engineer, Forward Deployed Engineer, Applied / Research Engineer (ML, medical imaging, efficient attention).\n\nInterests: AI research, competitive football, poetry.\n\nContact policy\n- Share: email rishabhhota19@gmail.com, LinkedIn https://www.linkedin.com/in/rishabh-hota-4138b31b3, and the resume at /resume.pdf.\n- Never share a phone number, home address or anything not written in this knowledge base.\n- Recruiters can leave their details with the \"Share your details\" button in the chat; Rishabh gets them by email.\n\nFAQ (answer only what is filled in)\n\n- Notice period: not shared publicly — best discussed directly.\n- Open to relocation / remote: not shared publicly — best discussed directly.\n- Work authorization outside India: not shared publicly — best discussed directly.\n- Salary expectations: happy to discuss directly with the recruiter.\n- Availability for interviews: suggest sharing details via the button or emailing him.",
+  "core": "Rishabh Hota — AI/ML Researcher & Engineer (Bengaluru, India)\n\nNow: Sr. AI Researcher at Simplilearn (on-site, Bengaluru), since Mar 2026. Works on automating complex workflows, agentic orchestration, open source, and hands-on research into new AI tech. Before that, AI Researcher at Simplilearn (Mar 2025 – Mar 2026).\n\nExperience: 3+ years turning AI research into production prototypes and AWS-hosted pipelines.\n- Simplilearn — Sr. AI Researcher (Mar 2026 – present), AI Researcher (Mar 2025 – Mar 2026).\n- OsteosConnect Inc (remote, California) — AI Engineer (Feb 2024 – Mar 2025), AI/ML Intern (Jul 2023 – Jan 2024). Led clinicians and engineers to a 96%-accurate osteoarthritis X-ray classification pipeline on AWS; >90% concordance with radiologists in SRM Trichy trials; outperformed competitor RBKnee.\n- Smartknower (Bangalore) — Data Science & ML Intern (Nov 2020 – Jan 2021).\n\nEducation: B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).\n\nHeadline wins:\n- Built the Product Launch System as Sr. AI Researcher: one human-in-the-loop AI system that connects three teams (product, content review, design) from programme sheet to editable Illustrator artwork; 88 tested versions in eleven weeks; in use as an internal tool.\n- Built an N8N-based multi-agent \"Collaterals Agent\" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).\n- His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).\n- Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.\n\nCore strengths: agentic AI and multi-agent orchestration, MCP, RAG in production, Graph RAG, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.\n\nRoles he fits: AI Engineer, GenAI / LLM Engineer, Agentic AI Engineer, Forward Deployed Engineer, Applied / Research Engineer (ML, medical imaging, efficient attention).\n\nInterests: AI research, competitive football, poetry.\n\nContact policy\n- Share: email rishabhhota19@gmail.com, LinkedIn https://www.linkedin.com/in/rishabh-hota-4138b31b3, and the resume at /resume.pdf.\n- Never share a phone number, home address or anything not written in this knowledge base.\n- Recruiters can leave their details with the \"Share your details\" button in the chat; Rishabh gets them by email.\n\nFAQ (answer only what is filled in)\n\n- Notice period: not shared publicly — best discussed directly.\n- Open to relocation / remote: not shared publicly — best discussed directly.\n- Work authorization outside India: not shared publicly — best discussed directly.\n- Salary expectations: happy to discuss directly with the recruiter.\n- Availability for interviews: suggest sharing details via the button or emailing him.",
   "docs": [
     {
       "id": "experience:01-simplilearn-sr-ai-researcher",
@@ -165,7 +165,7 @@
         "open source",
         "automation"
       ],
-      "text": "Sr. AI Researcher — Simplilearn, On-site, Bengaluru, Karnataka, Mar 2026 – Present\nRishabh's current role. He leads hands-on research into new AI technology and turns it into automation for the business.\n\n- Automating complex, multi-step business workflows with AI agents.\n- Agentic orchestration: designing how multiple agents, tools and human reviewers work together.\n- Open-source work.\n- Hands-on research on new technology as it emerges, turned into working prototypes."
+      "text": "Sr. AI Researcher — Simplilearn, On-site, Bengaluru, Karnataka, Mar 2026 – Present\nRishabh's current role. He leads hands-on research into new AI technology and turns it into automation for the business.\n\n- Built the Product Launch System: AI automation with a human in the loop that connects the product, content and design teams in one tool, from programme sheet to editable Illustrator artwork; in use as an internal tool.\n- Automating complex, multi-step business workflows with AI agents.\n- Agentic orchestration: designing how multiple agents, tools and human reviewers work together.\n- Open-source work.\n- Hands-on research on new technology as it emerges, turned into working prototypes."
     },
     {
       "id": "experience:02-simplilearn-ai-researcher",
@@ -234,32 +234,37 @@
       "text": "Data Science & ML Intern — Smartknower Pvt Ltd, Bangalore, Nov 2020 – Jan 2021\n- Built a full ETL pipeline, feature engineering and predictive models.\n- Developed Power BI dashboards for sales forecasting and presented actionable insights."
     },
     {
-      "id": "project:collaterals-agent",
+      "id": "project:product-launch-system",
       "kind": "project",
-      "title": "Collaterals Agent",
-      "url": "/projects/collaterals-agent",
-      "summary": "An N8N-based multi-agent system that cut course-launch marketing collateral from 7–10 days to 1 day.",
+      "title": "Product Launch System",
+      "url": "/projects/product-launch-system",
+      "summary": "AI automation with a human in the loop: one unified system that connects three teams, from programme sheet to print-ready, editable designer artwork. In use as an internal tool.",
       "keywords": [
-        "collaterals",
-        "collateral",
-        "n8n",
-        "marketing",
+        "product launch system",
+        "program launch",
+        "launch system",
         "brochure",
-        "emailer",
-        "best team award",
-        "head agent",
-        "researcher agent",
-        "analyst agent",
-        "serpapi",
-        "google docs",
-        "multi-agent",
+        "human in the loop",
+        "three teams",
+        "page content",
+        "designer handoff",
+        "illustrator",
+        "editable artwork",
+        "gates",
+        "learning pipeline",
+        "steve",
+        "ai program launcher",
+        "internal tool",
+        "unified software",
         "Agentic AI",
+        "Human in the loop",
+        "Claude Agent Skills",
         "Multi-agent",
-        "N8N",
-        "Fine-tuned GPT",
-        "Google Docs"
+        "Adobe Illustrator",
+        "Evals",
+        "Python"
       ],
-      "text": "Project: Collaterals Agent (Simplilearn, Jun – Aug 2025)\nAn N8N-based multi-agent system that cut course-launch marketing collateral from 7–10 days to 1 day.\nProblem\nEvery new course launch needed SD/SL pages, brochures and seven types of emailers. Two teams of four people (eight in total) spent 7–10 days producing them.\n\nWhat Rishabh built\n- An N8N-based agentic system that drafts all collateral automatically and cuts turnaround to one day, including reviews and approvals.\n- A fine-tuned GPT model with deep course knowledge drafts accurate, relevant marketing content.\n- Architecture: one Head Agent coordinates two sub-agents:\n  - a Researcher, which gathers and validates course information through SerpAPI;\n  - an Analyst, which checks content structure and data accuracy and extracts the table of contents.\n- Integrated with Google Docs for automatic document creation and real-time updates throughout the workflow.\n\nOutcome\n- Launch collateral time fell from 7–10 days to 1 day.\n- The team won Simplilearn's Best Team Award (Q3)."
+      "text": "Project: Product Launch System (On-site project · Sr. AI Researcher, Aug 2026 – present)\nAI automation with a human in the loop: one unified system that connects three teams, from programme sheet to print-ready, editable designer artwork. In use as an internal tool.\nThe problem\nLaunching a new programme meant a brochure and its launch material, and that work moved between three teams that never\nshared one tool: product managers who own the facts and the story, a content team that reviews and approves every\nword, and designers who rebuild the approved pages by hand in Adobe Illustrator. Each hand-off was an email, a PDF and a\nround of corrections, and the same mistakes came back launch after launch.\n\nWhat Rishabh built\nOne unified system that runs the whole launch, end to end, with a person deciding at every step that needs judgement.\nIt ships as a Claude Agent Skill (\"Steve, the AI Program launcher\") that each team runs in its own chair, on the same\nfiles, with the same rules.\n\n- Product manager's chair. The programme sheet is read in, a ten-question intake gate fills what is missing, and\n  the market positioning is researched and recorded. Every section's words are drafted from the sources the PM gave\n  (never invented: a doubt is asked, not guessed) and approved on a Page Content web page, where a fast, cheap\n  agent makes each change the PM asks for. On page zero the PM picks up to three reference brochures from a library\n  and says, in their own words, what to take from each.\n- The build. A design director turns those picks into a brief; the pages are built, measured and exported to a\n  print-intent PDF. Page height is predicted to about 3% of the real render before anything is drawn, so nothing is\n  clipped. A complete 29-page draft comes out in one pass.\n- Content team's chair. Draft 1 goes out for approval from the PM's own Gmail, and the reviewers' comments come\n  back as tracked items, each closed or answered, never lost in a thread.\n- Designer's chair. The approved pages are handed over as a package and rebuilt natively in Adobe Illustrator\n  behind identity and editability gates (live text, real layers, no flattened pictures of words), then finished in a\n  pair room where Claude, Adobe and the designer work on the same file together.\n\nHow it holds quality\n- Rules are build failures, not advice. House style, locked boilerplate, spelling, banned claims, copy floors per\n  course, stat sources and their age: a draft that breaks one does not export.\n- Images are licensed or they do not ship. The design team's own assets come first; anything else is searched,\n  judged on a contact sheet by a person, and recorded with its source, licence and credit, above a 2000 px print floor.\n- Every step is recorded in order. The flow lives in code: the next missing step is printed with its exact question,\n  and Draft 1 is refused while a step is missing.\n- Model routing. Drafting runs on the session's own model; the Page Content edits run on a small, fast model; the\n  learners, director and builders are separate agents that resume where they stopped instead of starting over.\n\nIt learns from every team\nEvery person's edits, in every chair, are captured by a learning pipeline and turned into rules and references for\nthe next launch: what a designer fixed by hand becomes a check the build makes itself. Tested versions are released\nto everyone at once, and each session updates itself to the latest release before it starts.\n\nIn numbers\n- 88 versions in eleven weeks (v1 in August 2026 to v88 in late October), each tested and released.\n- 156 scripts and 166 tests behind one skill.\n- Three teams, one tool: product, content and design work from the same files, the same rules and the same history.\n- In use as an internal tool for programme launches.\n\nStack\nClaude Agent Skills, Python, multi-agent orchestration (director, drafters, learners,\nbuilders), Haiku for fast edits, Google Drive, Sheets and Gmail, Adobe Illustrator through its connector, PyMuPDF for\nmeasuring PDFs, GitHub releases for versioning."
     },
     {
       "id": "project:oa-classification",

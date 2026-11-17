@@ -87,6 +87,10 @@ const nextConfig: NextConfig = {
     // Later rules win for the same header, so the 3D paths and the résumé end up with their own values.
     return [{ source: "/:path*", headers: securityHeaders }, ...Object.keys(landingPaths).map((source) => ({ source, headers: landingHeaders })), ...resumeRules];
   },
+  // Old project addresses keep working: the Collaterals Agent page became the Product Launch System.
+  async redirects() {
+    return [{ source: "/projects/collaterals-agent", destination: "/projects/product-launch-system", permanent: true }];
+  },
   async rewrites() {
     return {
       // Before the file system: none of these paths is a page or file of this app.

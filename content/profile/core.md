@@ -15,6 +15,7 @@ summary: Always-on context for the recruiter agent. Keep this short; details liv
 **Education:** B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (2019–2023).
 
 **Headline wins:**
+- Built the Product Launch System as Sr. AI Researcher: one human-in-the-loop AI system that connects three teams (product, content review, design) from programme sheet to editable Illustrator artwork; 88 tested versions in eleven weeks; in use as an internal tool.
 - Built an N8N-based multi-agent "Collaterals Agent" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).
 - His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).
 - Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.

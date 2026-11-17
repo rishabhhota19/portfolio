@@ -10,6 +10,7 @@ keywords: [simplilearn, current role, current job, senior, sr ai researcher, age
 
 Rishabh's current role. He leads hands-on research into new AI technology and turns it into automation for the business.
 
+- Built the **Product Launch System**: AI automation with a human in the loop that connects the product, content and design teams in one tool, from programme sheet to editable Illustrator artwork; in use as an internal tool.
 - Automating complex, multi-step business workflows with AI agents.
 - Agentic orchestration: designing how multiple agents, tools and human reviewers work together.
 - Open-source work.

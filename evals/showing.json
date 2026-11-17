@@ -1,12 +1,12 @@
 [
-  { "id": "named-project", "q": "What did the Collaterals Agent achieve?", "show": "^/projects/collaterals-agent$" },
+  { "id": "named-project", "q": "What does the Product Launch System do?", "show": "^/projects/product-launch-system$" },
   { "id": "named-paper", "q": "Tell me about LCSNet", "show": "^/publications#lcsnet$" },
   { "id": "named-oa", "q": "How accurate was his osteoarthritis model?", "show": "^(/projects/oa-classification|/publications#(oa-agentic|.*))$" },
   { "id": "named-turbo", "q": "What is TurboTrade?", "show": "^/projects/turbotrade$" },
   { "id": "named-role", "q": "What did he do at OsteosConnect?", "show": "^(/experience(#0[34].*)?|/projects/oa-classification)$" },
   { "id": "current-job", "q": "Where does he work now?", "show": "^/experience(#01.*)?$" },
-  { "id": "built-at", "q": "What did he build at Simplilearn?", "show": "^(/projects/(collaterals-agent|sales-training-chatbot)|/experience(#0[12].*)?)$" },
-  { "id": "topic-langgraph", "q": "Does he know LangGraph?", "show": "^/projects/(collaterals-agent|portfolio-agent|oa-classification)$" },
+  { "id": "built-at", "q": "What did he build at Simplilearn?", "show": "^(/projects/(product-launch-system|sales-training-chatbot)|/experience(#0[12].*)?)$" },
+  { "id": "topic-langgraph", "q": "Does he know LangGraph?", "show": "^/projects/(product-launch-system|portfolio-agent|oa-classification)$" },
   { "id": "topic-aws", "q": "Has he worked with AWS?", "show": "^/(projects/|experience)" },
   { "id": "topic-rag", "q": "Has he built RAG systems?", "show": "^/(projects/|services#rag)" },
   { "id": "topic-finetune", "q": "Can he fine-tune LLMs?", "show": "^/(projects/(gemma|claude-health|oa-classification)|services#fine-tuning|experience#0[12])" },
@@ -22,7 +22,7 @@
   { "id": "skills", "q": "What are his skills?", "show": "^/experience$" },
   { "id": "education", "q": "Where did he study?", "show": "^/experience$" },
   { "id": "why-hire", "q": "Why should we hire him?", "show": "^/(projects/|publications#)" },
-  { "id": "jd-agentic", "q": "We need an Agentic AI Engineer with LangGraph, RAG and evals in production. Is he a fit?", "show": "^/projects/(collaterals-agent|portfolio-agent)$" },
+  { "id": "jd-agentic", "q": "We need an Agentic AI Engineer with LangGraph, RAG and evals in production. Is he a fit?", "show": "^/projects/(product-launch-system|portfolio-agent)$" },
   { "id": "jd-research", "q": "We're hiring a Research Scientist for vision transformers in medical imaging. Is he a fit?", "show": "^/publications(#.*)?$|^/projects/oa-classification$" },
   { "id": "too-junior", "q": "Isn't he too junior for a senior role?", "show": "^/(projects/|experience)" },
 
@@ -33,7 +33,7 @@
   { "id": "stay-offtopic", "q": "What's the capital of France?", "show": "stay" },
   { "id": "stay-asked", "q": "What papers has he written?", "history": ["Stop moving the page, I want to stay here"], "show": "stay" },
 
-  { "id": "follow-up", "q": "What stack did it use?", "history": ["What did the Collaterals Agent achieve?"], "show": "^(/projects/collaterals-agent|stay)$" },
+  { "id": "follow-up", "q": "What stack did it use?", "history": ["What does the Product Launch System do?"], "show": "^(/projects/product-launch-system|stay)$" },
   { "id": "book-call", "q": "Can I set up a quick call with him this week?", "show": "^#book$" },
   { "id": "book-interview", "q": "We'd like to interview him for our GenAI lead role. How do we get time with him?", "show": "^#book$" }
 ]

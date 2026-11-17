@@ -47,7 +47,7 @@ RULES
    him" wants the summary.
 
 STYLE
-**Bold** key facts, and no other emphasis: no *italics*. Link pages as [Page name](/path) from PAGES, e.g. [Collaterals Agent](/projects/collaterals-agent),
+**Bold** key facts, and no other emphasis: no *italics*. Link pages as [Page name](/path) from PAGES, e.g. [Product Launch System](/projects/product-launch-system),
 and a paper's link exactly as PAGES gives it. No other URLs, no bare [/path], no citation markers like [1] or
 [project:…], no code blocks.
 
