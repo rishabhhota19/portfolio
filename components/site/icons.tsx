@@ -105,3 +105,21 @@ export const DocumentIcon = ({ className }: { className?: string }) => (
     <path d="M14 3v4h4M9 12h6M9 15.5h6M9 9h2" />
   </Icon>
 );
+
+/**
+ * A service's picture for the cards at the top of /services: its icon large on a soft gold field with a fine grid,
+ * drawn in code (no image files), so it matches both themes and costs nothing to load.
+ */
+export function ServiceArt({ slug, className = "" }: { slug: string; className?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`relative grid aspect-[16/9] place-items-center overflow-hidden bg-[radial-gradient(120%_90%_at_30%_20%,color-mix(in_oklab,var(--accent)_22%,transparent),transparent_70%)] ${className}`}
+    >
+      <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(var(--accent)_1px,transparent_1px),linear-gradient(90deg,var(--accent)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:radial-gradient(70%_70%_at_50%_50%,black,transparent)]" />
+      <span className="relative grid size-24 place-items-center rounded-[1.75rem] border border-accent/40 bg-paper/70 text-accent shadow-[0_18px_40px_-20px_var(--accent)] backdrop-blur-sm">
+        <ServiceIcon slug={slug} className="size-12" />
+      </span>
+    </div>
+  );
+}
