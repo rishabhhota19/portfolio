@@ -11,7 +11,8 @@
     "url": "https://rishabh-hota.vercel.app",
     "private": [
       "/admin",
-      "/agent-embed"
+      "/agent-embed",
+      "/book/decide"
     ],
     "sections": [
       {
