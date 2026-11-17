@@ -15,6 +15,14 @@ export function BookingDialog() {
   useEffect(() => {
     const open = (e: Event) => setFrom((e as CustomEvent<{ from: string }>).detail?.from || "site");
     window.addEventListener(OPEN_BOOKING_EVENT, open);
+    // A link can open it too: the 3D site's "Book a call" lands on /?book=3d. Read once, then the URL is cleaned.
+    const url = new URL(window.location.href);
+    const linked = url.searchParams.get("book");
+    if (linked !== null) {
+      setFrom(linked.replace(/[^a-z0-9 -]/gi, "").slice(0, 30) || "link");
+      url.searchParams.delete("book");
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+    }
     return () => window.removeEventListener(OPEN_BOOKING_EVENT, open);
   }, []);
 
