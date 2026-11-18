@@ -581,7 +581,7 @@
    "links": [
     {
      "path": "/experience#01-simplilearn-sr-ai-researcher",
-     "label": "Sr. AI Researcher at Simplilearn"
+     "label": "Sr. AI Researcher"
     }
    ],
    "source": "starter"
@@ -670,7 +670,12 @@
     "What is his overall tech stack?"
    ],
    "text": "**Agents and LLMs:** LangChain, LangGraph, Google ADK, CrewAI, MCP/FastMCP, RAG and Graph RAG.\n**Fine-tuning and serving:** Unsloth, LoRA/QLoRA, TRL, vLLM, Ollama, llama.cpp, GGUF/AWQ.\n**ML:** PyTorch, TensorFlow, computer vision, medical imaging.\n**Cloud:** AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Docker.\n**Backend:** Python, FastAPI.",
-   "links": [],
+   "links": [
+    {
+     "path": "/experience",
+     "label": "Experience"
+    }
+   ],
    "source": "starter"
   },
   {
