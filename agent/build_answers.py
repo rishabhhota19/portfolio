@@ -35,7 +35,7 @@ def intents() -> list[dict]:
     facts = [c for c in json.loads((ROOT / "evals/questions.json").read_text(encoding="utf-8")) if c["kind"] == "fact"]
     starters = json.loads((ROOT / "content/starters.json").read_text(encoding="utf-8"))
     return [{"q": c["q"], "include": c.get("include", []), "exclude": c.get("exclude", [])} for c in facts] + \
-           [{"q": s["q"], "text": s["a"], "source": "starter"} for s in starters]
+           [{"q": s["q"], "text": s["a"], "source": "starter", "show": s.get("show")} for s in starters]
 
 
 async def paraphrase(questions: list[str]) -> list[list[str]]:
@@ -76,7 +76,10 @@ async def main() -> None:
         before = known.get(intent["q"], {})
         entry = {"q": intent["q"], "paraphrases": written.get(intent["q"]) or before.get("paraphrases", [])}
         if intent.get("source") == "starter":
-            entry |= {"text": intent["text"], "links": pages.links_for(intent["text"], []), "source": "starter"}
+            # The page that proves it goes first: a bank answer's first link is where it takes the visitor.
+            shown = [intent["show"]] if intent.get("show") else []
+            named = [link for link in pages.links_for(intent["text"], []) if link["path"] not in {s["path"] for s in shown}]
+            entry |= {"text": intent["text"], "links": shown + named, "source": "starter"}
         elif old["version"] == VERSION and before.get("text"):
             entry |= {k: before[k] for k in ("text", "links", "source")}  # content unchanged: keep the checked answer
         else:

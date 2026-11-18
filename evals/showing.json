@@ -35,5 +35,7 @@
 
   { "id": "follow-up", "q": "What stack did it use?", "history": ["What does the Product Launch System do?"], "show": "^(/projects/product-launch-system|stay)$" },
   { "id": "book-call", "q": "Can I set up a quick call with him this week?", "show": "^#book$" },
-  { "id": "book-interview", "q": "We'd like to interview him for our GenAI lead role. How do we get time with him?", "show": "^#book$" }
+  { "id": "book-interview", "q": "We'd like to interview him for our GenAI lead role. How do we get time with him?", "show": "^#book$" },
+  { "id": "starter-research", "q": "Tell me about his research", "show": "^/publications(#.*)?$" },
+  { "id": "best-research", "q": "tell me his best research", "show": "^/publications(#.*)?$" }
 ]

@@ -396,10 +396,12 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
     }
   }, [pendingQuestion, open, ask, onPendingHandled]);
 
-  const pickStarter = (q: string, a: string) => {
+  // A ready-made question answers at once and, like a typed one, takes the visitor to the page that proves it.
+  const pickStarter = (q: string, a: string, show?: PageLink) => {
     track("chat_quick_answer", { question: q }); // our own canned question, not visitor text
     append({ role: "user", content: q, kind: "starter" });
-    append({ role: "assistant", content: a, kind: "starter" });
+    append({ role: "assistant", content: a, kind: "starter", ...(show ? { opened: show.label } : {}) });
+    if (show) goTo(show.path, "agent", false); // the answer stays in view; the page moves beside or behind it
   };
 
   const endChat = () => {
@@ -603,8 +605,13 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
                     // The chat covers the page it just moved on a phone or tablet, so one tap shows it. (Embedded, this
                     // frame is always narrow: it's the 3D page's width that says whether it's a phone.)
                     (embedded ? window.parent.innerWidth < 640 : !beside) ? (
-                      <button type="button" onClick={onMinimize} className="label mt-1 !text-[0.62rem] underline">
-                        ↗ Opened {m.opened}: see it
+                      // Here the chat covers the site, so the page it just opened is out of sight: say so plainly.
+                      <button
+                        type="button"
+                        onClick={onMinimize}
+                        className="mt-3 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-ink shadow-[0_8px_24px_-12px_var(--accent)]"
+                      >
+                        View {m.opened} →
                       </button>
                     ) : (
                       <p className="label mt-1 !text-[0.62rem]">↗ Opened {m.opened}</p>
@@ -653,7 +660,7 @@ export function ChatPanel({ open, onMinimize, onEnd, pendingQuestion, onPendingH
               <button
                 key={s.q}
                 type="button"
-                onClick={() => pickStarter(s.q, s.a)}
+                onClick={() => pickStarter(s.q, s.a, "show" in s ? s.show : undefined)}
                 className="rounded-full border border-rule px-3.5 py-2 text-left text-[0.82rem] text-muted transition-colors duration-300 hover:border-accent hover:text-accent"
               >
                 {s.q}
