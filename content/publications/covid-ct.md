@@ -6,6 +6,7 @@ link: https://ieeexplore.ieee.org/document/10957133
 authors: Hota R.K., Akhilesh S.
 order: 5
 keywords: [covid, covid-19, chest ct, ct scan, classification, inderscience, ieee]
+skills: ["classification", "deep learning", "CNNs", "computer vision", "research publication"]
 ---
 
 - Deep-learning classification of COVID-19 from chest CT scans.

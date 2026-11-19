@@ -5,6 +5,7 @@ status: Under review
 link: ""
 order: 2
 keywords: [qfpvit, quantum, quantum attention, self-attention, vision transformer, vit, medmnist, fidelity, phase, quantum machine learning, qml]
+skills: ["transformers", "deep learning", "machine learning", "research publication"]
 ---
 
 - Designs a **fidelity-phase quantum self-attention operator** for Vision Transformers and evaluates it on MedMNIST medical-imaging benchmarks.

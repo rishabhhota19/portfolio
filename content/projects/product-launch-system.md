@@ -7,6 +7,7 @@ tags: [Agentic AI, Human in the loop, Claude Agent Skills, Multi-agent, Adobe Il
 featured: true
 order: 1
 keywords: [product launch system, program launch, launch system, brochure, human in the loop, three teams, page content, designer handoff, illustrator, editable artwork, gates, learning pipeline, steve, ai program launcher, internal tool, unified software]
+skills: ["Python", "agentic AI and harness engineering", "AI and agentic AI orchestration", "multi-agent systems", "Claude Code", "Claude Science and Claude Skills", "agent and LLM evaluation", "agent and LLM guardrailing and deployment", "automation engineering", "loop engineering", "system design", "Generative AI", "GenAI applications", "OOP"]
 ---
 
 ## The problem

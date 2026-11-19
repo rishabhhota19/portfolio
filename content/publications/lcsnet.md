@@ -6,6 +6,7 @@ date: 2025-10-09
 link: https://www.sciencedirect.com/science/article/pii/S2666521225001085
 order: 1
 keywords: [lcsnet, caries, dental, teeth, segmentation, smartphone, elsevier, intelligence-based medicine, lightweight, published paper]
+skills: ["segmentation models", "deep learning", "computer vision", "CNNs", "research publication"]
 ---
 
 - Built a dataset of smartphone photos of teeth with varying resolution and lighting.

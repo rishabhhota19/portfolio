@@ -7,6 +7,7 @@ tags: [Deep Learning, IoT, Medical Imaging, Rule engine]
 featured: false
 order: 9
 keywords: [covid, covid-19, decision support, iot, chest x-ray, ct, vitals, symptoms, final year project, bmsce]
+skills: ["deep learning", "CNNs", "computer vision", "classification", "machine learning", "Python", "predictive modeling", "data science"]
 ---
 
 - An IoT-enabled home-assessment system that combines sensor data, symptom checklists, and X-ray/CT analysis using deep learning and rule-based logic.

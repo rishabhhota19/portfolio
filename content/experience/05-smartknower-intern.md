@@ -6,6 +6,7 @@ start: Nov 2020
 end: Jan 2021
 order: 5
 keywords: [smartknower, intern, internship, etl, power bi, forecasting, data science]
+skills: ["ETL", "Power BI", "predictive modeling", "data science", "Pandas", "NumPy", "EDA", "scikit-learn"]
 ---
 
 - Built a full ETL pipeline, feature engineering and predictive models.

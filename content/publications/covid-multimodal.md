@@ -5,6 +5,7 @@ status: Under review
 link: ""
 order: 6
 keywords: [covid, covid-19, multi-modal, multimodal, decision support, prediction, inderscience, iot]
+skills: ["machine learning", "deep learning", "research publication"]
 ---
 
 - A multi-modal decision support approach that combines vitals, symptoms and imaging to predict COVID-19, building on his COVID-19 Decision Support System project.

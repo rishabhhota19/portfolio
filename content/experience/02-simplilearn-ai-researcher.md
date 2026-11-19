@@ -6,6 +6,7 @@ start: Mar 2025
 end: Mar 2026
 order: 2
 keywords: [simplilearn, ai researcher, mcp, prototypes, learning hub, genai applications]
+skills: ["Model Context Protocol (MCP)", "Generative AI", "GenAI applications", "Google Gemini APIs", "research publication", "chatbot design"]
 ---
 
 - Tracked and dissected emerging AI breakthroughs (MCP, agentic AI, LLMs, Gemini) and turned them into hands-on prototypes.

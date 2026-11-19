@@ -7,6 +7,7 @@ tags: [Full-stack, Vercel, Supabase, Razorpay, Automation]
 featured: false
 order: 6
 keywords: [edtech, ed-tech, ed tech, platform, cohort, instructor, payroll, whatsapp, vercel, supabase, razorpay, sentry, umami, admin dashboard]
+skills: ["automation engineering", "system design", "DBMS"]
 ---
 
 - An ed-tech platform where learners explore courses and join cohorts.

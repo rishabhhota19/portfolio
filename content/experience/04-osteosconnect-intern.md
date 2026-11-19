@@ -6,6 +6,7 @@ start: Jul 2023
 end: Jan 2024
 order: 4
 keywords: [osteosconnect, intern, internship, dicom, eda, baseline, random forest]
+skills: ["EDA", "DICOM processing", "PyDICOM", "machine learning", "scikit-learn", "Pandas", "NumPy"]
 ---
 
 - Hypothesized and prototyped ML approaches for automated osteoarthritis grading.

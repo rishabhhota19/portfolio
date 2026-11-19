@@ -7,6 +7,7 @@ tags: [Voice AI, Speech generation, Guardrails, Hardware]
 featured: true
 order: 4
 keywords: [teddy, teddy bear, children, kids, storytelling, stories, voice, speech, guardrails, hardware, toy]
+skills: ["speech generation", "agent and LLM guardrailing and deployment", "open source", "chatbots", "Generative AI", "GenAI applications", "Python"]
 ---
 
 ## What it does

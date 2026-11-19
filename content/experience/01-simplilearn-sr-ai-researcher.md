@@ -6,6 +6,7 @@ start: Mar 2026
 end: Present
 order: 1
 keywords: [simplilearn, current role, current job, senior, sr ai researcher, agentic orchestration, open source, automation]
+skills: ["agentic AI and harness engineering", "AI and agentic AI orchestration", "automation engineering", "open source", "system design", "Claude Code"]
 ---
 
 Rishabh's current role. He leads hands-on research into new AI technology and turns it into automation for the business.

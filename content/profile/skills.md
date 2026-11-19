@@ -14,7 +14,7 @@ Generative AI, agentic AI and agentic RAG, multi-agent systems, retrieval-augmen
 Python, scikit-learn, TensorFlow, PyTorch, PyTorch Lightning, LangChain, LangGraph, Google ADK, Google Gemini APIs, OpenAI SDK, CrewAI, Pandas, NumPy, asyncio, FastAPI, Flask, FastMCP, gRPC, Pydantic, PyDICOM.
 
 ## LLM fine-tuning and small models
-Unsloth, LoRA and QLoRA (PEFT), supervised fine-tuning (SFT), Hugging Face Transformers and TRL, 4-bit and 8-bit quantized fine-tuning, fine-tuning small models such as Gemma, Llama and Phi.
+Unsloth, LoRA and QLoRA (PEFT), supervised fine-tuning (SFT), Hugging Face Transformers and TRL, 4-bit and 8-bit quantized fine-tuning, fine-tuning small models (Gemma, Llama, Phi).
 
 ## LLM inference and serving
 vLLM, Ollama, llama.cpp, model quantization (GGUF, AWQ), KV-cache optimization, batching and streaming inference, OpenAI-compatible API serving.

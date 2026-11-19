@@ -7,6 +7,7 @@ tags: [MCP, LangChain, Groq, RAG, Fintech]
 featured: true
 order: 3
 keywords: [turbotrade, turbotrader, zerodha, kite, mcp, trading, stocks, groq, langchain, fintech, oauth]
+skills: ["Model Context Protocol (MCP)", "MCP", "LangChain", "retrieval-augmented generation (RAG and Graph RAG)", "Python", "chatbot design", "AI and agentic AI orchestration", "Generative AI", "GenAI applications"]
 ---
 
 ## What it does

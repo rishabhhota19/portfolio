@@ -7,6 +7,7 @@ tags: [Claude Skills, Knowledge graph, Healthcare, Agents]
 featured: false
 order: 7
 keywords: [health, doctor, medical, claude, skill, claude skills, graphify, knowledge graph, second brain]
+skills: ["Claude Code", "Claude Science and Claude Skills", "healthcare automation", "retrieval-augmented generation (RAG and Graph RAG)", "Generative AI", "GenAI applications"]
 ---
 
 - Built a Doctor Skill for Claude. It contains:

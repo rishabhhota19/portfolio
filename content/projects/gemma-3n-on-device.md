@@ -7,6 +7,7 @@ tags: [On-device AI, Gemma, Android, Edge]
 featured: false
 order: 8
 keywords: [gemma, gemma 3n, android, on-device, edge, offline, ai edge gallery, mobile, android studio]
+skills: ["Generative AI", "GenAI applications", "chatbots"]
 ---
 
 - Tested Google's AI Edge Gallery in Android Studio and worked through its project structure.

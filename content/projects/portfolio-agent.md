@@ -7,6 +7,7 @@ tags: [LangGraph, LangChain, RAG, ONNX, Python, RAGAS]
 featured: true
 order: 11
 keywords: [this site, portfolio, chatbot, agent, dumbledore, how does this chat work, langgraph, langchain, rag, embeddings, bm25, rerank, reranking, cross-encoder, grounding, hallucination, ragas, fastapi, python, evals, guardrails, refusal, navigation]
+skills: ["Python", "LangGraph", "LangChain", "FastAPI", "Pydantic", "asyncio", "RAG in production", "retrieval-augmented generation (RAG and Graph RAG)", "agent and LLM evaluation", "agent and LLM guardrailing and deployment", "token optimization", "chatbot design", "chatbots", "vector databases (Redis, FAISS and others)", "Generative AI", "GenAI applications", "OpenAI-compatible API serving", "system design for AI", "NLP"]
 ---
 
 - **Status:** live in production on this site (rishabh-hota.vercel.app) since October 2026, serving real visitors, with error monitoring (Sentry) and evals on every push. The agent is called **Dumbledore**; the chat window is just its interface.

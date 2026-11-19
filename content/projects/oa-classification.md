@@ -7,6 +7,7 @@ tags: [Computer Vision, Medical Imaging, Segmentation, TensorFlow, AWS, EC2 H100
 featured: true
 order: 2
 keywords: [osteoarthritis, oa, knee, x-ray, medical imaging, kellgren lawrence, kl grade, segmentation, osteophytes, sclerosis, joint space, randomised controlled trial, rct, srm trichy, fortis, nagarbhavi, tensorflow, h100, lambda, api gateway, ec2, fda, patents, radiologist, rbknee, healthcare, classification, report]
+skills: ["TensorFlow", "computer vision", "deep learning", "CNNs", "segmentation models", "X-ray annotation", "classification", "AWS (S3, Lambda, SageMaker, EC2, Bedrock)", "healthcare automation", "DICOM processing", "PyDICOM", "Python"]
 ---
 
 ## What it does

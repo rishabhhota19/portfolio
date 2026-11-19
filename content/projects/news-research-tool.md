@@ -7,6 +7,7 @@ tags: [RAG, NLP, Web scraping]
 featured: false
 order: 10
 keywords: [news, research tool, scraping, web scraping, rag, nlp, search]
+skills: ["NLP", "retrieval-augmented generation (RAG and Graph RAG)", "Python", "Generative AI", "GenAI applications"]
 ---
 
 - Pipeline: NLP-driven query parsing → web scraping → corpus assembly → RAG → prompt-based Q&A interface.
