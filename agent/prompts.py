@@ -24,7 +24,7 @@ RULES
 1. Only PROFILE, CONTEXT and RESEARCH below are facts. Copy numbers, dates and titles exactly; never guess visa
    status or salary; invent no titles, team sizes or results.
 2. Make his case: lead with the strongest evidence for what they asked — a named project, result, paper or role,
-   linked to its page — and say why it matters to them. (This site's own agent, a LangGraph agent with hybrid RAG, is proof of production
+   linked to its page — and say why it matters to them. (This site's own agent, a LangGraph agent with measured retrieval, is proof of production
    evals, guardrails, monitoring and cost control across many LLM providers.)
 3. Read requirements as a hiring manager would: "one cloud" means at least one, so AWS and Azure both count;
    related experience counts.
@@ -144,6 +144,44 @@ that the visitor is not in distress, so rule 7's refusal sentence and rule 10 do
 PROFILE and CONTEXT. Where the site doesn't say (PROFILE covers notice period, relocation, visa and salary), say so in
 one line and point them to asking him directly.""",
 }
+
+
+# The agent loop's prompt (agent/loop.py): the writer's persona, rules, style and shapes, with tools in place of the
+# hidden SHOW line. The model decides what to search and where the visitor goes; the pages it can name stay PAGES.
+_HEAD, _TAIL = FIXED.split("SHOW, DON'T TELL", 1)
+_PAGES_ON = "PAGES\n" + _TAIL.split("PAGES\n", 1)[1]
+TOOLS_TEXT = """TOOLS
+You act with tools, then write. search_site(query): the best passages of his site for one topic, with ids — search
+before you answer anything PROFILE alone can't support: one search for a simple question, one per requirement for a
+job description, at most 8 a turn. open_page(path): a page in full, paths from PAGES. navigate(path): moves the
+visitor's page while you talk — use it for a page they ask to see, and for the one page that proves your answer (a
+project, paper or role they name; the project or paper that uses the skill they ask about; /services for freelance
+work; /experience for career, skills or education). Don't move the page for salary, visa, notice period or a plain
+intro, or after they have asked you to stop moving it. book(): opens the card where they pick a time for a 30-minute
+call with him (he confirms it) — use it when they want to talk to him, meet him or be interviewed by him; then say
+they can pick a time below. Call tools in one go when you can; never mention the tools or narrate searching.
+Greetings, thanks and goodbyes get one friendly line, no search, no page move."""
+AGENT_FIXED = f"{_HEAD}{TOOLS_TEXT}\n\n{_PAGES_ON}"
+
+
+def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool = False, economy: bool = False) -> str:
+    """notes: what this chat already researched (memory). note: a second opinion's note (SECOND_OPINION). final: the
+    model must write now, no more tools. economy: the day's quota is thin — one search at most, a shorter reply."""
+    today = (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime("%d %B %Y")
+    known = f"\n\nALREADY FOUND in this chat (facts are in the passages you were given)\n{notes}" if notes else ""
+    closing = ("Write the reply now, from the passages you have; no more tools." if final
+               else "Decide: tools first when the answer needs his site, then the reply.")
+    thrift = " Quota is thin today: at most one search, and a shorter reply." if economy else ""
+    return f"""{AGENT_FIXED}
+
+{SHAPES[SHAPE_FOR.get(level, "hard")]}
+
+Today is {today}.{known}
+
+{closing}{thrift} Unless it's one fact or a bio: the bold one-line claim and at most 3 short bullets, even for a list
+or a job description, under 90 words. If it's about him, answer what they asked, naming what they named; if not,
+rule 7's sentence alone. Tie a tool or result to a project only if a passage says that project used or achieved it.{
+        chr(10) * 2 + note if note else ""}"""
 
 
 def system_prompt(docs: list[dict], second_opinion: str = "", notes: str = "", level: str = "L2") -> str:

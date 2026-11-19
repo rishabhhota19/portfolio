@@ -52,7 +52,9 @@ def check(case: dict, state: dict) -> dict:
     # The chunks the writer read, cut as graph.respond cuts them (2 / 4 / 6 by level, 4 in economy mode): a page found
     # at rank 5 is not found for an L2 answer. Before 19 Nov 2026 this counted the 6 kept, and showed 14/14 while
     # questions about a whole section found nothing the writer saw.
-    if level in llm.TIERS:
+    if state.get("read"):  # the agent loop says how many chunks it read
+        seen = research.evidence(state, state["read"])
+    elif level in llm.TIERS:
         seen = research.evidence(state, min(llm.TIERS[level].chunks, 4) if state.get("economy") else llm.TIERS[level].chunks)
     else:
         seen = docs
