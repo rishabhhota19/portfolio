@@ -150,6 +150,9 @@ async def main() -> int:
                 else "MISS" if c["expect"] == "refuse" else "FALSE REFUSAL")
         print(f"{mark:<5} {c['set']:<8} {c['expect']:<6} {layer:<15} {state.get('intent', '')[:9]:<9} gap {str(gap):<7} "
               f"rel {state.get('relevance', 0):.2f}  {c['q'][:70]}")
+        if run_full and not ok and layer != "no model":  # a notice: the run page shows what was answered, without a sign-in
+            print(f"::notice::scope {mark.strip()}: '{c['q'][:60]}' — {layer}, {state.get('why', '')}, {state.get('model', '')}: "
+                  f"{' '.join(state.get('answer', '').split())[:140]!r}")
         await asyncio.sleep(3 if run_full else 0.1)
 
     print()

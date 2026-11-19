@@ -50,42 +50,54 @@ jobs:
         run: npm run content && python -m agent.build_index && python -m agent.build_answers
 
       - name: Difficulty levels (rules, no API calls)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.difficulty_eval
 
       - name: Navigation (rules, no API calls)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.navigation_eval
 
       - name: Tokenizer, vector search and the second vote (the agent's own code against the libraries it replaced; the vote against the first stage alone; no API calls)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.tokenizer_eval && python -m evals.index_eval && python -m evals.rerank_ab
 
       - name: Judge wiring (the care reply, the second opinion, the rescue) and the grounding check's acceptance rules (scripted, no API calls)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.judge_eval && python -m evals.grounding_eval --dry
 
       - name: Groq smoke test (2 questions, ~1% of each model's daily quota)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         # The only step with the Groq key: it shares the site's quota, so the full evals below never use Groq.
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python -m evals.groq_smoke
 
       - name: Refusal pipeline (attacks must be refused with 0 leaks, recruiters' questions never)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.scope_eval --full
 
       - name: Riders (an attack added to a real recruiter's note gets nothing; the note is still answered)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.scope_eval --riders
 
       - name: Agent evals (retrieval, facts, guardrails)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.run_evals
 
       - name: Grounding check (planted mistakes caught, right answers left alone; a warning until it has been measured in CI)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.grounding_eval
 
       - name: Grounding check, every pool model on its own (which checker to lead with; informational)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.grounding_eval --models
 
       - name: Selling by showing (takes the visitor to the right proof unasked, stays put when it should, replies stay short)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.showing_eval
 
       - name: Recruiter cases (he is sold, honestly — proof, links, a next step, no invented gaps)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.advocacy_eval
 
       - name: Commit the agent data and the eval baseline if they changed (Vercel then redeploys)
