@@ -94,10 +94,7 @@ def decline(kind: str, question: str) -> str:
 # ── Gate 1: rules ───────────────────────────────────────────────────────────
 
 ABOUT_HIM = r"\b(he|his|him|rishabh'?s?)\b"
-# …and, for the second opinion when no judge is available, the words of a hiring or commercial question: a day rate,
-# fees, availability (CI, 19 Nov 2026: "What is the day rate for consulting?" refused with no judge to rescue it).
-ABOUT_HIM_OR_SITE = (r"\b(he|his|him|rishabh'?s?|this (site|website|chat|chatbot|bot|agent|portfolio)|day rate|rates?|fees?|"
-                     r"salary|budget|consult\w*|hir(e|ing)|availab\w+|notice period|relocat\w+|visa)\b")
+ABOUT_HIM_OR_SITE = r"\b(he|his|him|rishabh'?s?|this (site|website|chat|chatbot|bot|agent|portfolio))\b"
 # "hi", "hy", "hii", "heyy", "helo", "hlo", "hai", "yo", "sup", "namaste", "good morning"… as visitors actually type them
 GREETING = r"(h+[iy]+|hiya|hel+o+|hlo|hai|hey+|yo|sup|what'?s up|namaste|namaskar|hola|good (morning|afternoon|evening|day|night))"
 REQUEST = (r"(^|[.,;:!?]\s*|\b(can|could|would|will) you\s+|\bplease\s+)((now|then|ok|okay|so|also|and|cool),?\s+)?"
