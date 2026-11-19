@@ -16,6 +16,7 @@ import sys
 
 os.environ["ANSWER_BANK"] = "off"
 os.environ["ANSWER_CACHE"] = "off"
+os.environ["GROUNDING"] = "off"  # the grounding check would call the scripted writer below and take its reply
 os.environ["JUDGE"] = ""  # the scripted turns below stand in for it
 for name in ("UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN", "KV_REST_API_URL", "KV_REST_API_TOKEN"):
     os.environ[name] = ""  # counters in memory

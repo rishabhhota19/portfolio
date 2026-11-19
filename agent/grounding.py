@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from . import guard, llm, router
+from .config import env
 from .prompts import GROUNDING_PROMPT, KNOWLEDGE
 
 TIER = llm.Tier(chunks=0, history=0, max_tokens=700, effort="low", timeout=10, pool=llm.GROUNDING_POOL)
@@ -107,7 +108,10 @@ def decide(answer: str, reply: str) -> tuple[str, list[str], str]:
 
 
 async def check(question: str, answer: str, docs: list[dict]) -> Grounding:
-    """The answer after the check. Never raises: whatever goes wrong, the answer as written comes back, with why."""
+    """The answer after the check. Never raises: whatever goes wrong, the answer as written comes back, with why.
+    GROUNDING=off switches the check off (the scripted judge eval, an outage drill)."""
+    if env("GROUNDING") == "off":
+        return Grounding(answer, why="skipped:off")
     started = time.perf_counter()
     prompt = [SystemMessage(GROUNDING_PROMPT), HumanMessage(f"{sources(docs)}\n\nQUESTION\n{question}\n\nANSWER\n{answer}")]
     models = [llm.M[n] for n in TIER.pool if llm.M[n].available]
