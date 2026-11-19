@@ -21,7 +21,7 @@ import numpy as np
 
 from . import prompts
 from .config import DATA_DIR, KNOWLEDGE, env
-from .embeddings import MODEL
+from .embeddings import TAG
 from .usage import _client as redis_client
 
 TTL = 86_400
@@ -97,8 +97,8 @@ def bank() -> tuple[np.ndarray, np.ndarray, list[dict]] | None:
     if env("ANSWER_BANK") == "off" or not (meta.exists() and vecs.exists()):
         return None
     info = json.loads(meta.read_text(encoding="utf-8"))
-    if info["version"] != VERSION or info.get("model") != MODEL:
-        return None  # built for older content, or with another embedding model: don't serve it
+    if info["version"] != VERSION or info.get("model") != TAG:
+        return None  # built for older content, or with another embedding model (or another way of running it): don't serve it
     with np.load(vecs) as data:
         return data["vectors"], data["intent"], info["intents"]
 

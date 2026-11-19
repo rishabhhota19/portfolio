@@ -30,16 +30,18 @@ Still to do:
 - **Level by the model**, planned with him: `difficulty.py`'s regex calls "where has he worked" and "has he done any
   research?" one-fact questions (L1, 2 chunks). The judge already reads every turn; its verdict could carry the level.
   Needs its own eval (evals/difficulty.json).
-- **Grounding check (model-based):** after the writer, a model compares the answer's numbers and named results with the
-  chunks + PROFILE and rewrites unsupported claims (the stream supports a "replace" event). Goes in `graph.check`.
-  He chose: stream, then replace. Consider RAGAS faithfulness blocking CI on a small sample.
+- **Grounding check: measure it in CI, then enforce.** `evals/grounding_eval.py` runs on the real checker models with a
+  warning, not a failure, until its first CI numbers are read (caught x/5 planted mistakes, false alarms y/3). Then
+  make it fail CI, and consider RAGAS faithfulness on a small sample.
 
 ## 2. Hallucination seen live: facts mixed between projects
 The small L1/L2 models said "LCSNet achieved 98% accuracy on osteoarthritis X-ray grading". False: LCSNet is dental
 caries segmentation (F1 71.7%, IoU 56.8%); the 98% is the OA project. Cause: retrieval missed the papers and the
-always-on PROFILE (`content/profile/core.md`) has both nearby. The retrieval half is addressed by problem 1 (the LCSNet
-chunk is now rank 1 for LCSNet questions, measured); the grounding check is pending. Two eval cases watch it
-(`lcsnet-not-oa`, `lcsnet-oa-trap`).
+always-on PROFILE (`content/profile/core.md`) has both nearby. Addressed twice over (19 Nov 2026): retrieval now puts
+the LCSNet chunk first for LCSNet questions (measured), and the grounding check (`agent/grounding.py`, in `graph.check`)
+reads every written answer against its sources and corrects a result given to the wrong project — he chose stream, then
+replace. Two eval cases watch it end to end (`lcsnet-not-oa`, `lcsnet-oa-trap`); `evals/grounding_eval.py` watches the
+check alone. Not yet seen on the live site.
 
 ## 3. 3D site frame stalls (his rule: no frame over 50 ms in the descent)
 Median 16.7 ms, but 6–37 frames over 50 ms per walk (worst 300–1000 ms). They predate the recent work (the live site

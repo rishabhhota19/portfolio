@@ -32,8 +32,9 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
                                                                plan/act the research loop: what the question needs,
                                                                         each point searched once
                                                                respond  Gate 3 prompt; the level's pool of free models
-                                                               check    Gate 4 output guard, Gate 5 cache gate,
-                                                                        "take me there" page links
+                                                               check    Gate 4 output guard; the grounding check (a second
+                                                                        model corrects what the sources don't support);
+                                                                        Gate 5 cache gate, "take me there" page links
                                                                remember this turn's points and one summary line
            ◄── NDJSON events: text · replace · navigate · links
 ```
@@ -91,8 +92,13 @@ lives only in the tab; the agent keeps a short-lived working memory (below). Whe
   2. **the same model on Cloudflare Workers AI** (with the same [CLS] pooling) if the local copy can't run;
   3. keyword search (BM25) if both are down — the chat still answers.
 
-  Chosen on this site's evals: same retrieval hit rate as EmbeddingGemma (14/14), scope separation AUC 0.93 vs 0.94
-  (bge-base: no better, 3× the size and 7× the CPU), and ~100× faster than a network call. A failing route is paused, so
+  Every text is embedded on its own (since 19 Nov 2026): the int8 model's quantisation scales depend on the batch, so a
+  chunk embedded in a batch moved with whatever else was in it — a content edit shifted every vector and flipped thin
+  margins. Chosen on this site's evals: same retrieval hit rate as EmbeddingGemma (14/14), scope separation AUC 0.93 vs 0.94,
+  and ~100× faster than a network call. Re-measured 19 Nov 2026 on 52 questions at the writer's depth: bge-base (110 MB)
+  was worse on every set; bge-large (337 MB, 8× the CPU, too big for the function) put more named pages first but lost
+  five hits. A hosted embedder would add a network call and a quota to every question, since the question must be
+  embedded by the same model as the index. A failing route is paused, so
   visitors don't each wait for its timeout (measured in a real Cloudflare outage: 1.2 s for the first question, then
   7 ms). Groq serves no embedding models, and Hugging Face's hosted API has no free tier any more, which is why the
   open model runs locally.
@@ -167,6 +173,7 @@ lives only in the tab; the agent keeps a short-lived working memory (below). Whe
 | `agent/embeddings.py` | One embedding model: local ONNX, then Cloudflare, then keyword search |
 | `agent/rag.py` | Vector search (one NumPy matrix product), BM25 as the fallback, the second vote fused by Reciprocal Rank Fusion |
 | `agent/reranker.py` | The second vote: a TinyBERT cross-encoder (int8 ONNX, 4 MB) scores question + chunk pairs |
+| `agent/grounding.py` | The grounding check: a second model reads the answer against its sources and corrects what they don't support |
 | `agent/llm.py` | The model web: every free model, its limits, the pool for each difficulty level, AI Gateway routing |
 | `agent/difficulty.py` | L1 / L2 / L3 from plain rules (tested by `evals/difficulty.json`) |
 | `agent/router.py` | Pick → reserve → call → settle; spill-over, pauses, breaker, the wait for per-minute limits |
@@ -181,6 +188,7 @@ lives only in the tab; the agent keeps a short-lived working memory (below). Whe
 | `evals/navigation_eval.py` | "Take me to …" lands on the right page (`evals/navigation.json`, no API calls) |
 | `evals/ragas_eval.py` | RAGAS: faithfulness, answer relevancy, context precision |
 | `evals/rerank_ab.py` | The second vote vs the first stage alone at the writer's depth (hits, MRR@6), and the BM25 fallback; no keys |
+| `evals/grounding_eval.py` | The grounding check on answers with planted mistakes (caught / false alarms); `--dry` tests its acceptance rules with no keys |
 | `evals/model_bench.py` | Is a free model good enough for a pool? Fact accuracy, latency, tokens |
 | `evals/groq_smoke.py` | CI: one real question per Groq model (a broken key or path fails) |
 | `evals/advocacy_eval.py` | Recruiter cases (`evals/advocacy.json`): proof, links, a next step, no invented gaps |

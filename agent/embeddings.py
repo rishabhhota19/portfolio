@@ -23,6 +23,13 @@ from .config import DATA_DIR, env
 from .llm import FreeModel
 
 MODEL = "BAAI/bge-small-en-v1.5"
+# How the local model is run, as part of every build stamp: a change here means every stored vector is rebuilt.
+# 2: one text at a time. The int8 model's dynamic quantisation picks its scales per batch, so a text's vector moved
+#    with whatever else was in the batch — a content edit shifted every chunk's vector (cosine down to 0.9935 on an
+#    unchanged chunk, 19 Nov 2026) and flipped thin margins, and a chunk built in a batch of 64 never quite matched
+#    a question embedded alone. Alone, a vector depends on its text and nothing else, at build time and at question time.
+VERSION = 2
+TAG = f"{MODEL} v{VERSION}"  # what the stored banks record, so a stale one is rebuilt, never compared against
 FOLDER = DATA_DIR / "embeddings"  # model files, index.npy, scope.npz, stamps.json
 INDEX = FOLDER / "index.npy"  # the chunks' vectors (rag.py searches them)
 
@@ -106,9 +113,13 @@ def _session():
 
 
 def _local(texts: tuple[str, ...]) -> np.ndarray:
+    """One text at a time (VERSION 2): no padding, and no other text in the quantisation's batch."""
     tokenizer, session = _session()
-    token_ids, attention = tokenizer.batch(list(texts))
-    ids = np.array(token_ids, dtype="int64")
-    mask = np.array(attention, dtype="int64")
-    hidden = session.run(None, {"input_ids": ids, "attention_mask": mask, "token_type_ids": np.zeros_like(ids)})[0]
-    return normalize(hidden[:, 0])  # BGE models use the first ([CLS]) token as the sentence vector
+    vectors = []
+    for text in texts:
+        token_ids, attention = tokenizer.batch([text])
+        ids = np.array(token_ids, dtype="int64")
+        mask = np.array(attention, dtype="int64")
+        hidden = session.run(None, {"input_ids": ids, "attention_mask": mask, "token_type_ids": np.zeros_like(ids)})[0]
+        vectors.append(hidden[0, 0])  # BGE models use the first ([CLS]) token as the sentence vector
+    return normalize(np.vstack(vectors))

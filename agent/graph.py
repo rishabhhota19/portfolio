@@ -34,7 +34,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph, add_messages
 
-from . import cache, embeddings, guard, judge, llm, memory as session, pages, research, router, scope as gate2, usage
+from . import cache, embeddings, grounding, guard, judge, llm, memory as session, pages, research, router, scope as gate2, usage
 from .difficulty import difficulty
 from .prompts import system_prompt
 from .rag import rerank, search
@@ -393,6 +393,15 @@ async def check(state: State) -> dict:
     safe = guard.clean(text)  # unknown links, long numbers, IDs, other people's emails removed
     if guard.is_refusal(safe):
         return {"intent": "refused", "why": "prompt", "trace": step("check", started, refused=True)}
+    # The grounding check (grounding.py): a second model reads the answer against the sources the writer had and
+    # corrects what they don't support. Not for a fallback answer (built from the evidence verbatim) or our own
+    # "the site doesn't say" line. The visitor already sees the streamed answer: a correction arrives as a replace.
+    grounded = None
+    if state.get("model") not in UNANSWERED and state.get("why") != "judge:not_on_site":
+        tier = llm.TIERS.get(state.get("level") or "", llm.TIERS["L2"])
+        read = min(tier.chunks, 4) if state.get("economy") else tier.chunks  # the chunks as respond cut them
+        grounded = await grounding.check(last_question(state), safe, research.evidence(state, read))
+        safe = grounded.text
     if HIRING.search(last_question(state)) and not NEXT_STEP.search(safe):
         safe += NEXT_STEP_LINE  # a hiring question always ends with a way to act, whichever model forgot it
 
@@ -403,10 +412,16 @@ async def check(state: State) -> dict:
     links = pages.links_for(safe, research.evidence(state, 8), skip={a["path"] for a in actions})
     stay = state.get("show") == "stay"  # it chose not to move them: the buttons stay buttons
     update: dict = {"actions": actions + [{**a, "auto": False} if stay else a for a in link_actions(links)],
-                    "trace": step("check", started, links=len(links))}
+                    "trace": step("check", started, links=len(links), grounding=grounded.why if grounded else "skipped:no_writer",
+                                  **({"grounding_ms": grounded.ms, "grounding_model": grounded.model} if grounded and grounded.model else {}))}
+    if grounded and grounded.model:  # the checker's tokens count towards the turn, like the planner's
+        spent = dict(state.get("usage") or {})
+        for key, n in (("calls", 1), ("tokens_in", grounded.tokens_in), ("tokens_out", grounded.tokens_out), ("tokens_counted", grounded.counted)):
+            spent[key] = spent.get(key, 0) + n
+        update["usage"] = spent
     if safe != text:
         update["messages"] = [AIMessage(safe, id=last.id)]
-        update["why"] = "output:cleaned"
+        update["why"] = "grounding:fixed" if grounded and grounded.fixed else "output:cleaned"
     elif first_turn(state) and state.get("why") != "judge:not_on_site":
         # Gate 5: only a clean, in-scope, first-turn answer a model wrote (never our "the site doesn't say" line).
         # A cached answer's first link is where it takes the visitor.

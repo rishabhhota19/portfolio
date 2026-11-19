@@ -24,7 +24,7 @@ from langchain_core.messages import HumanMessage  # noqa: E402
 from . import guard, llm, pages  # noqa: E402
 from .cache import VERSION  # noqa: E402
 from .config import DATA_DIR  # noqa: E402
-from .embeddings import ENGINES, MODEL  # noqa: E402
+from .embeddings import ENGINES, TAG  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 META, VECTORS = DATA_DIR / "answers.json", DATA_DIR / "answers.npz"
@@ -103,11 +103,11 @@ async def main() -> None:
         print(f"::error::Answer bank would have {len(bank)} of {len(wanted)} intents (models out of quota or answers failing "
               "their checks): keeping the old bank. Re-run when the models are back.")
         sys.exit(1)
-    if bank == old["intents"] and old["version"] == VERSION and old.get("model") == MODEL and VECTORS.exists():
+    if bank == old["intents"] and old["version"] == VERSION and old.get("model") == TAG and VECTORS.exists():
         print(f"Answer bank already up to date ({len(bank)} intents).")
         return
     phrasings = lambda intents: [(n, t) for n, e in enumerate(intents) for t in [e["q"], *e["paraphrases"]]]  # noqa: E731
-    if phrasings(bank) != phrasings(old["intents"]) or old.get("model") != MODEL or not VECTORS.exists():
+    if phrasings(bank) != phrasings(old["intents"]) or old.get("model") != TAG or not VECTORS.exists():
         try:  # the vectors depend only on the phrasings: a changed answer or link needs no new embeddings
             vectors = await ENGINES[0].embed([t for _, t in phrasings(bank)], timeout=60)  # local: free, no quota
         except Exception as err:
@@ -115,7 +115,7 @@ async def main() -> None:
             print(f"Answer bank: can't embed now ({type(err).__name__}) — kept as it was; the next build retries.")
             return
         np.savez(VECTORS, vectors=vectors, intent=np.array([n for n, _ in phrasings(bank)], dtype="int16"))
-    META.write_text(json.dumps({"version": VERSION, "model": MODEL, "intents": bank}, indent=1, ensure_ascii=False) + "\n",
+    META.write_text(json.dumps({"version": VERSION, "model": TAG, "intents": bank}, indent=1, ensure_ascii=False) + "\n",
                     encoding="utf-8")
     print(f"Answer bank: {len(bank)} intents, {len(phrasings(bank))} phrasings (content version {VERSION}) -> {META.name}")
 

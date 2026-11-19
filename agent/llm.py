@@ -282,6 +282,9 @@ RESEARCH = Tier(0, 4, 400, "low", 12, ["nv-nemotron-super", "groq-qwen", "gemini
 SPILL = {"L1": ["L1", "L2", "L3"], "L2": ["L2", "L3", "L1"], "L3": ["L3", "L2", "L1"]}
 
 SUMMARY_POOL = ["gemini-lite-3.1", "nv-nemotron-lightning", "cf-glm", "gemini-lite-3.5", "cf-20b", "cf-gemma"]  # high-quota, cheap; never Groq
+# The grounding check (grounding.py) runs after every written answer: the same cheap, high-quota models, Nemotron
+# Lightning first (no daily cap, fast), never Groq, so a check can never starve the writers.
+GROUNDING_POOL = ["nv-nemotron-lightning", "gemini-lite-3.1", "gemini-lite-3.5", "cf-glm", "cf-20b", "cf-gemma"]
 
 
 def candidates(level: str) -> list[FreeModel]:

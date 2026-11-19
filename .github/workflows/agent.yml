@@ -57,8 +57,8 @@ jobs:
       - name: Tokenizer, vector search and the second vote (the agent's own code against the libraries it replaced; the vote against the first stage alone; no API calls)
         run: python -m evals.tokenizer_eval && python -m evals.index_eval && python -m evals.rerank_ab
 
-      - name: Judge wiring (the care reply, the second opinion, the rescue; scripted, no API calls)
-        run: python -m evals.judge_eval
+      - name: Judge wiring (the care reply, the second opinion, the rescue) and the grounding check's acceptance rules (scripted, no API calls)
+        run: python -m evals.judge_eval && python -m evals.grounding_eval --dry
 
       - name: Groq smoke test (2 questions, ~1% of each model's daily quota)
         # The only step with the Groq key: it shares the site's quota, so the full evals below never use Groq.
@@ -74,6 +74,9 @@ jobs:
 
       - name: Agent evals (retrieval, facts, guardrails)
         run: python -m evals.run_evals
+
+      - name: Grounding check (planted mistakes caught, right answers left alone; a warning until it has been measured in CI)
+        run: python -m evals.grounding_eval
 
       - name: Selling by showing (takes the visitor to the right proof unasked, stays put when it should, replies stay short)
         run: python -m evals.showing_eval

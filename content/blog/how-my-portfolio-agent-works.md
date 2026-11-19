@@ -1,24 +1,23 @@
 ---
 title: How the AI agent on this site works (and why it costs ₹0)
-summary: Dumbledore, a Python LangGraph agent — hybrid RAG, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.
+summary: Dumbledore, a Python LangGraph agent — retrieval measured at the depth the writer reads, a grounding check, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.
 date: 2026-10-31
-keywords: [blog, this site, how it works, langgraph, rag, faiss, bm25, reranking, ragas, architecture, free stack, refusal, guardrails, navigation, dumbledore]
+keywords: [blog, this site, how it works, langgraph, rag, embeddings, bm25, reranking, cross-encoder, grounding check, hallucination, ragas, architecture, free stack, refusal, guardrails, navigation, dumbledore]
 ---
 
 Recruiters rarely have time to read a whole portfolio, so I put an agent on this site that answers questions about my work. It's called **Dumbledore**; the chat window is only its interface. Here's how it's built.
+
+*Updated 19 November 2026: retrieval was remeasured and rebuilt, and a grounding check was added.*
 
 ## The graph
 The agent is a small **LangGraph** graph written in Python:
 
 1. **route:** simple messages (hi, "how do I contact him?", "take me to his projects") get an instant reply without calling an LLM. That saves the free quota for real questions.
-2. **retrieve:** hybrid search over this site's own content.
-   - **FAISS** finds chunks with similar *meaning*, using one open-source embedding model, BAAI bge-small-en-v1.5: it runs inside the server itself (an 8-bit ONNX build, about 3 ms a question), with the same model on Cloudflare Workers AI as the backup, so every route gives the same vectors.
-   - **BM25** finds exact *keywords*.
-   - **Reciprocal Rank Fusion** merges the two rankings.
+2. **retrieve:** the question is embedded once with one open-source model, BAAI bge-small-en-v1.5 — an 8-bit ONNX build that runs inside the server itself, about 3 ms a question, with the same model on Cloudflare Workers AI as the backup, so every route gives the same vectors. The 8 chunks closest in *meaning* are the candidates: one matrix product over the site's chunks. **BM25** keyword search is the fallback for when nothing can embed the question. It used to be fused into every ranking; measured at the depth the writer actually reads, that pulled keyword collisions up ("research" found a service page before the papers), so the vectors rank alone. A question about a whole section (all my papers, every place I have worked) finds one page-sized document for that section, every item one line.
 3. **scope:** checks the question is about my work before any LLM sees it (more below).
-4. **rerank:** keeps the best chunks. I A/B-tested a cross-encoder (bge-reranker-base) on the eval set: it tied RRF on hit@4 but ranked worse (MRR@4 0.885 vs 0.962), so the site keeps the RRF order.
+4. **rerank:** a second opinion. A 4 MB cross-encoder (ms-marco-TinyBERT-L-2, 8-bit) reads the question with each candidate; its order is fused with the vectors' order, the vectors counting double, and the writer reads the first 2, 4 or 6 by the question's level. I measured eight cross-encoders first: deciding the order alone, every one of them ranked below the vectors on this site, so the reranker votes rather than decides.
 5. **respond:** an LLM answers from those chunks only.
-6. **check:** every sentence is checked before it reaches you.
+6. **check:** every sentence is checked before it reaches you, and then a second model reads the finished answer against the passages it was written from. A number, date or result the passages don't support — the commonest slip is one project's result given to another — is corrected or removed. The answer streams while this runs, so you may see it replaced as it finishes.
 
 ## Saying no: the refusal pipeline
 An agent on a portfolio shouldn't write code, essays or opinions for anyone. Five gates keep it on topic:
@@ -45,5 +44,6 @@ Free LLM tiers have rate limits, so one provider is never enough. Each question 
 Chat history lives only in your open browser tab. When you close the chat or leave the site, it's gone. All I keep is a short AI-written summary, plus your details only if you chose to share them.
 
 ## Measuring it
-- Eval suites check that retrieval finds the right page, that answers contain the right facts, that guardrails and refusals hold, and that navigation lands on the right page.
+- Eval suites check that the right page is among the chunks the writer actually reads (not just somewhere in the results), that answers contain the right facts and never another project's numbers, that guardrails and refusals hold, and that navigation lands on the right page.
+- Every retrieval choice above was a measurement first: BM25's place, the eight rerankers, the section pages. The eval that compares the reranker with the vectors alone runs on every push, with no API keys.
 - **RAGAS** scores faithfulness, answer relevancy and context precision, using a free model as the judge.

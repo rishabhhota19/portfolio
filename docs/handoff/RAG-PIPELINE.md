@@ -11,7 +11,9 @@ the booking card) / pages.move ("go back", "scroll") / pages.navigation ("take m
 asked before). Else sets difficulty level L1 (one fact) / L2 (usual) / L3 (reasoning, JD, long chat) (difficulty.py).
 
 **2. retrieve** (always): embeddings.embed with BAAI/bge-small-en-v1.5 int8 ONNX on the function's CPU (Cloudflare
-Workers AI same model as backup). rag.search = the 8 chunks closest by cosine (NumPy over index.npy) + a relevance score;
+Workers AI same model as backup), one text at a time (embeddings.VERSION 2, 19 Nov 2026: batched, the int8 model's
+quantisation scales depended on the batch, so a content edit moved every chunk's vector by up to 0.0065 cosine and
+flipped thin margins; the stamps and the answer bank carry embeddings.TAG so a change of method rebuilds every vector). rag.search = the 8 chunks closest by cosine (NumPy over index.npy) + a relevance score;
 BM25 (keywords) is the fallback, used only when no route could embed the question (until 19 Nov 2026 it was fused into
 every ranking by RRF and pulled keyword collisions up — the numbers are in rag.py). Follow-ups search with the previous
 question too.
@@ -37,8 +39,14 @@ search per point, no model; L3 with time/quota → planner model + tools search_
 chunks + PROFILE (content/profile/core.md, ALWAYS in the prompt) + memory. Hidden first line "BRIEF: … | SHOW: <path>"
 picks the page to open; second opinion on a wrong refusal.
 
-**8. check** (graph.check, gate 4/5): strips code / prompt leaks / bad links, adds the hiring next-step line, turns
-SHOW into navigate and named pages into "take me there" links, caches first-turn answers. Does NOT check facts.
+**8. check** (graph.check, gate 4/5): strips code / prompt leaks / bad links; then the **grounding check**
+(agent/grounding.py, since 19 Nov 2026): a cheap model (llm.GROUNDING_POOL, Nemotron Lightning first, never Groq) reads
+the answer against PROFILE + the chunks the writer read and returns the unsupported claims quoted from the answer plus a
+corrected answer; accepted only if each quoted claim is really in the answer and the rewrite passes guard.check and a
+size bound (0.35–1.35×); otherwise the answer stands (trace says why: ok / fixed / skipped:… / rejected:…). A
+correction reaches the browser as one "replace" event after the stream (api/index.py). Then the hiring next-step line,
+SHOW → navigate, named pages → "take me there" links, caches first-turn answers that no check changed.
+Evals: evals/grounding_eval.py (--dry: acceptance rules, no keys; real: 8 planted-mistake cases, CI).
 
 **9. remember**: saves memory for the next turn.
 

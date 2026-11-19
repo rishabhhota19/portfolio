@@ -16,7 +16,7 @@ import numpy as np
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from .config import DATA_DIR
-from .embeddings import ENGINES, FOLDER, INDEX, MODEL
+from .embeddings import ENGINES, FOLDER, INDEX, MODEL, TAG
 from .scope import IN_SCOPE, OUT_OF_SCOPE
 
 
@@ -41,7 +41,7 @@ def main() -> None:
     chunks = chunk_pages()
     (DATA_DIR / "chunks.json").write_text(json.dumps(chunks, indent=1, ensure_ascii=False), encoding="utf-8")
     examples = IN_SCOPE + OUT_OF_SCOPE
-    stamp = hashlib.sha1(json.dumps([MODEL, chunks, examples]).encode()).hexdigest()[:16]
+    stamp = hashlib.sha1(json.dumps([TAG, chunks, examples]).encode()).hexdigest()[:16]  # TAG: the model and how it is run
     stamps = FOLDER / "stamps.json"
     if INDEX.exists() and stamps.exists() and json.loads(stamps.read_text()).get("data") == stamp:
         print(f"Index and scope bank already up to date ({len(chunks)} chunks, {len(examples)} examples).")
@@ -55,7 +55,7 @@ def main() -> None:
     # "knowledge": the content this index was built from, so a running agent can tell when its content moved on
     # (a content push deploys at once; the index follows when CI commits it — api/index.py warns meanwhile).
     knowledge = hashlib.sha1((DATA_DIR / "knowledge.json").read_bytes()).hexdigest()[:16]
-    stamps.write_text(json.dumps({"model": MODEL, "data": stamp, "knowledge": knowledge}) + "\n")
+    stamps.write_text(json.dumps({"model": TAG, "data": stamp, "knowledge": knowledge}) + "\n")
     print(f"Indexed {len(chunks)} chunks + {len(examples)} scope examples with {MODEL} ({vectors.shape[1]}-dim) -> {FOLDER}")
 
 
