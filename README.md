@@ -24,10 +24,10 @@ Browser ─► Next.js gateway  (app/api/chat/route.ts)          security: bot c
                                                                route    Gate 1 rules: refusals, canned replies,
                                                                         "take me to …", answer cache (no LLM);
                                                                         else difficulty L1 / L2 / L3 (rules, 0 tokens)
-                                                               retrieve FAISS (meaning) + BM25 (keywords) → RRF
+                                                               retrieve the 8 chunks closest in meaning (BM25 only as fallback)
                                                                scope    Gate 2: off-topic by meaning → refused;
                                                                         answer bank for common questions (no LLM)
-                                                               rerank   top 2/4/6 by level (RRF order)
+                                                               rerank   second vote: TinyBERT cross-encoder, fused 1:2; top 6
                                                                recall   this chat's memory; economy mode if quota is thin
                                                                plan/act the research loop: what the question needs,
                                                                         each point searched once
@@ -53,12 +53,17 @@ lives only in the tab; the agent keeps a short-lived working memory (below). Whe
   earlier turn with the first 140 characters of that question; never the answers. A long chat sends that summary and the
   last 4 messages, and nothing is researched twice. **Economy mode** (the day's quota thin, or a chat that has spent a
   lot) skips the planner and shortens the answer. If Redis is unreachable, the agent answers from the transcript alone.
-- **Hybrid retrieval.** Embeddings understand paraphrases but can miss exact names ("LCSNet", "RBKnee"); BM25 is the
-  opposite. Reciprocal Rank Fusion merges the two rankings without having to calibrate their very different scores.
-- **Re-ranking — measured, then switched off.** A cross-encoder reads the question and each chunk *together*, which
-  usually beats first-stage search. But on this site's eval questions the only free one (Cloudflare's bge-reranker-base)
-  tied RRF on hit@4 (100%) and ranked worse (MRR@4 0.885 vs 0.962) — it missed acronyms like "MCP". So production keeps
-  the RRF order; `RERANKER=bge` (plus the Cloudflare keys) turns the re-ranker back on. Re-check with `npm run evals:rerank`.
+- **Retrieval: the vectors' order, BM25 as the fallback.** Embeddings understand paraphrases; BM25 matches exact words.
+  Fused (Reciprocal Rank Fusion), BM25 voted for keyword collisions — "research" found the research-to-prototype service
+  before the papers — and ranked worse than the vectors alone on 24 measured questions (the right section among the
+  writer's chunks 8/10 vs 10/10; MRR 0.964 vs 1.000) while tying on 17 rare exact names. So BM25 answers only when
+  nothing can embed the question (`agent/rag.py`). A question about a whole section ("any publications?") finds one
+  document per section page, every item one line, built from the same content (`scripts/build-content.ts`).
+- **Re-ranking — a second vote, measured.** A cross-encoder reads the question and each chunk *together*. Eight were
+  measured in int8: deciding the order alone, every one ranked worse than the vectors (MRR 0.81–0.93), Cloudflare's
+  bge-reranker-base included; fused 1:2 with the first stage, none cost a rank 1. Production runs
+  cross-encoder/ms-marco-TinyBERT-L-2-v2 that way on every retrieval — 4 MB, about 25 ms a question on one core
+  (`agent/reranker.py`). `npm run evals:rerank` re-measures the vote against the first stage, no keys needed.
 - **A refusal pipeline, measured.** Out-of-scope questions are denied before any LLM, and answers are checked before the
   visitor sees them (`agent/guard.py`, `agent/scope.py`):
   1. **rules**: harmful requests, jailbreaks, personal questions, off-topic tasks;
@@ -160,21 +165,22 @@ lives only in the tab; the agent keeps a short-lived working memory (below). Whe
 | `agent/scope.py` | Gate 2: on-topic vs off-topic example banks, judged by embedding |
 | `agent/pages.py` | The site map: navigation ("take me to …") and "take me there" links |
 | `agent/embeddings.py` | One embedding model: local ONNX, then Cloudflare, then keyword search |
-| `agent/rag.py` | FAISS + BM25 hybrid search, Reciprocal Rank Fusion, optional cross-encoder re-ranking |
+| `agent/rag.py` | Vector search (one NumPy matrix product), BM25 as the fallback, the second vote fused by Reciprocal Rank Fusion |
+| `agent/reranker.py` | The second vote: a TinyBERT cross-encoder (int8 ONNX, 4 MB) scores question + chunk pairs |
 | `agent/llm.py` | The model web: every free model, its limits, the pool for each difficulty level, AI Gateway routing |
 | `agent/difficulty.py` | L1 / L2 / L3 from plain rules (tested by `evals/difficulty.json`) |
 | `agent/router.py` | Pick → reserve → call → settle; spill-over, pauses, breaker, the wait for per-minute limits |
 | `agent/usage.py` | Atomic budget reservations (Redis Lua), pacing, per-visit token totals |
 | `agent/cache.py` | L0 answers: exact cache (a day) and the answer bank |
 | `agent/prompts.py` | Dumbledore's system prompt (grounding + Gate 3) and the summary prompt |
-| `agent/build_index.py` | Chunks the content; embeds it (locally, free) into the FAISS index + scope bank (skips unchanged) |
+| `agent/build_index.py` | Chunks the content (a section page stays one chunk); embeds it (locally, free) into the vector index + scope bank (skips unchanged) |
 | `agent/build_answers.py` | Builds the answer bank: paraphrases, checked answers, embeddings |
 | `api/index.py` | FastAPI: `/api/agent/chat` (NDJSON events), `/api/agent/warm`, `/api/agent/summarize`, `/api/agent/session/{id}`, `/api/agent/health` |
 | `evals/run_evals.py` | Retrieval / fact / guardrail checks over `evals/questions.json` |
 | `evals/scope_eval.py` | Refusal pipeline: leaks and false refusals over `evals/scope.json` |
 | `evals/navigation_eval.py` | "Take me to …" lands on the right page (`evals/navigation.json`, no API calls) |
 | `evals/ragas_eval.py` | RAGAS: faithfulness, answer relevancy, context precision |
-| `evals/rerank_ab.py` | A/B: RRF order vs the cross-encoder re-ranker (hit@4, MRR@4) |
+| `evals/rerank_ab.py` | The second vote vs the first stage alone at the writer's depth (hits, MRR@6), and the BM25 fallback; no keys |
 | `evals/model_bench.py` | Is a free model good enough for a pool? Fact accuracy, latency, tokens |
 | `evals/groq_smoke.py` | CI: one real question per Groq model (a broken key or path fails) |
 | `evals/advocacy_eval.py` | Recruiter cases (`evals/advocacy.json`): proof, links, a next step, no invented gaps |
@@ -208,10 +214,12 @@ Keys live in `.env.local` (template: `.env.example`). Without LLM keys the chat 
   if a page whose items share it (like `/publications`) renders no `id` anchors to land on.
 
 ## After editing content
-Just push — CI rebuilds the FAISS index and redeploys. To rebuild it locally instead:
+Just push — CI rebuilds the search index and redeploys. To rebuild it locally instead:
 ```bash
-npm run agent:index   # rebuilds knowledge.json, the FAISS index, scope bank and answer bank in agent/data/
+npm run agent:index   # rebuilds knowledge.json, the vector index, scope bank and answer bank in agent/data/
 ```
+Commit a locally built index only from an x86 machine: the int8 embedding model gives slightly different vectors on
+Apple silicon (cosine down to 0.993 on the same chunk, measured 19 Nov 2026), and the function embeds questions on x86.
 
 ## Evals
 ```bash

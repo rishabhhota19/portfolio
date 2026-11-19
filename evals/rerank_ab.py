@@ -1,49 +1,87 @@
-"""Does the cross-encoder re-ranker beat plain RRF order? Retrieval only, no LLM calls:
+"""Does the second vote (agent/reranker.py) help or hurt? Retrieval only, no LLM calls, no keys:
 
-    python -m evals.rerank_ab      (needs CF_ACCOUNT_ID + CF_WORKERS_AI_TOKEN)
+    python -m evals.rerank_ab
 
-For every question in questions.json with an expected page, compares the top 4 chunks (what the LLM sees):
-  hit@4   is a chunk from the expected page in the top 4? (same rule as run_evals)
-  MRR@4   1 / rank of the first chunk from that page — rewards putting it first
+For every question in questions.json with an expected page, at the depth the writer reads (2 / 4 / 6 chunks by the
+question's level), compares the first stage alone (the vectors' order, rag.search) with the vote (rag.rerank):
+  hit   is a chunk from the expected page among the chunks the writer reads? (the rule run_evals uses)
+  MRR   1 / rank of the first chunk from that page in the 6 kept — rewards putting it first
+and times the vote. Fails if the vote leaves the writer fewer hits than the first stage alone — the day the
+cross-encoder starts overruling a clear first stage, CI says so — or if the keyword fallback (BM25, what answers when
+nothing can embed the question) finds no page at all. MRR is reported, not enforced: the vote may swap two chunks the
+writer reads anyway.
 
-Last run (Nov 2026, 13 questions): hit@4 100% for both, MRR@4 RRF 0.962 vs bge-reranker 0.885,
-so production keeps the RRF order (RERANKER=bge plus the Cloudflare keys switches the re-ranker on).
+19 Nov 2026 (M1, 25 questions: 14 naming a page, 10 about a whole section, one LCSNet cross-check): first stage and vote
+both 25/25 at the writer's depth; MRR@6 0.933 and 0.913 — the vote put the research-to-prototype service above the
+publications page on "what papers has he published", both of which the writer reads; 37 ms a question; keyword
+fallback 21/25.
 """
 
 import asyncio
 import json
-import os
+import statistics
+import sys
+import time
 from pathlib import Path
 
-os.environ["RERANKER"] = "bge"  # this script compares both orders, so switch the re-ranker on here
-
-from agent.rag import rerank, search  # noqa: E402
+from agent import embeddings, llm, rag
+from agent.difficulty import difficulty
 
 HERE = Path(__file__).parent
+
+
+def depth(question: str) -> int:
+    return min(llm.TIERS[difficulty(question)].chunks, 6)
 
 
 def rank_of(url: str, docs: list[dict]) -> int | None:
     return next((i + 1 for i, d in enumerate(docs) if d["url"] == url), None)
 
 
-async def main() -> None:
-    cases = [c for c in json.loads((HERE / "questions.json").read_text(encoding="utf-8")) if "url" in c]
-    rows = []
-    for case in cases:
-        docs, _ = await search(case["q"])
-        reranked, how = await rerank(case["q"], docs)
-        if how != "bge-reranker":
-            raise SystemExit("Re-ranker unavailable: set CF_ACCOUNT_ID and CF_WORKERS_AI_TOKEN.")
-        rrf, bge = rank_of(case["url"], docs[:4]), rank_of(case["url"], reranked)
-        rows.append((rrf, bge))
-        change = "" if rrf == bge else ("  better" if (bge or 9) < (rrf or 9) else "  worse")
-        print(f"{case['id']:<20} rrf={rrf or '-'}  bge={bge or '-'}{change}")
+async def _no_embedding(texts: list[str]):
+    return None, None
 
-    hit = lambda i: sum(1 for r in rows if r[i]) / len(rows)
-    mrr = lambda i: sum(1 / r[i] for r in rows if r[i]) / len(rows)
-    print(f"\nhit@4  rrf={hit(0):.0%}  bge={hit(1):.0%}")
-    print(f"MRR@4  rrf={mrr(0):.3f}  bge={mrr(1):.3f}   ({len(rows)} questions)")
+
+async def main() -> int:
+    cases = [c for c in json.loads((HERE / "questions.json").read_text(encoding="utf-8")) if "url" in c]
+    rows, times = [], []
+    for case in cases:
+        question, n = case["q"], depth(case["q"])
+        first, _ = await rag.search(question)  # the vectors' order, 8 chunks
+        started = time.perf_counter()
+        voted, how = await rag.rerank(question, first)
+        times.append((time.perf_counter() - started) * 1000)
+        if how != "voted":
+            raise SystemExit("The second vote did not run: is agent/data/reranker/model_quantized.onnx there?")
+        a, b = rank_of(case["url"], first[:6]), rank_of(case["url"], voted)
+        rows.append((n, a, b))
+        change = "" if a == b else ("  better" if (b or 9) < (a or 9) else "  worse")
+        moved = "" if [d["id"] for d in first[:6]] == [d["id"] for d in voted] else "  (order changed)"
+        print(f"{case['id']:<20} reads {n}  first={a or '-'}  vote={b or '-'}{change}{moved}")
+
+    hits = lambda i: sum(1 for n, *r in rows if r[i] and r[i] <= n)  # noqa: E731
+    mrr = lambda i: statistics.mean(1 / r[i] if r[i] else 0.0 for _, *r in rows)  # noqa: E731
+    print(f"\nat the writer's depth: first stage {hits(0)}/{len(rows)}, vote {hits(1)}/{len(rows)}")
+    print(f"MRR@6: first stage {mrr(0):.3f}, vote {mrr(1):.3f}; the vote took {statistics.median(times):.0f} ms a question (median)")
+
+    embed, embeddings.embed = embeddings.embed, _no_embedding  # every embedding route down: keyword search answers
+    try:
+        fallback = 0
+        for case in cases:
+            found, _ = await rag.search(case["q"])
+            fallback += bool(rank_of(case["url"], found[: depth(case["q"])]))
+    finally:
+        embeddings.embed = embed
+    print(f"keyword fallback (BM25, nothing could embed the question): {fallback}/{len(rows)} at the writer's depth")
+
+    if hits(1) < hits(0):
+        print("::error::The second vote leaves the writer fewer right chunks than the first stage alone — re-measure before shipping it (agent/reranker.py)")
+        return 1
+    if not fallback:
+        print("::error::The keyword fallback found no page at all")
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    sys.exit(asyncio.run(main()))

@@ -1,34 +1,45 @@
-# Open problems (as of 18 Nov 2026)
+# Open problems (as of 19 Nov 2026)
 
 Everything listed under "Done" in the old session is live and verified. These are NOT done.
 
-## 1. Dumbledore RAG fixes — in progress, nothing applied yet (top priority)
-He wants these fixed, then planned/checked with him. An attempt to add overview documents was interrupted and is NOT on
-disk (`scripts/build-content.ts` is unchanged). (Full notes are in the private handoff zip, `memory/rag-audit-2026-11-18.md`.)
+## 1. Dumbledore RAG fixes — code written 19 Nov 2026, not yet proven live (top priority)
+His rules for this work: concepts over brute force, no patches, BM25 only as the fallback, one reranker on every
+retrieval, keep it simple. (The audit's notes are in the private handoff zip, `memory/rag-audit-2026-11-18.md`.)
 
-Measured with `agent.rag.search` at the depth the writer sees (L1 = 2 chunks, L2 = 4, L3 = 6):
-- **Broad questions miss 4 of 10:** "any publications?" finds no paper in the top 8; "tell me his best research" first
-  paper at rank 8; "what papers has he published" rank 5; "where has he worked" rank 3 (L1 sees 2).
-- Causes: (a) no section-overview documents, every chunk is one item; (b) "research" collides with the
-  research-to-prototype service, "News Research Tool" and "AI Researcher" job titles; (c) BM25 tokenizer has no
-  stemming ("publications" ≠ "publication"); (d) L1 gets only 2 chunks.
-- The evals show 14/14 retrieval only because every eval question names its target; no broad or cross-attribution cases.
+Measured 18 Nov at the depth the writer sees (L1 = 2 chunks, L2 = 4, L3 = 6): broad questions found the right section
+1/10 ("any publications?" no paper in the top 8; "tell me his best research" first paper at rank 8). The evals showed
+14/14 because every eval question named its target and the check looked at the 6 kept, not at what the writer read.
 
-Planned fixes:
-1. **Overview documents** in `scripts/build-content.ts` (one per section: projects, research, experience, services; every
-   item one line, in the site's best-first order; ids `overview:*`, urls `/projects`, `/publications`, `/experience`, `/services`).
-2. **Search:** light stemming in `agent/rag.py` `tokenize`, section synonyms (research → papers/publications), minimum 4
-   chunks for every level (`agent/llm.py` TIERS).
-3. **Grounding check (model-based):** after the writer, a model compares the answer's numbers and named results with the
-   chunks + PROFILE and rewrites unsupported claims (the stream supports a "replace" event). Goes in `graph.check`.
-4. **Evals:** the 10 broad questions as retrieval cases; cross-attribution facts ("What accuracy did LCSNet get?" must
-   never say 98%); consider making RAGAS faithfulness block CI on a small sample.
-Re-measure before/after; prove on the live site; CI must pass so the index updates.
+Done on disk (measured 19 Nov on the M1, 10 broad + 14 named questions; the live x86 numbers will differ a little —
+five margins are under 0.006 cosine):
+1. **Section pages** (`scripts/build-content.ts`): one `page:<section>` doc per site.json section, every item one line,
+   kept as one chunk (`whole`, honoured by `agent/build_index.py`). Broad 1/10 → 8/10 with the old fusion.
+2. **BM25 is the fallback** (`agent/rag.py`): the first stage is the vectors' order; BM25 only when nothing could embed
+   the question. Fused in, BM25 voted for keyword collisions: broad 8/10 → 10/10, named MRR 0.964 → 1.000.
+3. **Second vote** (`agent/reranker.py`): cross-encoder/ms-marco-TinyBERT-L-2-v2, int8, 4 MB, ~25 ms a question, fused
+   1:2 with the first stage, on every retrieval (graph.rerank and research.search_site). Eight cross-encoders were
+   measured; as the decider every one was worse than the vectors alone; as a 1:2 voter none cost a rank 1.
+4. **Evals**: `run_evals.py` checks retrieval on the chunks the writer read; the 10 broad questions and two LCSNet
+   cross-attribution cases are in `questions.json`; `rerank_ab.py` measures the vote against the first stage, no keys.
+Rejected, measured: stemming + synonyms (+0 with the pages; "news" → "new"), 4 chunks for L1 (budget for a wrong
+level), the BGE query instruction (broke an eval), Cloudflare's bge-reranker-base (MRR 0.81), FAISS (same numbers, 66 MB).
+
+Still to do:
+- CI must go green on the push, so the index (61 chunks) is rebuilt on x86 and committed; then prove on the live site
+  with his Chrome (the chat blocks headless browsers).
+- **Level by the model**, planned with him: `difficulty.py`'s regex calls "where has he worked" and "has he done any
+  research?" one-fact questions (L1, 2 chunks). The judge already reads every turn; its verdict could carry the level.
+  Needs its own eval (evals/difficulty.json).
+- **Grounding check (model-based):** after the writer, a model compares the answer's numbers and named results with the
+  chunks + PROFILE and rewrites unsupported claims (the stream supports a "replace" event). Goes in `graph.check`.
+  He chose: stream, then replace. Consider RAGAS faithfulness blocking CI on a small sample.
 
 ## 2. Hallucination seen live: facts mixed between projects
 The small L1/L2 models said "LCSNet achieved 98% accuracy on osteoarthritis X-ray grading". False: LCSNet is dental
 caries segmentation (F1 71.7%, IoU 56.8%); the 98% is the OA project. Cause: retrieval missed the papers and the
-always-on PROFILE (`content/profile/core.md`) has both nearby. Fixed by problem 1 (overviews + grounding check).
+always-on PROFILE (`content/profile/core.md`) has both nearby. The retrieval half is addressed by problem 1 (the LCSNet
+chunk is now rank 1 for LCSNet questions, measured); the grounding check is pending. Two eval cases watch it
+(`lcsnet-not-oa`, `lcsnet-oa-trap`).
 
 ## 3. 3D site frame stalls (his rule: no frame over 50 ms in the descent)
 Median 16.7 ms, but 6–37 frames over 50 ms per walk (worst 300–1000 ms). They predate the recent work (the live site

@@ -6,7 +6,7 @@ model, switched per call like every other), the tools run here in parallel.
           (graph.retrieve) is its evidence; a list of requirements (a job description) is searched point by point,
           also without a model. The planner model runs for the open reasoning questions (why hire him, the biggest
           risk, a comparison) and asks only for what the session memory hasn't found yet.
-    act   runs the tool calls — search_site (hybrid search over the content index), open_page (a page's chunks) —
+    act   runs the tool calls — search_site (the content index's search and second vote), open_page (a page's chunks) —
           skipping what's already in hand; a point the memory knows is answered from memory, with no search.
 
 Budget: MAX_ROUNDS planner rounds and MAX_SEARCHES searches a turn, within the request's deadline. Economy mode
@@ -24,7 +24,7 @@ from . import llm, router, usage
 from .memory import MAX_NOTE, Memory
 from .pages import PATHS
 from .prompts import RESEARCH
-from .rag import load as load_index, search, tokenize
+from .rag import load as load_index, rerank, search, tokenize
 
 MAX_ROUNDS = 2  # the second round is for points the first found nothing for (other words)
 MAX_SEARCHES = 8  # tool calls a planner round
@@ -36,7 +36,8 @@ BRIEF = 110  # characters of each passage the planner sees (it only maps points 
 @tool
 async def search_site(query: str) -> list[dict]:
     """Search Rishabh's site for one topic (a skill, a tool, a result, a role). Returns the best passages with ids."""
-    docs, _ = await search(query, k=4)
+    docs, _ = await search(query)  # the 8 closest, then the second vote keeps 4
+    docs, _ = await rerank(query, docs, top_n=4)
     return docs
 
 

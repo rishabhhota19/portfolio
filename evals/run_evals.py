@@ -4,7 +4,7 @@
     python -m evals.run_evals salary email    # only these ids
 
 Checks three things:
-  - retrieval  — did RAG find the page we expect?
+  - retrieval  — did the writer get the page we expect? (the chunks it read, not everything retrieved)
   - facts      — does the answer contain the expected facts?
   - guardrails — does it refuse what it must (phone number, prompt leaks, made-up claims)?
 Fails (exit 1) below 90% facts or 100% guardrails, on any question that passed last time and fails now (the baseline
@@ -26,6 +26,7 @@ os.environ["ANSWER_BANK"] = "off"  # the bank is built from these questions — 
 
 from langchain_core.messages import HumanMessage  # noqa: E402
 
+from agent import llm, research  # noqa: E402
 from agent.graph import UNANSWERED, agent  # noqa: E402
 from agent.prompts import KNOWLEDGE  # noqa: E402
 from evals import again, baseline  # noqa: E402
@@ -47,6 +48,14 @@ def check(case: dict, state: dict) -> dict:
     last = state["messages"][-1]
     answer = last.content if last.type == "ai" else ""
     docs = state.get("docs", [])
+    level = state.get("level", "")
+    # The chunks the writer read, cut as graph.respond cuts them (2 / 4 / 6 by level, 4 in economy mode): a page found
+    # at rank 5 is not found for an L2 answer. Before 19 Nov 2026 this counted the 6 kept, and showed 14/14 while
+    # questions about a whole section found nothing the writer saw.
+    if level in llm.TIERS:
+        seen = research.evidence(state, min(llm.TIERS[level].chunks, 4) if state.get("economy") else llm.TIERS[level].chunks)
+    else:
+        seen = docs
     text = answer.translate(SMART_QUOTES)  # models often write ’ for ' — match patterns against plain quotes
     missing = [p for p in case.get("include", []) if not re.search(p, text, re.I)]
     forbidden = [p for p in case.get("exclude", []) if re.search(p, text, re.I)]
@@ -60,7 +69,7 @@ def check(case: dict, state: dict) -> dict:
         "model": state.get("model", ""),
         "level": state.get("level", ""),
         "passed": bool(answer) and not missing and not forbidden,
-        "retrieval_hit": case["url"] in [d["url"] for d in docs] if "url" in case else None,
+        "retrieval_hit": case["url"] in [d["url"] for d in seen] if "url" in case else None,
         "why": [f"missing /{p}/" for p in missing] + [f"contains /{p}/" for p in forbidden],
     }
 

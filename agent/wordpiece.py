@@ -14,6 +14,7 @@ The steps, in the library's order:
   3. BertPreTokenizer: split on whitespace, each punctuation character a word of its own;
   4. WordPiece: each word cut greedily into the longest pieces the vocabulary has, later pieces marked "##";
   5. [CLS] in front, [SEP] behind, cut to 512 tokens, padded to the longest text in the batch.
+A pair for the cross-encoder (reranker.py, same vocabulary) is [CLS] question [SEP] passage [SEP], with segment ids.
 """
 
 import json
@@ -124,3 +125,15 @@ class WordPiece:
         width = max((len(row) for row in rows), default=0)
         return ([row + [self.pad] * (width - len(row)) for row in rows],
                 [[1] * len(row) + [0] * (width - len(row)) for row in rows])
+
+    def pairs(self, first: str, seconds: list[str]) -> tuple[list[list[int]], list[list[int]], list[list[int]]]:
+        """(ids, attention mask, segment ids) for one text paired with each of the others — a cross-encoder's input
+        (reranker.py): [CLS] first [SEP] second [SEP], segment 0 up to the first [SEP] and 1 after it, the second text
+        cut so the pair fits MAX_TOKENS, padded on the right to the longest pair."""
+        head = self.ids(first)  # [CLS] … [SEP]
+        room = max(MAX_TOKENS - len(head) - 1, 0)
+        rows = [head + self.ids(second)[1:-1][:room] + [self.sep] for second in seconds]
+        width = max((len(row) for row in rows), default=0)
+        return ([row + [self.pad] * (width - len(row)) for row in rows],
+                [[1] * len(row) + [0] * (width - len(row)) for row in rows],
+                [[0] * len(head) + [1] * (len(row) - len(head)) + [0] * (width - len(row)) for row in rows])

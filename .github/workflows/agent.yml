@@ -54,8 +54,8 @@ jobs:
       - name: Navigation (rules, no API calls)
         run: python -m evals.navigation_eval
 
-      - name: Tokenizer and vector search (the agent's own code against the libraries it replaced; no API calls)
-        run: python -m evals.tokenizer_eval && python -m evals.index_eval
+      - name: Tokenizer, vector search and the second vote (the agent's own code against the libraries it replaced; the vote against the first stage alone; no API calls)
+        run: python -m evals.tokenizer_eval && python -m evals.index_eval && python -m evals.rerank_ab
 
       - name: Judge wiring (the care reply, the second opinion, the rescue; scripted, no API calls)
         run: python -m evals.judge_eval

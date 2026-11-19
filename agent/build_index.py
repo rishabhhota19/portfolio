@@ -32,7 +32,8 @@ def chunk_pages() -> list[dict]:
             "keywords": doc.get("keywords", []),
         }
         for doc in docs
-        for i, piece in enumerate(splitter.split_text(doc["text"]))
+        # a section page's list stays one chunk (`whole`): split, each piece would be a part of the list
+        for i, piece in enumerate([doc["text"]] if doc.get("whole") else splitter.split_text(doc["text"]))
     ]
 
 

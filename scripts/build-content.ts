@@ -162,6 +162,30 @@ const content = {
   blog: blog.map((b) => omit(b, "text", "keywords", "sortKey")),
 };
 
+// One document per section page (/projects, /publications, /experience, /services, /blog): the page's whole list,
+// each item one line, in the order the page shows them. Every other document is one item, so a question about a whole
+// section ("any publications?", "where has he worked?") used to find none of them. Built from site.json's sections
+// (the same list the header nav uses), so a new section brings its page along. `whole` keeps the list in one chunk.
+type Section = { path: string; label: string; kind?: string; words?: string[] };
+const linesByKind: Record<string, string[]> = {
+  experience: experience.map((e) => `- ${e.title} at ${e.company}, ${e.start} – ${e.end}`),
+  project: projects.map((p) => `- ${p.title} — ${p.summary}`),
+  publication: publications.map((p) => `- ${p.title} — ${p.venue}; ${p.status}${p.date ? `, ${p.date}` : ""}`),
+  blog: blog.map((b) => `- ${b.title} — ${b.summary}`),
+  service: services.map((s) => `- ${s.title} — ${s.summary}`),
+};
+const sectionDocs = (site.sections as Section[])
+  .filter((s) => s.kind && linesByKind[s.kind]?.length)
+  .map((s) => ({
+    id: `page:${s.path.replace(/^\//, "")}`,
+    kind: "page",
+    title: `${s.label}: all ${linesByKind[s.kind!].length}, in the site's order`,
+    url: s.path,
+    keywords: s.words ?? [],
+    whole: true,
+    text: linesByKind[s.kind!].join("\n"),
+  }));
+
 // Every document the agent can retrieve. `url` lets answers point recruiters at the right page.
 const docs = [
   ...experience.map((e) => ({
@@ -223,6 +247,7 @@ const docs = [
     keywords: list(education.data.keywords),
     text: education.text,
   },
+  ...sectionDocs,
 ];
 
 const knowledge = { site, core: core.text, docs };
@@ -235,5 +260,5 @@ fs.writeFileSync(path.join(agentDataDir, "knowledge.json"), JSON.stringify(knowl
 const coreTokens = Math.round(core.text.length / 4);
 console.log(
   `content: ${projects.length} projects, ${publications.length} publications, ${experience.length} roles, ${services.length} services, ${blog.length} posts; ` +
-    `knowledge: ${docs.length} docs, core profile ≈ ${coreTokens} tokens`,
+    `knowledge: ${docs.length} docs (${sectionDocs.length} section pages), core profile ≈ ${coreTokens} tokens`,
 );
