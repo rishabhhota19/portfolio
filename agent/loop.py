@@ -4,7 +4,11 @@
           declines (JUDGE=enforce); the exact cache and the answer bank on a first turn. Nothing else answers before
           the model.
     judge (in parallel): scope, distress, and how much the answer needs → the pool (fact / usual / reasoning)
-    ─► round: the model reads persona + PAGES + PROFILE + memory + the chat, and calls tools or writes
+    pre-read: the question's own search (the gate embedded it for the scope check: the same vectors, the same vote)
+          is in the first prompt as FROM HIS SITE. The model writes from it when it answers the question and searches
+          for what it doesn't — it never writes about something specific from memory of the profile alone (CI, 19 Nov
+          2026: a writer that skipped the search gave the teddy bear no stories and Smartknower no Power BI).
+    ─► round: the model reads persona + PAGES + PROFILE + memory + FROM HIS SITE + the chat, and calls tools or writes
          search_site(query)  the best passages of his site for one topic (vectors, the vote)
          open_page(path)     a page in full
          navigate(path)      moves the visitor's page (one of PAGES)
@@ -111,7 +115,7 @@ async def gate(state: dict, question: str, started: float) -> dict | None:
     # for the answer bank.
     _, vectors = await embeddings.embed([question])
     vector = None if vectors is None else vectors[0]
-    _, relevance = await rag.search(question, vector) if vector is not None else ([], 0.0)
+    found, relevance = await rag.search(question, vector) if vector is not None else ([], 0.0)
     in_scope, gap = gate2.judge(question, vector, relevance)
     verdict = await judge.verdict(judge.REFUSAL_WAIT if not in_scope else judge.WAIT)
     rescued = rescued or (not in_scope and judge.rescues() and bool(verdict and verdict.rescues))
@@ -128,6 +132,8 @@ async def gate(state: dict, question: str, started: float) -> dict | None:
     if _fresh(state) and vector is not None and (hit := cache.from_bank(vector)):
         return _say(hit["text"], "bank", started, model="bank", actions=[{"type": "links", "links": hit["links"]}] if hit.get("links") else [])
     state["rescued"] = rescued
+    # The pre-read: the search the gate already ran, put through the second vote, is what the model reads first.
+    state["preread"] = (await rag.rerank(question, found, top_n=4))[0] if found else []
     return None
 
 
@@ -182,8 +188,13 @@ class Turn:
         while self.history and self.history[0].type != "human":
             self.history = self.history[1:]
         self.actions: list[dict] = list(state.get("actions") or [])
-        self.read: list[dict] = []
+        # What the gate's search found for this message: read before the first round, and remembered like a search.
+        self.preread: list[dict] = list(state.get("preread") or [])
+        self.read: list[dict] = list(self.preread)
         self.points: dict = {}
+        if self.preread:
+            question = _question(state)
+            self.points[question[:80]] = {"ids": [d["id"] for d in self.preread[:2]], "note": self.preread[0]["title"][:MAX_NOTE]}
         self.transcript: list = []  # this turn's tool calls and results: never part of the visitor's conversation
         self.used = {"calls": 0, "tokens_in": 0, "tokens_out": 0, "tokens_counted": 0, "tokens_cached": 0}
         self.tried: list[str] = []
@@ -193,7 +204,8 @@ class Turn:
 
     def prompt_for(self, note: str, final: bool):
         def build(m: llm.FreeModel):
-            system = SystemMessage(agent_prompt(self.level, self.memory.notes(), note, final=final, economy=self.economy))
+            system = SystemMessage(agent_prompt(self.level, self.memory.notes(), note, final=final, economy=self.economy,
+                                                context=passages(self.preread) if self.preread else ""))
             turns = list(self.history)
             while turns:
                 prompt = [system, *turns, *self.transcript]
@@ -308,4 +320,5 @@ async def respond(state: dict) -> dict:
             **({"why": why} if why else {}), **({"rescued": True} if state.get("rescued") else {}),
             "usage": {**turn.used, "latency_ms": ms, "switches": 0, "trims": 0, f"level_{turn.level}": 1},
             "trace": _step("respond", started, level=turn.level, model=turn.model, rounds=turn.rounds, searches=turn.searches,
-                           read=len(turn.read), tried=turn.tried, economy=turn.economy, judge=verdict.summary() if verdict else None)}
+                           preread=len(turn.preread), read=len(turn.read), tried=turn.tried, economy=turn.economy,
+                           judge=verdict.summary() if verdict else None)}
