@@ -46,6 +46,7 @@ jobs:
       - run: pip install -r requirements-dev.txt
 
       - name: Rebuild knowledge, search index, scope bank and answer bank (each skips itself if nothing changed)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run measures the rest even when the bank falls short
         run: npm run content && python -m agent.build_index && python -m agent.build_answers
 
       - name: Difficulty levels (rules, no API calls)

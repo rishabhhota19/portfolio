@@ -56,9 +56,25 @@ async def paraphrase(questions: list[str]) -> list[list[str]]:
 
 
 def passes(intent: dict, answer: str) -> bool:
+    return not failing(intent, answer)
+
+
+def failing(intent: dict, answer: str) -> str:
+    """Why an answer may not go into the bank, or "" when it may."""
     text = answer.translate(SMART_QUOTES)
-    return (bool(answer.strip()) and not guard.is_refusal(answer) and guard.check(answer) is None and guard.clean(answer) == answer
-            and all(re.search(p, text, re.I) for p in intent["include"]) and not any(re.search(p, text, re.I) for p in intent["exclude"]))
+    if not answer.strip():
+        return "empty"
+    if guard.is_refusal(answer):
+        return "refusal"
+    if why := guard.check(answer):
+        return f"guard:{why}"
+    if guard.clean(answer) != answer:
+        return "guard:cleaned"
+    if missing := [p for p in intent["include"] if not re.search(p, text, re.I)]:
+        return "missing " + " ".join(f"/{p}/" for p in missing)
+    if forbidden := [p for p in intent["exclude"] if re.search(p, text, re.I)]:
+        return "contains " + " ".join(f"/{p}/" for p in forbidden)
+    return ""
 
 
 async def main() -> None:
@@ -86,10 +102,10 @@ async def main() -> None:
             state = await agent.ainvoke({"messages": [HumanMessage(intent["q"])]})
             answer = state["messages"][-1].content if state["messages"][-1].type == "ai" else ""
             if state.get("model") in UNANSWERED:  # free quotas used up: left out now, written by the next build
-                print(f"  no free model right now (retried next build): {intent['q']}")
+                print(f"::notice::answer bank: no free model right now (retried next build): {intent['q']}")
                 continue
-            if not passes(intent, answer):
-                print(f"  skipped (failed its checks): {intent['q']}")
+            if why := failing(intent, answer):  # a notice: the run page shows it without a sign-in
+                print(f"::notice::answer bank: skipped '{intent['q'][:60]}' — {why} ({state.get('model', '')}): {' '.join(answer.split())[:140]!r}")
                 continue
             # What the agent chose to show goes first: a bank answer's first link is where it takes the visitor.
             links = [{"path": a["path"], "label": a["label"]} for a in state.get("actions", []) if a["type"] == "navigate"]
