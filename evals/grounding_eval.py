@@ -1,19 +1,26 @@
 """Does the grounding check (agent/grounding.py) catch a wrong number and leave a right one alone?
 
-    python -m evals.grounding_eval          # the real checker models (keys needed)
-    python -m evals.grounding_eval --dry    # the acceptance rules alone, on canned checker replies: no keys
+    python -m evals.grounding_eval            # the shipped pool in its order: what production does (keys needed)
+    python -m evals.grounding_eval --models   # every model of the pool on its own: which checker to lead with
+    python -m evals.grounding_eval --dry      # the acceptance rules alone, on canned checker replies: no keys
 
 Each case is an answer written from real site passages with one planted mistake — a result of another project, a
-wrong quarter, a wrong city, an invented tool — that must come back corrected (the planted value gone, the right one
-present when the sources have it), or a correct answer, including a fair paraphrase, that must come back unchanged.
-Reports caught / false alarms. Informational on the real models until a first CI run has measured it (it exits 0 and
-prints a warning when a planted mistake gets through); --dry fails on any acceptance rule that misbehaves.
+wrong quarter, a wrong city, an invented tool, a false premise — that must come back corrected (the planted value
+gone, the right one present when the sources have it), or a correct answer, including a fair paraphrase, that must
+come back unchanged. Two numbers: caught (of the planted mistakes) and false alarms (right answers that were
+changed; a check that skipped or was rejected leaves the answer alone and is not an alarm). Each case prints a
+::notice:: line, so the run page shows the outcomes without a sign-in. Informational on the real models until the
+numbers say which model to lead with (it exits 0 and warns); --dry fails on any acceptance rule that misbehaves.
+
+First CI run (19 Nov 2026, run #91, Nemotron Lightning first): caught 2/5, false alarms 2/4.
 """
 
 import asyncio
+import statistics
 import sys
+from dataclasses import replace
 
-from agent import grounding
+from agent import grounding, llm
 from agent.config import KNOWLEDGE
 
 DOCS = {d["id"]: d for d in KNOWLEDGE["docs"]}
@@ -80,27 +87,64 @@ def dry() -> int:
     return 1 if failed else 0
 
 
-async def real() -> int:
-    caught = should_catch = alarms = should_keep = 0
+def outcome(expect: tuple, answer: str, result: grounding.Grounding) -> tuple[bool, str]:
+    """(passed, what happened): caught / missed / changed-wrong for a planted mistake; kept / false alarm for a right answer."""
+    if expect[0] == "fixed":
+        _, gone, present = expect
+        if result.why != "fixed":
+            return False, f"missed ({result.why})"
+        right = gone.lower() not in result.text.lower() and (not present or present.lower() in result.text.lower())
+        return right, "caught" if right else "changed, still wrong"
+    if result.text == answer:
+        return True, "kept" if result.why == "ok" else f"kept ({result.why})"
+    return False, "FALSE ALARM: a right answer was changed"
+
+
+async def run_cases(label: str, notices: bool) -> tuple[int, int, int, int, float]:
+    caught = planted = alarms = right = 0
+    times = []
     for case_id, question, answer, ids, expect in CASES:
         result = await grounding.check(question, answer, [DOCS[i] for i in ids])
+        passed, what = outcome(expect, answer, result)
         if expect[0] == "fixed":
-            _, gone, present = expect
-            should_catch += 1
-            ok = result.why == "fixed" and gone.lower() not in result.text.lower() and (not present or present.lower() in result.text.lower())
-            caught += ok
+            planted += 1
+            caught += passed
         else:
-            should_keep += 1
-            ok = result.why == "ok" and result.text == answer
-            alarms += not ok
-        print(f"{'PASS' if ok else 'FAIL'}  {case_id:<16} {result.why:<20} {result.model.split('/')[-1]:<22} {result.ms:>5} ms"
-              + ("" if ok else f"\n      got: {result.text[:160]!r}"))
+            right += 1
+            alarms += not passed
+        times.append(result.ms)
+        line = f"{case_id}: {what} — {result.model.split('/')[-1] or 'no model'}, {result.ms} ms"
+        print(f"{'PASS' if passed else 'FAIL'}  {label:<24} {line}" + ("" if passed else f"\n      got: {result.text[:200]!r}"))
+        if notices:
+            print(f"::notice::grounding {label}: {line}")
         await asyncio.sleep(2)
-    print(f"\ncaught {caught}/{should_catch} planted mistakes; false alarms {alarms}/{should_keep}")
-    if caught < should_catch or alarms:
-        print(f"::warning::grounding check: caught {caught}/{should_catch}, false alarms {alarms}/{should_keep} — read evals/grounding_eval.py's output")
+    return caught, planted, alarms, right, statistics.median(times) if times else 0.0
+
+
+async def real(per_model: bool) -> int:
+    pool = [n for n in llm.GROUNDING_POOL if llm.M[n].available]
+    if not pool:
+        print("::warning::grounding check: no checker model has a key here — nothing measured")
+        return 0
+    rows = []
+    if per_model:
+        shipped = grounding.TIER
+        for name in pool:
+            grounding.TIER = replace(shipped, pool=[name])
+            rows.append((name, *await run_cases(name, notices=False)))
+        grounding.TIER = shipped
+    else:
+        rows.append(("shipped pool", *await run_cases("shipped pool", notices=True)))
+    print(f"\n{'checker':<26} {'caught':>8} {'false alarms':>13} {'median ms':>10}")
+    for name, caught, planted, alarms, right, ms in rows:
+        print(f"{name:<26} {caught:>4}/{planted:<3} {alarms:>8}/{right:<4} {ms:>10.0f}")
+        if per_model:
+            print(f"::notice::grounding checker {name}: caught {caught}/{planted}, false alarms {alarms}/{right}, {ms:.0f} ms")
+    name, caught, planted, alarms, right, _ = rows[0]
+    if not per_model and (caught < planted or alarms):
+        print(f"::warning::grounding check: caught {caught}/{planted}, false alarms {alarms}/{right} — the ::notice:: lines above say which cases")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(dry() if "--dry" in sys.argv else asyncio.run(real()))
+    sys.exit(dry() if "--dry" in sys.argv else asyncio.run(real("--models" in sys.argv)))

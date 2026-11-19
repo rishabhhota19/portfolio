@@ -30,9 +30,13 @@ Still to do:
 - **Level by the model**, planned with him: `difficulty.py`'s regex calls "where has he worked" and "has he done any
   research?" one-fact questions (L1, 2 chunks). The judge already reads every turn; its verdict could carry the level.
   Needs its own eval (evals/difficulty.json).
-- **Grounding check: measure it in CI, then enforce.** `evals/grounding_eval.py` runs on the real checker models with a
-  warning, not a failure, until its first CI numbers are read (caught x/5 planted mistakes, false alarms y/3). Then
-  make it fail CI, and consider RAGAS faithfulness on a small sample.
+- **Grounding check: weak as first measured — pick the checker by measurement, then enforce.** CI run #91 (19 Nov 2026,
+  Nemotron Lightning first): caught 2/5 planted mistakes, false alarms 2/4 (that metric counted a skipped check on a
+  right answer as an alarm; the eval now counts only changed text). `evals/grounding_eval.py` prints a `::notice::`
+  per case on the run page (readable without a GitHub login) and `--models` scores every pool model on its own; the
+  CI step runs both. Lead with the model those numbers choose, tighten the prompt, then make the eval fail CI and
+  consider RAGAS faithfulness on a small sample. Fastest loop: his `.env.local` on the machine, so the checker can be
+  iterated locally instead of once per 35-minute CI run. `lcsnet-oa-trap` is still outside the passing baseline.
 
 ## 2. Hallucination seen live: facts mixed between projects
 The small L1/L2 models said "LCSNet achieved 98% accuracy on osteoarthritis X-ray grading". False: LCSNet is dental

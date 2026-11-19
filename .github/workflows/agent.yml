@@ -78,6 +78,9 @@ jobs:
       - name: Grounding check (planted mistakes caught, right answers left alone; a warning until it has been measured in CI)
         run: python -m evals.grounding_eval
 
+      - name: Grounding check, every pool model on its own (which checker to lead with; informational)
+        run: python -m evals.grounding_eval --models
+
       - name: Selling by showing (takes the visitor to the right proof unasked, stays put when it should, replies stay short)
         run: python -m evals.showing_eval
 
