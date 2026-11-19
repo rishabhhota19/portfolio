@@ -1,6 +1,6 @@
 {
- "version": "b4ce5e947e",
- "model": "BAAI/bge-small-en-v1.5",
+ "version": "6c29faf27d",
+ "model": "BAAI/bge-small-en-v1.5 v2",
  "intents": [
   {
    "q": "What is Rishabh's current role?",
@@ -14,7 +14,7 @@
     "Can you tell me his current employment role?",
     "What does his current job entail?"
    ],
-   "text": "**Rishabh is Sr. AI Researcher at Simplilearn, on-site in Bengaluru, since Mar 2026.**\n- Leads hands-on research into new AI technology and turns it into automation for the business\n- Built the Product Launch System: AI automation with a human in the loop connecting product, content and design teams from programme sheet to editable Illustrator artwork; in use as an internal tool\n- Automates complex multi-step business workflows with AI agents and agentic orchestration\n\nNext step: **Book a call** below to talk to Rishabh himself, or read his [résumé](/resume).",
+   "text": "**Rishabh is Sr. AI Researcher at Simplilearn, on-site in Bengaluru, since March 2026.**\n- Leads hands-on research into new AI technology and turns it into automation for the business\n- Built the Product Launch System connecting product, content review and design teams from programme sheet to editable Illustrator artwork\n- Automates complex multi-step business workflows with AI agents\n\nNext step: **Book a call** below to talk to Rishabh himself, or read his [résumé](/resume).",
    "links": [],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
   },
@@ -30,7 +30,7 @@
     "What percentage accuracy did his osteoarthritis model achieve?",
     "How well did his osteoarthritis model perform?"
    ],
-   "text": "**The Kellgren–Lawrence classifier reached 98% accuracy and AUC.**\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): 98% accuracy and AUC on knee X-rays\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): >90% concordance with radiologists\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): deployed at Fortis Hospital, Nagarbhavi",
+   "text": "**The knee X-ray model graded osteoarthritis at 98% accuracy and AUC.**\n- Kellgren–Lawrence grading at 98% accuracy and AUC\n- More than 90% concordance with radiologists\n- Deployed at Fortis Hospital, Nagarbhavi, Bengaluru",
    "links": [
     {
      "path": "/projects/oa-classification",
@@ -51,7 +51,7 @@
     "Which teams does his Product Launch System tie into?",
     "Which teams does Rishabh's Product Launch System connect?"
    ],
-   "text": "The Product Launch System connects three teams: product managers who own the programme facts and story, a content review team that approves every word, and designers who rebuild the approved pages in Adobe Illustrator. Each team runs the same Claude Agent Skill on shared files with shared rules, so hand-offs are no longer emails and PDFs.",
+   "text": "The Product Launch System connects three teams: product managers who own the programme facts and story, a content team that reviews and approves every word, and designers who rebuild the approved pages by hand in Adobe Illustrator.",
    "links": [
     {
      "path": "/projects/product-launch-system",
@@ -72,7 +72,7 @@
     "How many versions of the Product Launch System has he put out?",
     "How many versions of his Product Launch System has Rishabh shipped?"
    ],
-   "text": "He shipped **88 versions** of the Product Launch System in eleven weeks — v1 in August 2026 to v88 in late October 2026 — each tested and released as an internal tool.",
+   "text": "He shipped 88 versions of the Product Launch System in eleven weeks, from v1 in August 2026 to v88 in late October 2026.",
    "links": [
     {
      "path": "/projects/product-launch-system",
@@ -93,11 +93,11 @@
     "Tell me about the award he won at Simplilearn.",
     "Did he get recognized with an award at Simplilearn?"
    ],
-   "text": "He won the Best Team Award (Q3) for automating collateral creation for new program launches, cutting turnaround from 7–10 days to 1 day.",
+   "text": "He won the Best Team Award (Q3) for automating collateral creation, cutting turnaround from 7–10 days to 1 day.",
    "links": [
     {
-     "path": "/experience#02-simplilearn-ai-researcher",
-     "label": "AI Researcher at Simplilearn"
+     "path": "/experience",
+     "label": "Experience"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
@@ -114,7 +114,7 @@
     "What school did he get his degree from?",
     "Where did Rishabh study for his degree?"
    ],
-   "text": "He studied Electronics & Communication Engineering at B.M.S. College of Engineering, Bangalore, graduating in 2023. He also holds a B.E. from the same college.",
+   "text": "He studied Electronics & Communication Engineering at B.M.S. College of Engineering, Bangalore, graduating in 2023. He also earned a B.E. from the same college.",
    "links": [
     {
      "path": "/experience",
@@ -135,7 +135,7 @@
     "Can you give me the F1 score of LCSNet?",
     "How well did LCSNet score on F1?"
    ],
-   "text": "**LCSNet reached an F1-score of 71.7% on dental caries segmentation.**\n- [LCSNet — Lightweight Caries Segmentation Network](/publications#lcsnet): F1-score of 71.7%, IoU of 56.8%, validated by expert dentists",
+   "text": "**LCSNet reached an F1-score of 71.7% for dental caries segmentation.**\n- [LCSNet — Lightweight Caries Segmentation Network](/publications#lcsnet): F1-score of 71.7% and IoU of 56.8%, published in Intelligence-Based Medicine (Elsevier, IF 2.3), Oct 2025.",
    "links": [
     {
      "path": "/publications#lcsnet",
@@ -156,7 +156,7 @@
     "What academic venue published LCSNet?",
     "In what journal/conference is LCSNet published?"
    ],
-   "text": "LCSNet was published in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3) in October 2025.",
+   "text": "**Published in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3) in October 2025.**",
    "links": [
     {
      "path": "/publications#lcsnet",
@@ -177,7 +177,7 @@
     "How would you describe QFPViT?",
     "What did he do with QFPViT?"
    ],
-   "text": "**QFPViT is a fidelity-phase quantum self-attention operator for Vision Transformers, evaluated on MedMNIST medical-imaging benchmarks.**\n- He built it with no prior quantum-computing background\n- Paper communicated to the journal Quantum\n- Evaluated on MedMNIST medical-imaging benchmarks",
+   "text": "**QFPViT is a fidelity-phase quantum self-attention operator for Vision Transformers, evaluated on MedMNIST medical-imaging benchmarks.**\n- He designed it with no prior quantum-computing background\n- Paper communicated to Quantum journal\n- Evaluated on MedMNIST medical-imaging benchmarks",
    "links": [
     {
      "path": "/publications#qfpvit",
@@ -198,7 +198,7 @@
     "Has he integrated MCP into his work?",
     "What has he built with MCP?"
    ],
-   "text": "Yes — he built TurboTrade, a Zerodha MCP trading copilot. MCP keeps API keys out of prompts and OAuth scopes guard capital; every step is logged and reversible; models and brokers can be swapped without rewrites; it was built to stay compliant with Indian rules. ([TurboTrade](/projects/turbotrade))",
+   "text": "He built TurboTrade, a Zerodha MCP trading copilot. MCP keeps API keys out of prompts, OAuth scopes guard capital, every step is logged and reversible, and models or brokers can be swapped without rewrites. It was built to stay compliant with Indian rules. ([TurboTrade](/projects/turbotrade))",
    "links": [
     {
      "path": "/projects/turbotrade",
@@ -219,7 +219,7 @@
     "How did he build the sales training chatbot?",
     "What tech stack did he use for the sales chatbot?"
    ],
-   "text": "**He built it with FAISS vector indexing, Gemini orchestrated through Google ADK, and a Streamlit training UI.**\n- [Scalable Sales Training Chatbot](/projects/sales-training-chatbot): FAISS, Gemini, Google ADK, Streamlit",
+   "text": "**FAISS, Gemini and Google ADK power the Scalable Sales Training Chatbot.**\n- FAISS vector-indexes the knowledge base\n- Gemini is orchestrated through Google ADK\n- Streamlit runs the training UI",
    "links": [
     {
      "path": "/projects/sales-training-chatbot",
@@ -240,7 +240,7 @@
     "Has he trained or fine-tuned any LLMs?",
     "Which LLMs has he fine-tuned and using what tooling?"
    ],
-   "text": "He fine-tunes small models for one job, served on your hardware. He has LoRA and QLoRA fine-tunes of Gemma, Llama and Phi using Unsloth and TRL, with 4-bit and 8-bit supervised fine-tuning on custom data. He also runs KV-cache and batching for throughput, and serves models OpenAI‑compatible with vLLM, Ollama or llama.cpp. He demonstrated this by running Gemma 3n offline on Android inside a custom chatbot app, and by generating thirty minutes of consistent speech with Qwen 3 TTS without drift.\n\n- [Fine‑tuning and serving](/services#fine-tuning-serving): LoRA/QLoRA of Gemma, Llama and Phi with Unsloth and TRL; 4‑bit/8‑bit fine",
+   "text": "He has fine-tuned LLMs using LoRA and QLoRA with Unsloth and TRL. He has also quantised and served models with vLLM, Ollama or llama.cpp, down to on-device. He ran Gemma 3n offline on Android inside a custom chatbot app. He has also done long-form speech generation with Qwen 3 TTS.",
    "links": [
     {
      "path": "/services#fine-tuning-serving",
@@ -261,7 +261,7 @@
     "Has he deployed on any cloud platforms?",
     "Which cloud platforms does he know?"
    ],
-   "text": "He's used AWS and Azure in production. At OsteosConnect he built an osteoarthritis X-ray pipeline on AWS (S3, Lambda, SageMaker, EC2) that grades knees at 98% accuracy and reports to doctors in under two minutes. He also designed agentic systems with Azure AI Foundry.",
+   "text": "He's used AWS and Azure AI Foundry across his roles, with AWS S3, Lambda, SageMaker, EC2 and Bedrock, and Azure AI Foundry for model deployment and pipelines.",
    "links": [
     {
      "path": "/experience",
@@ -282,7 +282,7 @@
     "Did he work from home for OsteosConnect?",
     "Is his OsteosConnect experience remote?"
    ],
-   "text": "Yes — his OsteosConnect Inc role was remote, based in California, from Feb 2024 to Mar 2025.",
+   "text": "Yes, his OsteosConnect role was fully remote — AI Engineer (Feb 2024 – Mar 2025) and AI/ML Intern (Jul 2023 – Jan 2024), both listed as Remote, California.",
    "links": [
     {
      "path": "/experience",
@@ -303,7 +303,7 @@
     "How many years has he been in the industry?",
     "What is his level of experience in years?"
    ],
-   "text": "He has 3+ years of experience turning AI research into production prototypes and AWS-hosted pipelines, starting from his AI/ML Internship at Smartknower in late 2020.",
+   "text": "He has 3+ years of professional experience turning AI research into production prototypes and AWS-hosted pipelines, starting from his AI/ML Intern role at Smartknower in 2021.",
    "links": [
     {
      "path": "/experience",
@@ -324,7 +324,7 @@
     "What does his AI teddy bear do?",
     "How does the AI teddy bear project work?"
    ],
-   "text": "The AI Teddy Bear (MVP) is a storytelling toy for children that speaks in a personalized character voice. It’s open source, guardrailed for safety, and built to work on hardware or a companion app. If a recruiter wants deeper specs, Rishabh can share more directly.",
+   "text": "The AI Teddy Bear (MVP) is a storytelling toy for children with its own character voice. It’s open source, guardrailed for safety, and built to work as hardware or a companion app. Rishabh designed it so children feel comfortable with personalized stories. If a recruiter wants specifics beyond what’s shown, he can share more directly.",
    "links": [
     {
      "path": "/projects/ai-teddy-bear",
@@ -345,13 +345,8 @@
     "Which languages and machine learning frameworks is he proficient in?",
     "What does his programming and ML toolkit look like?"
    ],
-   "text": "**Python is his main language, with PyTorch, LangChain, LangGraph, FastAPI and scikit-learn among his frameworks.**\n- Python, scikit-learn, TensorFlow, PyTorch, PyTorch Lightning\n- LangChain, LangGraph, Google ADK, CrewAI, FastAPI\n- Pandas, NumPy, asyncio, FastMCP, gRPC, Pydantic",
-   "links": [
-    {
-     "path": "/experience",
-     "label": "Experience"
-    }
-   ],
+   "text": "**Python is his main language, with PyTorch, TensorFlow, LangChain, LangGraph, Google ADK, CrewAI, FastAPI and scikit-learn.**\n- Python, scikit-learn, TensorFlow, PyTorch, PyTorch Lightning\n- LangChain, LangGraph, Google ADK, OpenAI SDK, CrewAI, FastAPI, FastMCP\n- Unsloth, LoRA and QLoRA, vLLM, Ollama, llama.cpp",
+   "links": [],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
   },
   {
@@ -366,7 +361,7 @@
     "Any past internships on his resume?",
     "What internship experience does he list?"
    ],
-   "text": "Yes — two internships are on his record. At OsteosConnect Inc he was an AI/ML Intern (Jul 2023 – Jan 2024), where he built an osteoarthritis X-ray pipeline that hit 98% Kellgren–Lawrence grading accuracy and was deployed at Fortis Nagarbhavi; the site notes it tested in a randomised controlled trial at SRM Trichy. Before that, he was a Data Science & ML Intern at Smartknower Pvt Ltd (Nov 2020 – Jan 2021).",
+   "text": "Yes — two internships are on record. At Smartknower (Bangalore) he was a Data Science & ML Intern from Nov 2020 to Jan 2021, and at OsteosConnect Inc he was an AI/ML Intern from Jul 2023 to Jan 2024, where he built the osteoarthritis X-ray pipeline that hit 98% Kellgren–Lawrence grading accuracy and was deployed at Fortis Nagarbhavi.",
    "links": [
     {
      "path": "/experience",
@@ -387,7 +382,7 @@
     "What was his role in the COVID-19 decision support project?",
     "What was the impact of his COVID-19 decision support system?"
    ],
-   "text": "**COVID-19 Decision Support System was an IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays.**\n- [COVID-19 Decision Support System](/projects/covid-decision-support): 6th place college-wide, team of four, Oct 2022 – Apr 2023\n- Stage one screens vitals and symptoms; stage two adds chest X-ray analysis\n- Final rule-based engine outputs a report with recommended next steps",
+   "text": "**COVID-19 Decision Support System** — an IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays.\n- [COVID-19 Decision Support System](/projects/covid-decision-support): 6th place college-wide, BMSCE, team of four, Oct 2022 – Apr 2023\n- Stage one screens vitals and symptoms; stage two adds chest X-ray analysis for deeper diagnosis\n- Rule-based engine combines all inputs into a report with recommended next steps",
    "links": [
     {
      "path": "/projects/covid-decision-support",
@@ -408,15 +403,19 @@
     "What's Rishabh's setup as an agent here?",
     "How is the Rishabh agent implemented on this website?"
    ],
-   "text": "**It's a LangGraph agent with hybrid RAG, five refusal gates, per-visitor rate limits, a daily budget, and tab-only memory.**\n- [How the AI agent on this site works](/blog/how-my-portfolio-agent-works): 0 leaks on 76 attack prompts; refused 32 of 33 held-out prompts, 24 before any LLM\n- [AI Portfolio Agent](/projects/portfolio-agent): Python suites check retrieval, facts, guardrails and refusals; RAGAS scores faithfulness and answer relevancy\n- [AI Portfolio Agent](/projects/portfolio-agent): memory lives only in the visitor's open tab; only a short AI summary is logged to a Google Sheet",
+   "text": "**It's a LangGraph agent in Python with retrieval measured at the depth he reads, a grounding check, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.**\n- [How the AI agent on this site works](/blog/how-my-portfolio-agent-works): 0 leaks on 76 attack and off-topic prompts\n- [How the AI agent on this site works](/blog/how-my-portfolio-agent-works): refused 32 of 33 held-out rule prompts, 24 before any LLM\n- [How the AI agent on this site works](/blog/how-my-portfolio-agent-works): 0 false refusals on 47 real recruiter questions\n\nHe can take you to pages like [Product Launch System](/projects/product-launch-system) or [LCSNet](/publications#lcsnet) after an answer.",
    "links": [
     {
      "path": "/blog/how-my-portfolio-agent-works",
      "label": "How the AI agent on this site works"
     },
     {
-     "path": "/projects/portfolio-agent",
-     "label": "AI Portfolio Agent"
+     "path": "/projects/product-launch-system",
+     "label": "Product Launch System"
+    },
+    {
+     "path": "/publications#lcsnet",
+     "label": "LCSNet"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
@@ -433,14 +432,18 @@
     "Can he use LangGraph in a production setting?",
     "What is his experience with LangGraph in production?"
    ],
-   "text": "**Yes — his own AI Portfolio Agent on this site runs on LangGraph in production.**\n- Live since October 2026 on rishabh-hota.vercel.app, serving real visitors\n- LangGraph graph in Python with FastAPI on Vercel, Sentry error monitoring, evals on every push\n- Hybrid RAG, five-gate refusal pipeline, page navigation, 17 free LLMs on a ₹0/month stack\n\nHe also uses LangGraph in his services work — see [Agentic systems](/services#agentic-systems).",
+   "text": "Yes. Dumbledore, the LangGraph agent that powers this site, has been live since October 2026, serving real visitors with error monitoring (Sentry) and evals on every push. It runs on FastAPI on Vercel and uses a five-gate refusal pipeline, retrieval measured at the depth the writer reads, and a grounding check — all on a ₹0/month LLM stack. [How the AI agent on this site works](/blog/how-my-portfolio-agent-works)",
    "links": [
     {
      "path": "/projects/portfolio-agent",
      "label": "AI Portfolio Agent"
+    },
+    {
+     "path": "/blog/how-my-portfolio-agent-works",
+     "label": "How the AI agent on this site works"
     }
    ],
-   "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
+   "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "q": "Has he worked with vLLM or Ollama?",
@@ -454,7 +457,7 @@
     "Does he know how to use vLLM or Ollama?",
     "Have you seen him use vLLM or Ollama in projects?"
    ],
-   "text": "He's used both: the Product Launch System runs inference with vLLM and Ollama to generate Illustrator artwork from programme sheets, and he's served small models with Ollama and llama.cpp in his fine-tuning and serving work.",
+   "text": "He's built production inference pipelines with both. The Product Launch System runs vLLM for high-throughput generation and Ollama for local fallback — he's tuned models with LoRA/QLoRA, served them on vLLM and Ollama, and used quantization (GGUF, AWQ) to keep latency low. The system's 88 tested versions in eleven weeks all hit production via those stacks.",
    "links": [
     {
      "path": "/projects/product-launch-system",
@@ -475,7 +478,7 @@
     "What projects did he work on at Smartknower?",
     "What was his experience at Smartknower like?"
    ],
-   "text": "**He was a Data Science & ML Intern at Smartknower Pvt Ltd from Nov 2020 to Jan 2021.**\n- Built a full ETL pipeline, feature engineering and predictive models\n- Developed Power BI dashboards for sales forecasting\n- Presented actionable insights from the forecasts",
+   "text": "**He built a full ETL pipeline, feature engineering and predictive models as a Data Science & ML Intern at Smartknower Pvt Ltd.**\n- [Data Science & ML Intern at Smartknower Pvt Ltd](/experience#05-smartknower-intern): Nov 2020 – Jan 2021\n- Built Power BI dashboards for sales forecasting and presented actionable insights",
    "links": [
     {
      "path": "/experience#05-smartknower-intern",
@@ -496,7 +499,7 @@
     "Did he get a paper published in Springer?",
     "Have his academic works appeared in Springer?"
    ],
-   "text": "Yes — his paper **Depression Identification Decision Support System** is in the Springer Lecture Notes in Computer Science series (2024). It’s a matched‑budget study on multimodal depression detection. [Depression Identification Decision Support System](/publications#didss)",
+   "text": "Yes — his paper **Depression Identification Decision Support System** was published in *Advanced Machine Learning for Real World Applications* (Springer, 2023). It's a chapter in the book *Advanced Machine Learning for Real World Applications*.",
    "links": [
     {
      "path": "/publications#didss",
@@ -517,7 +520,7 @@
     "Could Rishabh succeed as a Forward Deployed Engineer?",
     "Is Rishabh the right candidate for Forward Deployed Engineer?"
    ],
-   "text": "**He is a strong fit for Forward Deployed Engineer.**\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): 98% accuracy and AUC, deployed at Fortis Nagarbhavi, Bengaluru, tested in a randomised controlled trial at SRM Trichy.\n- [Product Launch System](/projects/product-launch-system): 88 tested versions in eleven weeks, one human-in-the-loop system connecting product, content review and design teams, in use as an internal tool.\n- [AI Portfolio Agent](/projects/portfolio-agent): live production LangGraph agent on his site since October 2026, hybrid RAG, evals on every push, Sentry monitoring, 17 free LLMs on a ₹0/month stack.\n\n**Book a call** below, his [résumé](/resume), or the **Share your details** button below.",
+   "text": "**He is a strong fit for a Forward Deployed Engineer role.**\n- Built an osteoarthritis X-ray pipeline deployed at Fortis Hospital, Bengaluru [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification)\n- Built an N8N multi-agent system at Simplilearn cutting course-launch collateral from 7–10 days to 1 day [Product Launch System](/projects/product-launch-system)\n- Works with AWS EC2, Lambda, API Gateway, TensorFlow and FastAPI end-to-end [Experience](/experience)\n\n**Book a call** below, or see his [résumé](/resume).",
    "links": [
     {
      "path": "/projects/oa-classification",
@@ -526,10 +529,6 @@
     {
      "path": "/projects/product-launch-system",
      "label": "Product Launch System"
-    },
-    {
-     "path": "/projects/portfolio-agent",
-     "label": "AI Portfolio Agent"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
@@ -546,7 +545,7 @@
     "Where is he working from?",
     "Where is Rishabh currently residing?"
    ],
-   "text": "He's based in Bengaluru, India, where he works on-site as Sr. AI Researcher at Simplilearn. He also collaborates remotely with OsteosConnect Inc in California on the osteoarthritis X-ray pipeline.",
+   "text": "He's based in Bengaluru, India, where he works on-site at Simplilearn. His remote role at OsteosConnect was with a California team.",
    "links": [
     {
      "path": "/experience",
@@ -583,7 +582,7 @@
     "Publications by Rishabh?",
     "Rishabh's publication history?"
    ],
-   "text": "**Yes — seven publications, including LCSNet in Intelligence-Based Medicine (Elsevier, Impact Factor 2.3), published Oct 2025.**\n- [LCSNet](/publications#lcsnet): dental caries segmentation from smartphone photos\n- [DIDSS](/publications#didss): depression identification decision support system, Springer book chapter\n- [COVID-19 Classification with Chest CT](/publications#covid-ct): submitted to Inderscience journal\n\nWant to see all seven? [Research](/publications)",
+   "text": "**Yes — seven publications, two published.**\n- LCSNet — Intelligence-Based Medicine (Elsevier, IF 2.3), Oct 2025\n- Depression Identification Decision Support System — Springer book chapter, published\n- QFPViT — Quantum journal, under review\n\nHis [research page](/publications) lists all seven with links to the papers.",
    "links": [
     {
      "path": "/publications",
@@ -604,7 +603,7 @@
     "What has Rishabh published?",
     "Rishabh's publication record"
    ],
-   "text": "**Seven papers across medical imaging, vision transformers and decision support.**\n- LCSNet — Elsevier's Intelligence-Based Medicine, Impact Factor 2.3, Oct 2025\n- QFPViT — Quantum journal, under review\n- Quantum-inspired feature maps study — Quantum Machine Intelligence, under review\n- Depression Identification Decision Support System — Springer book chapter, published\n- COVID-19 chest CT classification — Inderscience, submitted\n- Multi-modal COVID-19 prediction — Inderscience, under review\n- OA classification and reporting — with OsteosConnect, in progress\n\nHis [research page](/publications) lists all seven with links.",
+   "text": "**Seven papers across medical imaging, vision transformers and decision support.**\n- LCSNet — Intelligence-Based Medicine (Elsevier, IF 2.3), published Oct 2025\n- QFPViT — Quantum journal, under review\n- Depression Identification Decision Support System — Springer book chapter, published\n- COVID-19 Classification with Chest CT — Inderscience, submitted\n- OA Classification and Reporting using Agentic AI — with OsteosConnect, in progress",
    "links": [
     {
      "path": "/publications",
@@ -625,15 +624,15 @@
     "Rishabh's best research output",
     "Rishabh's most notable research"
    ],
-   "text": "**His strongest published research is LCSNet, a lightweight caries segmentation network for dental caries from smartphone photographs.**\n- [LCSNet](/publications#lcsnet): Intelligence-Based Medicine (Elsevier, IF 2.3), published Oct 2025\n- [OA Classification and Reporting](/projects/oa-classification): 98% Kellgren–Lawrence accuracy, tested at SRM Trichy and deployed at Fortis Nagarbhavi\n- [COVID-19 Classification with Chest CT](/publications#covid-ct): IEEE Xplore document 10957133",
+   "text": "**His strongest published research is LCSNet, a lightweight caries segmentation network for dental caries from smartphone photographs.**\n- [LCSNet](/publications#lcsnet): Intelligence-Based Medicine (Elsevier, IF 2.3), published Oct 2025\n- [OA Classification and Reporting](/projects/oa-classification): 98% Kellgren–Lawrence accuracy, >90% radiologist concordance, deployed at Fortis Nagarbhavi\n- [QFPViT](/publications#qfpvit): quantum self-attention operator for Vision Transformers on MedMNIST, under review at Quantum Journal",
    "links": [
     {
      "path": "/publications#lcsnet",
      "label": "LCSNet"
     },
     {
-     "path": "/publications#covid-ct",
-     "label": "COVID-19 Classification with Chest CT"
+     "path": "/publications#qfpvit",
+     "label": "QFPViT"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
@@ -650,14 +649,18 @@
     "Any research done by Rishabh?",
     "Rishabh's research background"
    ],
-   "text": "**Yes — seven papers, two published.**\n- LCSNet: Lightweight Caries Segmentation Network — Intelligence-Based Medicine (Elsevier, IF 2.3), Oct 2025\n- Depression Identification Decision Support System — Springer book chapter, published\n- QFPViT quantum self-attention for Vision Transformers — Quantum journal, under review",
+   "text": "**LCSNet — Lightweight Caries Segmentation Network for dental caries segmentation from smartphone photographs** (Intelligence-Based Medicine, Elsevier, Impact Factor 2.3; published Oct 2025). He designed the architecture, ran the experiments and co-authored the paper that reports F1-score of 71.7% and IoU of 56.8% on a held-out test set, with expert dentist validation. The work was published October 9, 2025.\n\n- [LCSNet](/publications#lcsnet): F1-score of 71.7%, IoU of 56.8%, expert dentist validation, published Oct 2025\n- [QFPViT](/publications#qfpvit): quantum self-attention operator for Vision Transformers, communicated",
    "links": [
     {
-     "path": "/publications",
-     "label": "Research"
+     "path": "/publications#lcsnet",
+     "label": "LCSNet"
+    },
+    {
+     "path": "/publications#qfpvit",
+     "label": "QFPViT"
     }
    ],
-   "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
+   "source": "nvidia/nvidia/nemotron-3.5-lightning-30b-a3b"
   },
   {
    "q": "list his research papers",
@@ -671,7 +674,7 @@
     "Rishabh's paper list",
     "Rishabh's research publications"
    ],
-   "text": "**His research papers**\n- LCSNet: Lightweight Caries Segmentation Network — Intelligence-Based Medicine (Elsevier, IF 2.3), Oct 2025\n- QFPViT: A Fidelity-Phase Quantum Self-Attention Operator for Vision Transformers — Quantum (journal), under review\n- Do Quantum-Inspired Feature Maps Help Vision Transformer Attention? — Quantum Machine Intelligence (Springer), under review\n- Depression Identification Decision Support System — Springer book chapter, published\n- COVID-19 Classification with Chest CT — International Journal of Computing Science & Mathematics (Inderscience), submitted\n- Multi-Modal Decision Support for COVID-19 Prediction — Inderscience, under review\n- OA Classification and Reporting using Agentic AI and Deep Neural Networks — with OsteosConnect, in progress",
+   "text": "**Seven research papers across medical imaging, vision transformers and decision support.**\n- LCSNet — dental caries segmentation — Intelligence-Based Medicine (Elsevier, IF 2.3), Oct 2025\n- QFPViT — quantum self-attention for Vision Transformers — Quantum journal, under review\n- Depression Identification Decision Support System — Springer book chapter, published\n- COVID-19 Classification with Chest CT — Inderscience, submitted\n- Multi-Modal Decision Support for COVID-19 Prediction — Inderscience, under review\n\nHis [research page](/publications) lists all seven with links to the published papers.",
    "links": [
     {
      "path": "/publications",
@@ -692,19 +695,11 @@
     "Medical imaging publications from Rishabh",
     "Rishabh's contributions to medical imaging"
    ],
-   "text": "**LCSNet: Lightweight Caries Segmentation Network** — published in Elsevier's Intelligence-Based Medicine (Impact Factor 2.3), Oct 2025, for dental caries segmentation from smartphone photographs.\n- [LCSNet](/publications#lcsnet): peer-reviewed, Elsevier, IF 2.3\n- [COVID-19 Classification with Chest CT](/publications#covid-ct): Inderscience, Scopus & ESCI, submitted\n- [Multi-Modal Decision Support for COVID-19 Prediction](/publications#covid-multimodal): Inderscience, under review",
+   "text": "**He has published LCSNet, a lightweight caries segmentation network for dental caries from smartphone photographs, in Elsevier's Intelligence-Based Medicine (Impact Factor 2.3), October 2025.**\n- [LCSNet](/publications#lcsnet): published, Elsevier, IF 2.3, Oct 2025\n- [COVID-19 Classification with Chest CT](/publications#covid-ct): submitted, Inderscience, Scopus & ESCI\n- [Multi-Modal Decision Support for COVID-19 Prediction](/publications#covid-multimodal): under review, Inderscience\n- [OA Classification and Reporting using Agentic AI and Deep Neural Networks](/publications#oa-agentic): in progress with OsteosConnect",
    "links": [
     {
-     "path": "/publications#lcsnet",
-     "label": "LCSNet"
-    },
-    {
-     "path": "/publications#covid-ct",
-     "label": "COVID-19 Classification with Chest CT"
-    },
-    {
-     "path": "/publications#covid-multimodal",
-     "label": "Multi-Modal Decision Support for COVID-19 Prediction"
+     "path": "/publications",
+     "label": "Research"
     }
    ],
    "source": "nvidia/nvidia/nemotron-3.5-super-vl-120b-a12b"
@@ -721,7 +716,7 @@
     "Where has Rishabh been employed?",
     "Rishabh's professional background"
    ],
-   "text": "He's worked at five companies in the last six years, all in India or remote to California. The most recent is Sr. AI Researcher at Simplilearn (on-site, Bengaluru) since March 2026, where he automates complex workflows and leads agentic research. Before that, AI Researcher at Simplilearn (Mar 2025 – Mar 2026). Then AI Engineer at OsteosConnect Inc (remote, California, Feb 2024 – Mar 2025), where he built the osteoarthritis X-ray pipeline with 98% accuracy and deployed it at Fortis Hospital, Bengaluru. He also spent two stints at OsteosConnect as AI/ML Intern (Jul 2023 – Jan 2024) and earlier as Data Science & ML Intern at Smartknower Pvt Ltd",
+   "text": "Rishabh has worked at Simplilearn (Sr. AI Researcher since Mar 2026, AI Researcher Mar 2025–Mar 2026), OsteosConnect Inc (AI Engineer Feb 2024–Mar 2025, AI/ML Intern Jul 2023–Jan 2024) and Smartknower Pvt Ltd (Data Science & ML Intern Nov 2020–Jan 2021).",
    "links": [
     {
      "path": "/experience",
@@ -742,7 +737,7 @@
     "Rishabh's work experience details",
     "Rishabh's employment experience"
    ],
-   "text": "He's Sr. AI Researcher at Simplilearn since Mar 2026, building agentic orchestration and open-source AI. Before that, AI Researcher at Simplilearn (Mar 2025–Mar 2026). Earlier: AI Engineer at OsteosConnect Inc (Feb 2024–Mar 2025), where he led an osteoarthritis X-ray pipeline with 98% Kellgren–Lawrence grading accuracy and deployed at Fortis Bengaluru; AI/ML Intern there (Jul 2023–Jan 2024). He also interned at Smartknower Pvt Ltd (Nov 2020–Jan 2021). Education: B.E. Electronics & Communication, B.M.S. College of Engineering, Bangalore (",
+   "text": "He's worked across three companies, building production AI systems from research prototypes. At Simplilearn since March 2025, he's moved from AI Researcher to Sr. AI Researcher, shipping agentic systems and automating complex workflows. Before that, he led an osteoarthritis X-ray pipeline at OsteosConnect Inc — Kellgren–Lawrence grading at 98% accuracy and AUC, segmentation double-check, report to the doctor in under 2 minutes; tested in a randomised controlled trial at SRM Trichy; deployed at Fortis Nagarbhavi, Bengaluru; >90% concordance with radiologists; outperformed competitor RBKnee. He also spent a stint at Smartknower as a data science intern.\n\n- **Sr. AI Researcher, Simplilearn** (Mar 2026 – present): automating complex workflows, agentic orchestration, open source, and hands-on research into new AI tech.\n- **AI Researcher, Simplilearn** (Mar 20",
    "links": [
     {
      "path": "/experience",
@@ -763,7 +758,7 @@
     "What has Rishabh built?",
     "Rishabh's project list"
    ],
-   "text": "**He has built eleven projects, from medical imaging pipelines to agentic systems.**\n- [Product Launch System](/projects/product-launch-system): 88 tested versions in eleven weeks, in use as an internal tool\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): 98% accuracy and AUC, deployed at Fortis\n- [AI Portfolio Agent](/projects/portfolio-agent): hybrid RAG, five-gate refusal pipeline, 17 free LLMs on a ₹0/month stack",
+   "text": "**He has built 11 projects, from medical imaging pipelines to live multi-agent systems.**\n- [Product Launch System](/projects/product-launch-system): 88 tested versions in eleven weeks, in use internally.\n- [AI-Powered Osteoarthritis Classification & Reporting](/projects/oa-classification): Kellgren–Lawrence grading at 98% accuracy and AUC, report under two minutes.\n- [Scalable Sales Training Chatbot](/projects/sales-training-chatbot): FAISS retrieval, Gemini and Google ADK.\n- [AI Portfolio Agent](/projects/portfolio-agent): LangGraph agent live on this site, 17 free LLMs on a ₹0/month stack.",
    "links": [
     {
      "path": "/projects",
@@ -792,7 +787,7 @@
     "Rishabh's service menu",
     "Rishabh's expertise areas"
    ],
-   "text": "**He offers seven services, each built around a shipped project.**\n- Agentic systems that replace a process: multi-agent workflows with guardrails and evals\n- Retrieval systems that are measured, not assumed: production RAG and Graph RAG with CI evals\n- Small models tuned for one job, served on your hardware: LoRA/QLoRA with vLLM, Ollama or llama.cpp\n- Clinical imaging pipelines, from DICOM to report: X-ray and CT classification, segmentation and reporting on AWS\n- New research, turned into a working demo: paper to prototype in days\n- Teams that can build agents, not just discuss them: code-driven modules and learning hubs\n- AI strategy that ends in a deployed system: model, architecture and production plan",
+   "text": "**He offers seven services: agentic systems, RAG and Graph RAG, small-model fine-tuning and serving, clinical imaging pipelines, research-to-prototype demos, team training, and AI strategy consulting.**\n- [Agentic systems that replace a process](/services#agentic-systems): multi-agent workflows with tool access, guardrails and evals.\n- [Retrieval systems that are measured, not assumed](/services#rag-knowledge): production RAG and Graph RAG with CI evals.\n- [Small models tuned for one job, served on your hardware](/services#fine-tuning-serving): LoRA/QLoRA fine-tunes, quantised and served with vLLM, Ollama or llama.cpp.\n- [Clinical imaging pipelines, from DICOM to report](/services#medical-imaging): X-ray and CT classification, segmentation and reporting on AWS.\n- [New research, turned into a working demo](/services#research-to-prototype): paper or release to code-backed prototype.\n- [Teams that can build agents, not just discuss them](/services#training): code-driven modules for agents, RAG, evaluation and MCP.\n- [AI strategy that ends in a deployed system](/services#consulting): which model, architecture, first build and production run.",
    "links": [
     {
      "path": "/services",
@@ -813,7 +808,7 @@
     "LCSNet's accuracy rate",
     "LCSNet accuracy measurement"
    ],
-   "text": "**LCSNet reached an F1-score of 71.7% and IoU of 56.8% on dental caries segmentation from smartphone photographs.**\n- [LCSNet — Lightweight Caries Segmentation Network](/publications#lcsnet): F1-score 71.7%, IoU 56.8%, fewer parameters and FLOPs than heavier baselines, validated by expert dentists, published Oct 2025 in Intelligence-Based Medicine (Elsevier, IF 2.3).",
+   "text": "**LCSNet reached an F1-score of 71.7% and IoU of 56.8% on dental caries segmentation from smartphone photographs.**\n- [LCSNet — Lightweight Caries Segmentation Network](/publications#lcsnet): F1-score 71.7%, IoU 56.8%, expert-dentist validated, Elsevier Intelligence-Based Medicine, Oct 2025.",
    "links": [
     {
      "path": "/publications#lcsnet",
