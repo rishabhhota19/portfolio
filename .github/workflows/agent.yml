@@ -3,7 +3,7 @@ name: Agent index + evals
 
 on:
   push:
-    branches: [main]
+    branches: [main, agentic]  # agentic: the agent-loop branch is evaluated the same way; its data is never committed
     # Everything on the chat's path, not only the agent: the gateway routes and the agent client are part of it.
     paths: ["content/**", "agent/**", "evals/**", "api/**", "lib/server/**", "app/api/**", "scripts/build-content.ts",
             "requirements*.txt", ".github/workflows/agent.yml"]
@@ -90,6 +90,7 @@ jobs:
         run: python -m evals.advocacy_eval
 
       - name: Commit the agent data and the eval baseline if they changed (Vercel then redeploys)
+        if: github.ref == 'refs/heads/main'  # a branch run measures; only main's data and baseline are kept
         # Only after every eval above passed: a failing eval keeps the new index and answer bank off the site, and the
         # baseline (evals/baseline.json: the cases that must keep passing) only ever grows on a green run.
         run: |
