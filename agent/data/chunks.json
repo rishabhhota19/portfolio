@@ -1299,5 +1299,93 @@
    "football",
    "poetry"
   ]
+ },
+ {
+  "id": "page:projects#0",
+  "title": "Projects: all 11, in the site's order",
+  "url": "/projects",
+  "text": "Projects: all 11, in the site's order\n- Product Launch System — AI automation with a human in the loop: one unified system that connects three teams, from programme sheet to print-ready, editable designer artwork. In use as an internal tool.\n- AI-Powered Osteoarthritis Classification & Reporting — Knee X-ray to a doctor's report in under two minutes: Kellgren–Lawrence grading at 98% accuracy and AUC, double-checked by segmentation of the radiological findings, tested in a randomised controlled trial and deployed at Fortis.\n- TurboTrade — Zerodha MCP trading copilot — A chat copilot that researches, plans and trades Indian markets using LangChain, Groq and Zerodha's Kite MCP.\n- AI Teddy Bear (MVP) — A storytelling teddy bear for children with its own character voice — guardrailed, open source, hardware- and app-ready.\n- Scalable Sales Training Chatbot — A high-throughput sales-enablement chatbot using FAISS retrieval, Gemini and Google ADK, with a Streamlit training UI.\n- Ed-Tech Web App — A cohort-based learning platform with automated cohort and instructor mapping, WhatsApp agent posts and automated payroll.\n- Claude Personal Health Doctor — A Claude \"Doctor Skill\" plus a knowledge-graph second brain built from personal medical records.\n- Gemma 3n on Android — Google AI Edge Gallery — Ran an Android-compatible Gemma 3n model inside a custom offline chatbot app.\n- COVID-19 Decision Support System — An IoT-enabled, two-stage diagnostic pipeline combining vitals, symptoms and chest X-rays — 6th place college-wide.\n- News Search & Research Tool — A GenAI pipeline that turns a question into a scraped, RAG-backed research answer.\n- AI Portfolio Agent (this site) — Dumbledore, a Python LangGraph agent live on this site — hybrid RAG, a five-gate refusal pipeline, page navigation and 17 free LLMs on a ₹0/month stack.",
+  "keywords": [
+   "projects",
+   "project",
+   "things he built",
+   "things he made",
+   "case study",
+   "case studies"
+  ]
+ },
+ {
+  "id": "page:publications#0",
+  "title": "Research: all 7, in the site's order",
+  "url": "/publications",
+  "text": "Research: all 7, in the site's order\n- LCSNet: Lightweight Caries Segmentation Network for dental caries segmentation from smartphone photographs — Intelligence-Based Medicine (Elsevier, Impact Factor 2.3); Published, Oct 2025\n- QFPViT: A Fidelity-Phase Quantum Self-Attention Operator for Vision Transformers — Design and Evaluation on MedMNIST — Quantum (journal); Under review\n- Do Quantum-Inspired Feature Maps Help Vision Transformer Attention? A Matched-Budget Dequantization Study — Quantum Machine Intelligence (Springer); Under review\n- Depression Identification Decision Support System (DIDSS) — Springer — Advanced Machine Learning for Real World Applications (book chapter); Published\n- COVID-19 Classification with Chest CT — International Journal of Computing Science & Mathematics (Inderscience; Scopus & ESCI); Submitted\n- Multi-Modal Decision Support for COVID-19 Prediction — Inderscience; Under review\n- OA Classification and Reporting using Agentic AI and Deep Neural Networks — With OsteosConnect; In progress",
+  "keywords": [
+   "publications",
+   "publication",
+   "papers",
+   "paper",
+   "research",
+   "journal",
+   "journals"
+  ]
+ },
+ {
+  "id": "page:experience#0",
+  "title": "Experience: all 5, in the site's order",
+  "url": "/experience",
+  "text": "Experience: all 5, in the site's order\n- Sr. AI Researcher at Simplilearn, Mar 2026 – Present\n- AI Researcher at Simplilearn, Mar 2025 – Mar 2026\n- AI Engineer at OsteosConnect Inc, Feb 2024 – Mar 2025\n- AI/ML Intern at OsteosConnect Inc, Jul 2023 – Jan 2024\n- Data Science & ML Intern at Smartknower Pvt Ltd, Nov 2020 – Jan 2021",
+  "keywords": [
+   "experience",
+   "work history",
+   "career",
+   "job",
+   "jobs",
+   "role",
+   "roles",
+   "employment",
+   "skills",
+   "skill",
+   "tech stack",
+   "education",
+   "degree",
+   "timeline"
+  ]
+ },
+ {
+  "id": "page:services#0",
+  "title": "Services: all 7, in the site's order",
+  "url": "/services",
+  "text": "Services: all 7, in the site's order\n- Agentic systems that replace a process — Multi-agent workflows with tool access, guardrails and evals, built to take over a whole process rather than a single step.\n- Retrieval systems that are measured, not assumed — Production RAG and Graph RAG over your documents: hybrid search, re-ranking, and an eval suite that runs in CI so quality is a number.\n- Small models tuned for one job, served on your hardware — LoRA and QLoRA fine-tunes of Gemma, Llama and Phi with Unsloth and TRL, then quantised and served with vLLM, Ollama or llama.cpp, down to on-device.\n- Clinical imaging pipelines, from DICOM to report — X-ray and CT classification, segmentation and reporting on AWS, with doctor-validated feedback loops for retraining.\n- New research, turned into a working demo — A paper or a release on Monday, a code-backed prototype by Friday: MCP, agentic patterns, new model families, efficient attention.\n- Teams that can build agents, not just discuss them — Code-driven modules and learning hubs for engineering and product teams: agents, RAG, evaluation and MCP, taught from working repositories.\n- AI strategy that ends in a deployed system — Consulting for teams that want to design the trend rather than follow it: which model, which architecture, what to build first, and how to run it in production.",
+  "keywords": [
+   "services",
+   "service",
+   "offerings",
+   "what he offers",
+   "consulting",
+   "consultancy",
+   "consultant",
+   "freelance",
+   "freelancing",
+   "contract work",
+   "hire him for a build",
+   "workshops",
+   "training sessions"
+  ]
+ },
+ {
+  "id": "page:blog#0",
+  "title": "Writing: all 1, in the site's order",
+  "url": "/blog",
+  "text": "Writing: all 1, in the site's order\n- How the AI agent on this site works (and why it costs ₹0) — Dumbledore, a Python LangGraph agent — hybrid RAG, a five-gate refusal pipeline, page navigation, and free LLMs with fallbacks.",
+  "keywords": [
+   "blog",
+   "post",
+   "posts",
+   "article",
+   "articles",
+   "writing",
+   "write-up",
+   "write-ups"
+  ]
  }
 ]
