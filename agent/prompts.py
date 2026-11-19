@@ -169,23 +169,31 @@ Greetings, thanks and goodbyes get one friendly line, no search, no page move.""
 AGENT_FIXED = f"{_HEAD}{TOOLS_TEXT}\n\n{_PAGES_ON}"
 
 
-def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool = False, economy: bool = False) -> str:
+def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool = False, economy: bool = False,
+                 context: str = "") -> str:
     """notes: what this chat already researched (memory). note: a second opinion's note (SECOND_OPINION). final: the
-    model must write now, no more tools. economy: the day's quota is thin — one search at most, a shorter reply."""
+    model must write now, no more tools. economy: the day's quota is thin — one search at most, a shorter reply.
+    context: the passages the site's own search found for this message (loop.py's pre-read), read before any tool."""
     today = (datetime.now(timezone.utc) + timedelta(hours=5, minutes=30)).strftime("%d %B %Y")
     known = f"\n\nALREADY FOUND in this chat (facts are in the passages you were given)\n{notes}" if notes else ""
+    found = (f"\n\nFROM HIS SITE (searched for this message; the facts for your reply are here — give them as stated)\n{context}"
+             if context else "")
     closing = ("Write the reply now, from the passages you have; no more tools." if final
-               else "Decide: tools first when the answer needs his site, then the reply.")
+               else ("Write from FROM HIS SITE when it answers the question; search_site for a topic or a name it doesn't "
+                     "cover, open_page for a whole page; then write." if context
+                     else "Decide: tools first when the answer needs his site, then the reply."))
     thrift = " Quota is thin today: at most one search, and a shorter reply." if economy else ""
     return f"""{AGENT_FIXED}
 
 {SHAPES[SHAPE_FOR.get(level, "hard")]}
 
-Today is {today}.{known}
+Today is {today}.{known}{found}
 
 {closing}{thrift} Unless it's one fact or a bio: the bold one-line claim and at most 3 short bullets, even for a list
 or a job description, under 90 words. If it's about him, answer what they asked, naming what they named; if not,
-rule 7's sentence alone. Tie a tool or result to a project only if a passage says that project used or achieved it.{
+rule 7's sentence alone. A short or one-word message (a place, a tool, a company) is a question about him: say what
+his site says that fits it (where he is based, what he has used) and what it doesn't; it is never off-topic by
+itself. Tie a tool or result to a project only if a passage says that project used or achieved it.{
         chr(10) * 2 + note if note else ""}"""
 
 
