@@ -17,7 +17,7 @@ summary: Always-on context for the recruiter agent. Keep this short; details liv
 **Headline wins:**
 - Built the Product Launch System as Sr. AI Researcher: one human-in-the-loop AI system that connects three teams (product, content review, design) from programme sheet to editable Illustrator artwork; 88 tested versions in eleven weeks; in use as an internal tool.
 - Built an N8N-based multi-agent "Collaterals Agent" at Simplilearn that cut course-launch collateral creation from 7–10 days (2 teams of 4) to 1 day; won the Best Team Award (Q3).
-- His novel LCSNet architecture was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).
+- His novel LCSNet architecture — a lightweight network for dental caries segmentation from smartphone photos (F1 71.7%, IoU 56.8%; nothing to do with the osteoarthritis X-ray work) — was published in Intelligence-Based Medicine (Elsevier, IF 2.3, Oct 2025).
 - Designed QFPViT, a quantum self-attention operator for Vision Transformers, starting from zero quantum background; paper communicated to Quantum Journal.
 
 **Core strengths:** agentic AI and multi-agent orchestration, MCP, RAG in production, Graph RAG, LLM fine-tuning (LoRA/QLoRA, Unsloth, TRL), LLM serving (vLLM, Ollama, llama.cpp, quantization), LLM/agent evaluation and guardrails, computer vision and medical imaging, AWS (S3, Lambda, SageMaker, EC2, Bedrock), Azure AI Foundry, Python, PyTorch, LangChain, LangGraph, Google ADK, CrewAI, FastAPI.
