@@ -153,6 +153,14 @@ def navigation(text: str) -> dict | None:
 KIND_ORDER = {"project": 0, "publication": 1, "blog": 2, "experience": 3}  # timeline entries are the weakest "go there"
 
 
+def named_in(text: str) -> dict[str, str]:
+    """Page id → the name the text uses for it, for every page the text names. Where one name contains another
+    ("Sr. AI Researcher at Simplilearn" / "AI Researcher at Simplilearn"), only the longer counts."""
+    low = text.lower()
+    found = {p["id"]: n for p in PAGES for n in p["names"] if _mentions(low, n)}
+    return {i: n for i, n in found.items() if not any(n != m and n in m for m in found.values())}
+
+
 def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> list[dict]:
     """Up to two "take me there" buttons, only for pages the answer names — any other page would be a guess (the
     retrieval's top hit can be off even when the answer is right). If one name contains another ("Sr. AI Researcher
@@ -160,8 +168,8 @@ def links_for(answer: str, docs: list[dict], skip: set[str] = frozenset()) -> li
     order the answer names them: the first link is where Dumbledore goes by itself, so it has to be what the answer
     leads with. The page the visitor is already being taken to is skipped."""
     text = answer.lower()
-    found = {p["id"]: n for p in PAGES for n in p["names"] if _mentions(text, n)}
-    named = [p for p in PAGES if p["id"] in found and not any(found[p["id"]] != m and found[p["id"]] in m for m in found.values())]
+    found = named_in(answer)
+    named = [p for p in PAGES if p["id"] in found]
     evidence = {d["id"].split("#")[0] for d in docs}
     named.sort(key=lambda p: (KIND_ORDER.get(p["kind"], 9), text.find(found[p["id"]]), p["id"] not in evidence))
     out: list[dict] = []

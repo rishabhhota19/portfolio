@@ -400,7 +400,13 @@ async def check(state: State) -> dict:
     if state.get("model") not in UNANSWERED and state.get("why") != "judge:not_on_site":
         tier = llm.TIERS.get(state.get("level") or "", llm.TIERS["L2"])
         read = min(tier.chunks, 4) if state.get("economy") else tier.chunks  # the chunks as respond cut them
-        grounded = await grounding.check(last_question(state), safe, research.evidence(state, read))
+        sources = research.evidence(state, read)
+        # … plus the pages the answer or the question names: the checker has to know what a named thing is. Live
+        # (19 Nov 2026) "What did LCSNet achieve on osteoarthritis X-rays?" got the OA project's results under
+        # LCSNet's name: the writer's chunks were the OA project's, and nothing in them said what LCSNet is.
+        known = {d["id"].split("#")[0] for d in sources}
+        named = [i for i in pages.named_in(f"{safe}\n{last_question(state)}") if i not in known]
+        grounded = await grounding.check(last_question(state), safe, sources + research.chunks_of(named))
         safe = grounded.text
     if HIRING.search(last_question(state)) and not NEXT_STEP.search(safe):
         safe += NEXT_STEP_LINE  # a hiring question always ends with a way to act, whichever model forgot it

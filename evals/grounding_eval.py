@@ -44,6 +44,11 @@ CASES = [
     ("osteos-dates", "When was he at OsteosConnect?",
      "**AI Engineer at OsteosConnect from Feb 2024 to Mar 2025**, remote, for a California company; AI/ML intern there before that.",
      ["experience:03-osteosconnect-ai-engineer"], ("unchanged",)),
+    # Seen on the live site, 19 Nov 2026: the question's false premise was accepted. The checker gets the chunks of
+    # every page the answer or the question names (graph.check), so LCSNet's own page is among its sources here.
+    ("lcsnet-premise", "What did LCSNet achieve on osteoarthritis X-rays?",
+     "**LCSNet graded knee X-rays with 98% accuracy and AUC.**\n- OA-Classification & Reporting: 98% grading accuracy, 98% AUC, under-2-minute report.\n- Clinical validation: >90% concordance with radiologists in a randomised trial.\n- Stack: TensorFlow models deployed on AWS EC2 H100 cluster, served via Lambda.",
+     ["project:oa-classification", "publication:lcsnet"], ("fixed", "LCSNet graded knee", "caries")),
 ]
 
 # --dry: the checker's reply is canned; what matters is what decide() does with it

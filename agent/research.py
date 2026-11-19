@@ -65,6 +65,17 @@ def docs_by_id(ids: list[str]) -> list[dict]:
     return [by_id[i] for i in ids if i in by_id]
 
 
+def chunks_of(doc_ids: list[str], each: int = 2) -> list[dict]:
+    """The first `each` chunks of these documents (a page's id, without the #n), in the documents' order."""
+    chunks, _ = load_index()
+    found: dict[str, list[dict]] = {i: [] for i in doc_ids}
+    for c in chunks:
+        doc = c["id"].split("#")[0]
+        if doc in found and len(found[doc]) < each:
+            found[doc].append(c)
+    return [c for i in doc_ids for c in found[i]]
+
+
 def needs_planner(state: dict) -> bool:
     """The planner model is for reasoning questions (role fit, a job description, a comparison) when there's time,
     budget and a planner model to spare; everything else is a one-point question answered from the first search."""
