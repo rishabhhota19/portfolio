@@ -80,9 +80,13 @@ def _question(state: dict) -> str:
     return next((m.content for m in reversed(state["messages"]) if m.type == "human"), "")
 
 
+TOOL_TEXT = re.compile(r"<tool_call>|<function=|\"tool_calls\"\s*:|^\s*\{\s*\"name\"\s*:\s*\"(search_site|open_page|navigate|book)\"", re.I | re.M)
+
+
 def empty(text: str) -> bool:
-    """Nothing for the visitor in it: blank, the old hidden line alone, or a reply that talks about that line."""
-    return not guard.clean(text).strip() or guard.check(text) == "hidden_line"
+    """Nothing for the visitor in it: blank, the old hidden line alone, a reply that talks about that line, or a tool
+    call written out as text (Nemotron Super did that when asked to write with no tools bound, CI 19 Nov 2026)."""
+    return not guard.clean(text).strip() or guard.check(text) == "hidden_line" or bool(TOOL_TEXT.search(text))
 
 
 async def gate(state: dict, question: str, started: float) -> dict | None:
@@ -250,15 +254,18 @@ class Turn:
         """Rounds of tools, then the reply, from this level's pool. None when no model was free."""
         rounds_allowed = 1 if self.economy else MAX_ROUNDS
         models = [m for m in llm.candidates(level) if m.name != exclude]
-        for round_no in range(rounds_allowed + 1):
+        # The tools stay bound in every round: asked to write with none bound, Nemotron Super wrote the call syntax
+        # out as its reply (CI, 19 Nov 2026). The last round only tells the model to write; a call it makes anyway is
+        # run, and the round after that is the end.
+        for round_no in range(rounds_allowed + 2):
             final = round_no >= rounds_allowed or (usage.time_left() or 99) < MIN_TIME
-            reply = await router.run(models, self.tier, self.prompt_for(note, final), tools=None if final else TOOLS)
+            reply = await router.run(models, self.tier, self.prompt_for(note, final), tools=TOOLS)
             if reply is None:
                 return None
             self.count(reply)
             self.rounds += 1
             calls = [c for c in (reply.message.tool_calls if reply.message is not None else []) if c["name"] in BY_NAME]
-            if calls and not final:
+            if calls and round_no <= rounds_allowed:
                 self.transcript.append(reply.message)
                 self.transcript.extend(await self.run_tools(calls))
                 continue
