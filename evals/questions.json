@@ -48,6 +48,6 @@
   { "id": "experience-all", "kind": "fact", "q": "what is his work experience?", "include": ["Simplilearn", "OsteosConnect"], "url": "/experience" },
   { "id": "projects-all", "kind": "fact", "q": "what projects has he built?", "include": ["Product Launch System", "TurboTrade|osteoarthritis"], "url": "/projects" },
   { "id": "services-all", "kind": "fact", "q": "what services does he offer?", "include": ["agent", "RAG|retrieval"], "url": "/services" },
-  { "id": "lcsnet-not-oa", "kind": "fact", "q": "What accuracy did LCSNet get?", "include": ["71\\.7|F1|IoU|56\\.8"], "exclude": ["98\\s?%"], "url": "/publications" },
-  { "id": "lcsnet-oa-trap", "kind": "fact", "q": "What did LCSNet achieve on osteoarthritis X-rays?", "include": ["caries|dental|teeth|tooth"], "exclude": ["98\\s?%"] }
+  { "id": "lcsnet-not-oa", "kind": "fact", "q": "What accuracy did LCSNet get?", "include": ["71\\.7|F1|IoU|56\\.8"], "exclude": ["LCSNet[^.\n]{0,160}98\\s?%"], "url": "/publications" },
+  { "id": "lcsnet-oa-trap", "kind": "fact", "q": "What did LCSNet achieve on osteoarthritis X-rays?", "include": ["caries|dental|teeth|tooth"], "exclude": ["LCSNet[^.\n]{0,160}98\\s?%"] }
 ]
