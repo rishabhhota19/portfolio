@@ -282,9 +282,12 @@ RESEARCH = Tier(0, 4, 400, "low", 12, ["nv-nemotron-super", "groq-qwen", "gemini
 SPILL = {"L1": ["L1", "L2", "L3"], "L2": ["L2", "L3", "L1"], "L3": ["L3", "L2", "L1"]}
 
 SUMMARY_POOL = ["gemini-lite-3.1", "nv-nemotron-lightning", "cf-glm", "gemini-lite-3.5", "cf-20b", "cf-gemma"]  # high-quota, cheap; never Groq
-# The grounding check (grounding.py) runs after every written answer: the same cheap, high-quota models, Nemotron
-# Lightning first (no daily cap, fast), never Groq, so a check can never starve the writers.
-GROUNDING_POOL = ["nv-nemotron-lightning", "gemini-lite-3.1", "gemini-lite-3.5", "cf-glm", "cf-20b", "cf-gemma"]
+# The grounding check (grounding.py) runs after every written answer: cheap models, never Groq, so a check can never
+# starve the writers. Ordered by evals/grounding_eval.py --models (22 Nov 2026, 5 planted mistakes, 4 right answers):
+# gemini-lite-3.5 caught 5/5, gemini-lite-3.1 4/5, cf-gemma 4/5, cf-20b 3/5, nv-nemotron-lightning 2/5 (it led before),
+# none changed a right answer. cf-glm left the pool: 2/5 caught and 2/4 right answers changed. The two Gemini models
+# allow 500 checks a day each; past that the router falls through to Cloudflare, then Nemotron (no daily cap).
+GROUNDING_POOL = ["gemini-lite-3.5", "gemini-lite-3.1", "cf-gemma", "cf-20b", "nv-nemotron-lightning"]
 
 
 def candidates(level: str) -> list[FreeModel]:
