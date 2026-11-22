@@ -17,6 +17,7 @@ rewrite that fails its own checks all leave the answer as written, with the reas
 evals/grounding_eval.py measures it on answers with planted mistakes; --dry checks the acceptance rules alone.
 """
 
+import asyncio
 import json
 import re
 import time
@@ -29,6 +30,7 @@ from .config import env
 from .prompts import GROUNDING_PROMPT, KNOWLEDGE
 
 TIER = llm.Tier(chunks=0, history=0, max_tokens=700, effort="low", timeout=10, pool=llm.GROUNDING_POOL)
+HEDGE_AFTER = 1.5  # seconds: the first checker gets this long alone, then the second is asked too and the first reply wins
 MAX_GROWTH = 1.35  # a rewrite may not grow past this times the answer (plus a few words): a correction swaps or removes
 MIN_KEPT = 0.35  # nor shrink below this share of it: a one-line stub is not a corrected answer
 SMART = str.maketrans("‘’“”", "''\"\"")
@@ -67,12 +69,26 @@ def parse(reply: str) -> tuple[list[str], str] | None:
     return [c for c in claims if isinstance(c, str) and c.strip()], answer
 
 
+LINK = re.compile(r"\[([^\]]*)\]\([^)]*\)")  # [text](/path) reads as "text"
+MARKS = re.compile(r"(\*\*|__|`|(?<!\w)[*_](?=\S)|(?<=\S)[*_](?!\w))")  # bold, italics, code marks
+BULLET = re.compile(r"(?m)^\s*(?:[-*•]|\d+[.)])\s+")
+DASHES = str.maketrans({"–": "-", "—": "-", " ": " "})
+
+
+def visible(text: str) -> str:
+    """The text as a reader sees it: no Markdown marks, link text without its address, no bullets, plain dashes and
+    quotes, one space, lower case. A checker quotes what it reads, which is this, not the Markdown under it."""
+    text = LINK.sub(r"\1", text.translate(SMART).translate(DASHES))
+    text = BULLET.sub("", MARKS.sub("", text))
+    return re.sub(r"\s+", " ", text).lower().strip(" .")
+
+
 def quoted(claims: list[str], answer: str) -> list[str]:
     """The claims that really are in the answer. The checker must quote what it corrects, so a claim it imagined
-    cannot trigger a rewrite."""
-    flat = lambda s: re.sub(r"\s+", " ", s.translate(SMART)).lower().strip(" .")  # noqa: E731
-    haystack = flat(answer)
-    return [c for c in claims if flat(c) and flat(c) in haystack]
+    cannot trigger a rewrite. Compared as a reader sees both (visible), so bold or a link inside a sentence the
+    checker quoted whole no longer hides it (the lcsnet-98 case was missed this way, 22 Nov 2026)."""
+    haystack = visible(answer)
+    return [c for c in claims if visible(c) and visible(c) in haystack]
 
 
 def accept(answer: str, rewrite: str) -> str | None:
@@ -117,7 +133,7 @@ async def check(question: str, answer: str, docs: list[dict]) -> Grounding:
     models = [llm.M[n] for n in TIER.pool if llm.M[n].available]
     fit = lambda m: (prompt, False) if llm.fits(m, llm.estimate_tokens(prompt), TIER.max_tokens) else None  # noqa: E731
     try:
-        reply = await router.run(models, TIER, fit)
+        reply = await hedged(models, fit)
     except Exception as err:  # the router handles model errors itself; this is for anything else
         print(f"[grounding] skipped ({type(err).__name__}: {err})")
         reply = None
@@ -126,3 +142,32 @@ async def check(question: str, answer: str, docs: list[dict]) -> Grounding:
         return Grounding(answer, why="skipped:no_model", ms=ms)
     text, fixed, why = decide(answer, reply.text)
     return Grounding(text, fixed, why, reply.model, ms, reply.tokens_in, reply.tokens_out, reply.counted)
+
+
+_background: set[asyncio.Task] = set()  # a hedge's slower call finishes on its own, so the router settles its quota
+
+
+async def hedged(models: list, fit) -> "router.Answer | None":
+    """The checker's reply, as soon as one of the two best checkers gives it. The answer's page and links wait for this
+    check, so its slow tail is the visitor's wait: the first checker gets HEDGE_AFTER seconds alone, then the second is
+    asked too and whichever replies first is used (both caught 5/5 planted mistakes, 22 Nov 2026). The slower call is
+    not cancelled (that would skip the router's quota bookkeeping); it finishes in the background. When neither has a
+    reply (no budget, errors), the rest of the pool is tried in order."""
+    ask = lambda pool: asyncio.ensure_future(router.run(pool, TIER, fit))  # noqa: E731
+    first, second, rest = models[:1], models[1:2], models[2:]
+    pending = {ask(first)} if first else set()
+    if pending:
+        done, pending = await asyncio.wait(pending, timeout=HEDGE_AFTER)
+        if done and (reply := done.pop().result()) is not None:
+            return reply
+    if second:
+        pending.add(ask(second))
+    while pending:
+        done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        for task in done:
+            if (reply := task.result()) is not None:
+                for slower in pending:
+                    _background.add(slower)
+                    slower.add_done_callback(_background.discard)
+                return reply
+    return await router.run(rest, TIER, fit) if rest else None

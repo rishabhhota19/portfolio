@@ -287,7 +287,9 @@ SUMMARY_POOL = ["gemini-lite-3.1", "nv-nemotron-lightning", "cf-glm", "gemini-li
 # gemini-lite-3.5 caught 5/5, gemini-lite-3.1 4/5, cf-gemma 4/5, cf-20b 3/5, nv-nemotron-lightning 2/5 (it led before),
 # none changed a right answer. cf-glm left the pool: 2/5 caught and 2/4 right answers changed. The two Gemini models
 # allow 500 checks a day each; past that the router falls through to Cloudflare, then Nemotron (no daily cap).
-GROUNDING_POOL = ["gemini-lite-3.5", "gemini-lite-3.1", "cf-gemma", "cf-20b", "nv-nemotron-lightning"]
+# 22 Nov, with claims matched as a reader sees them (grounding.visible), two runs: gemini-lite-3.5 5/5 and cf-gemma 5/5
+# both times (0 false alarms), gemini-lite-3.1 4/5, cf-20b 3/5, nemotron 2/5. The first two are hedged (grounding.hedged).
+GROUNDING_POOL = ["gemini-lite-3.5", "cf-gemma", "gemini-lite-3.1", "cf-20b", "nv-nemotron-lightning"]
 
 
 def candidates(level: str) -> list[FreeModel]:
