@@ -1,17 +1,17 @@
 # Python agent (Vercel installs this for api/index.py). Pinned to the versions the agent is developed and tested
 # with: left open, Vercel once installed openai 3.42 and langchain-openai 1.7 while the gateway fallback had only been
 # tested on 1.109 and 1.1. Bump deliberately: change a pin, run the evals, deploy.
-fastapi==0.162.0
-langgraph==1.2.19
-langchain-core==1.7.3
-langchain-openai==1.1.9
+fastapi==0.165.0
+langgraph==1.2.23
+langchain-core==1.8.3
+langchain-openai==1.8.4
 openai==1.109.1
-numpy==2.5.4
-onnxruntime==1.31.1  # the local embedding engine (agent/embeddings.py): the first route; Cloudflare is the backup
+numpy==2.5.5
+onnxruntime==1.32.0  # the local embedding engine (agent/embeddings.py): the first route; Cloudflare is the backup
 # Not here on purpose: faiss-cpu and tokenizers. With them the function is over the size at which Vercel installs
 # every package on each cold start (about 2 s). agent/rag.py and agent/wordpiece.py do their jobs; requirements-dev.txt
 # keeps both as the references the evals compare against.
 rank-bm25==0.2.2
 httpx==0.28.1
-upstash-redis==1.8.0
-sentry-sdk[fastapi]==2.73.0
+upstash-redis==1.9.0
+sentry-sdk[fastapi]==2.75.0
