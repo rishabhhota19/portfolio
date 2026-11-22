@@ -3,5 +3,5 @@
 uvicorn[standard]
 langchain-text-splitters
 tokenizers==0.23.3  # the reference for agent/wordpiece.py (evals/tokenizer_eval.py); not deployed
-faiss-cpu==1.15.1  # the reference for the vector search in agent/rag.py (evals/index_eval.py); not deployed
+faiss-cpu==1.16.0  # the reference for the vector search in agent/rag.py (evals/index_eval.py); not deployed
 ragas
