@@ -1,0 +1,587 @@
+{
+ "providers": {
+  "groq": {
+   "url": "https://api.groq.com/openai/v1",
+   "key": "GROQ_API_KEY",
+   "limits": {}
+  },
+  "gemini": {
+   "url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+   "key": "GOOGLE_GENERATIVE_AI_API_KEY",
+   "limits": {}
+  },
+  "cloudflare": {
+   "url": "https://api.cloudflare.com/client/v4/accounts/{CF_ACCOUNT_ID}/ai/v1",
+   "key": "CF_WORKERS_AI_TOKEN",
+   "limits": {
+    "neurons_day": 10000
+   }
+  },
+  "openrouter": {
+   "url": "https://openrouter.ai/api/v1",
+   "key": "OPENROUTER_API_KEY",
+   "limits": {
+    "rpd": 50
+   }
+  },
+  "sambanova": {
+   "url": "https://api.sambanova.ai/v1",
+   "key": "SAMBANOVA_API_KEY",
+   "limits": {}
+  },
+  "nvidia": {
+   "url": "https://integrate.api.nvidia.com/v1",
+   "key": "NVIDIA_API_KEY",
+   "limits": {
+    "rpm": 30
+   }
+  }
+ },
+ "models": {
+  "groq-120b": {
+   "provider": "groq",
+   "model": "openai/gpt-oss-120b",
+   "rpm": 30,
+   "rpd": 1000,
+   "tpm": 8000,
+   "tpd": 200000,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "groq-20b": {
+   "provider": "groq",
+   "model": "openai/gpt-oss-20b",
+   "rpm": 30,
+   "rpd": 1000,
+   "tpm": 8000,
+   "tpd": 200000,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "groq-qwen": {
+   "provider": "groq",
+   "model": "qwen/qwen3.8-27b",
+   "rpm": 30,
+   "rpd": 1000,
+   "tpm": 8000,
+   "tpd": 200000,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "reasoning_format": "hidden"
+   }
+  },
+  "gemini-lite-3.5": {
+   "provider": "gemini",
+   "model": "gemini-3.5-flash-lite",
+   "rpm": 15,
+   "rpd": 500,
+   "tpm": 250000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "gemini-lite-3.1": {
+   "provider": "gemini",
+   "model": "gemini-3.1-flash-lite",
+   "rpm": 15,
+   "rpd": 500,
+   "tpm": 250000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "gemini-flash-3.6": {
+   "provider": "gemini",
+   "model": "gemini-3.6-flash",
+   "rpm": 5,
+   "rpd": 250,
+   "tpm": 250000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "gemini-flash-3": {
+   "provider": "gemini",
+   "model": "gemini-3-flash-preview",
+   "rpm": 5,
+   "rpd": 250,
+   "tpm": 250000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "gemini-flash-3.8": {
+   "provider": "gemini",
+   "model": "gemini-3.8-flash",
+   "rpm": 5,
+   "rpd": 250,
+   "tpm": 250000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "gemini-gemma-26b": {
+   "provider": "gemini",
+   "model": "gemma-4-26b-a4b-it",
+   "rpm": 5,
+   "rpd": 1000,
+   "tpm": 15000,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "cf-20b": {
+   "provider": "cloudflare",
+   "model": "@cf/openai/gpt-oss-20b",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    18182,
+    27273
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "cf-glm": {
+   "provider": "cloudflare",
+   "model": "@cf/zai-org/glm-4.7-flash",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    5500,
+    36400
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  },
+  "cf-gemma": {
+   "provider": "cloudflare",
+   "model": "@cf/google/gemma-4-26b-a4b-it",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    9091,
+    27273
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  },
+  "cf-llama70b": {
+   "provider": "cloudflare",
+   "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    26668,
+    204805
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "cf-scout": {
+   "provider": "cloudflare",
+   "model": "@cf/meta/llama-4-scout-17b-16e-instruct",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    24545,
+    77273
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "cf-120b": {
+   "provider": "cloudflare",
+   "model": "@cf/openai/gpt-oss-120b",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    31818,
+    68182
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "cf-mistral": {
+   "provider": "cloudflare",
+   "model": "@cf/mistralai/mistral-small-3.1-24b-instruct",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    31876,
+    50488
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "cf-nemotron": {
+   "provider": "cloudflare",
+   "model": "@cf/nvidia/nemotron-3-120b-a12b",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    45455,
+    136364
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "cf-qwen3-a3b": {
+   "provider": "cloudflare",
+   "model": "@cf/qwen/qwen3-30b-a3b-fp8",
+   "rpm": 300,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    4625,
+    30475
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  },
+  "or-lightning": {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3.5-lightning:free",
+   "rpm": 20,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "reasoning": {
+     "enabled": false
+    }
+   }
+  },
+  "or-ultra": {
+   "provider": "openrouter",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+   "rpm": 20,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "reasoning": {
+     "enabled": false
+    }
+   }
+  },
+  "sn-120b": {
+   "provider": "sambanova",
+   "model": "gpt-oss-120b",
+   "rpm": 20,
+   "rpd": 20,
+   "tpm": 0,
+   "tpd": 200000,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": true,
+   "extra": {}
+  },
+  "sn-deepseek": {
+   "provider": "sambanova",
+   "model": "DeepSeek-V3.1",
+   "rpm": 20,
+   "rpd": 20,
+   "tpm": 0,
+   "tpd": 200000,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {}
+  },
+  "nv-nemotron-super": {
+   "provider": "nvidia",
+   "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+   "rpm": 0,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 64000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  },
+  "nv-nemotron-ultra": {
+   "provider": "nvidia",
+   "model": "nvidia/nemotron-3-ultra-550b-a55b",
+   "rpm": 0,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 64000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  },
+  "nv-nemotron-lightning": {
+   "provider": "nvidia",
+   "model": "nvidia/nemotron-3.5-lightning-30b-a3b",
+   "rpm": 0,
+   "rpd": 0,
+   "tpm": 0,
+   "tpd": 0,
+   "context": 32000,
+   "neurons": [
+    0,
+    0
+   ],
+   "reasoning": false,
+   "extra": {
+    "chat_template_kwargs": {
+     "enable_thinking": false
+    }
+   }
+  }
+ },
+ "roles": {
+  "writer-L1": {
+   "max_tokens": 200,
+   "effort": "low",
+   "timeout": 10,
+   "pool": [
+    "groq-20b",
+    "nv-nemotron-lightning",
+    "gemini-lite-3.1",
+    "cf-qwen3-a3b",
+    "cf-glm",
+    "cf-20b",
+    "gemini-lite-3.5",
+    "cf-scout",
+    "gemini-gemma-26b",
+    "groq-120b",
+    "nv-nemotron-super",
+    "groq-qwen",
+    "cf-gemma",
+    "cf-llama70b",
+    "cf-mistral",
+    "gemini-flash-3",
+    "gemini-flash-3.6",
+    "or-lightning",
+    "nv-nemotron-ultra",
+    "cf-120b",
+    "sn-deepseek",
+    "cf-nemotron",
+    "sn-120b",
+    "or-ultra",
+    "gemini-flash-3.8"
+   ]
+  },
+  "writer-L2": {
+   "max_tokens": 300,
+   "effort": "low",
+   "timeout": 15,
+   "pool": [
+    "groq-120b",
+    "nv-nemotron-super",
+    "nv-nemotron-lightning",
+    "gemini-lite-3.5",
+    "groq-qwen",
+    "cf-qwen3-a3b",
+    "cf-gemma",
+    "cf-llama70b",
+    "gemini-lite-3.1",
+    "cf-mistral",
+    "gemini-flash-3",
+    "gemini-flash-3.6",
+    "or-lightning",
+    "nv-nemotron-ultra",
+    "cf-120b",
+    "sn-deepseek",
+    "cf-nemotron",
+    "sn-120b",
+    "or-ultra",
+    "gemini-flash-3.8",
+    "groq-20b",
+    "cf-glm",
+    "cf-20b",
+    "cf-scout",
+    "gemini-gemma-26b"
+   ]
+  },
+  "writer-L3": {
+   "max_tokens": 600,
+   "effort": "medium",
+   "timeout": 25,
+   "pool": [
+    "groq-120b",
+    "nv-nemotron-super",
+    "nv-nemotron-ultra",
+    "cf-120b",
+    "groq-qwen",
+    "sn-deepseek",
+    "cf-nemotron",
+    "sn-120b",
+    "gemini-flash-3.6",
+    "gemini-flash-3",
+    "or-ultra",
+    "gemini-lite-3.5",
+    "gemini-flash-3.8",
+    "nv-nemotron-lightning",
+    "cf-qwen3-a3b",
+    "cf-gemma",
+    "cf-llama70b",
+    "gemini-lite-3.1",
+    "cf-mistral",
+    "or-lightning",
+    "groq-20b",
+    "cf-glm",
+    "cf-20b",
+    "cf-scout",
+    "gemini-gemma-26b"
+   ]
+  },
+  "planner": {
+   "max_tokens": 400,
+   "effort": "low",
+   "timeout": 12,
+   "pool": [
+    "nv-nemotron-super",
+    "groq-qwen",
+    "gemini-lite-3.1",
+    "nv-nemotron-lightning",
+    "groq-120b",
+    "cf-120b"
+   ]
+  },
+  "checker": {
+   "max_tokens": 700,
+   "effort": "low",
+   "timeout": 10,
+   "pool": [
+    "gemini-lite-3.5",
+    "cf-gemma",
+    "gemini-lite-3.1",
+    "cf-20b",
+    "nv-nemotron-lightning"
+   ]
+  },
+  "summary": {
+   "max_tokens": 500,
+   "effort": "low",
+   "timeout": 20,
+   "pool": [
+    "gemini-lite-3.1",
+    "nv-nemotron-lightning",
+    "cf-glm",
+    "gemini-lite-3.5",
+    "cf-20b",
+    "cf-gemma"
+   ]
+  }
+ }
+}
