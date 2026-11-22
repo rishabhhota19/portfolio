@@ -39,26 +39,15 @@ from .prompts import SECOND_OPINION, agent_prompt
 from .research import docs_by_id, open_page, search_site
 
 MAX_ROUNDS = 3  # tool rounds before the model must write
+# The reply's first line, as the gateway checks it: a reply without it is dropped for another model's (gateway.py).
+BRIEF_LINE = r"^[\s*_]*BRIEF:.*\|[\s*_]*SHOW:"
 MAX_SEARCHES = 8  # searches a turn
 MIN_TIME = 8  # seconds left before the deadline below which no new round starts
 LEVELS = {"fact": "L1", "usual": "L2", "reasoning": "L3"}  # the judge's reading of what the answer needs → the pool
 STRONGER = {"L1": "L2", "L2": "L3", "L3": "L3"}
 
 
-@tool
-def navigate(path: str) -> str:
-    """Move the visitor's page to one of PAGES while you talk: the page they ask to see, or the one page that proves
-    your answer. Paths only as PAGES gives them."""
-    return f"The visitor's page is now {path}."
-
-
-@tool
-def book() -> str:
-    """Open the card under your reply where the visitor picks a time for a 30-minute call with Rishabh (he confirms it)."""
-    return "The booking card is open under your reply: tell them to pick a time below."
-
-
-TOOLS = [search_site, open_page, navigate, book]
+TOOLS = [search_site, open_page]  # the page and the booking card are the reply's first line (BRIEF … | SHOW: …)
 BY_NAME = {t.name: t for t in TOOLS}
 
 
@@ -201,6 +190,8 @@ class Turn:
         self.model = "none"
         self.searches = 0
         self.rounds = 0
+        self.brief = ""
+        self.show = ""  # the page (or "book", or "stay") the reply's first line chose
 
     def prompt_for(self, note: str, final: bool):
         def build(m: llm.FreeModel):
@@ -231,17 +222,6 @@ class Turn:
 
         async def one(call: dict) -> str:
             name, args = call["name"], dict(call.get("args") or {})
-            if name == "navigate":
-                shown = pages.shown_page(str(args.get("path", "")))
-                if not shown:
-                    return "No such page. Paths are listed under PAGES."
-                if not any(a["type"] == "navigate" for a in self.actions):
-                    self.actions.append({**shown, "focus": False})
-                return f"The visitor's page is now {shown['path']} ({shown['label']})."
-            if name == "book":
-                if not any(a["type"] == "book" for a in self.actions):
-                    self.actions.append(dict(pages.BOOK))
-                return book.invoke({})
             if name == "search_site":
                 if self.searches >= MAX_SEARCHES:
                     return "Search budget used up for this turn: answer from what you have."
@@ -271,7 +251,8 @@ class Turn:
         # run, and the round after that is the end.
         for round_no in range(rounds_allowed + 2):
             final = round_no >= rounds_allowed or (usage.time_left() or 99) < MIN_TIME
-            reply = await router.run(models, self.tier, self.prompt_for(note, final), tools=TOOLS)
+            reply = await router.run(models, self.tier, self.prompt_for(note, final), tools=TOOLS, role=f"writer-{level}",
+                                     exclude=exclude, contract=BRIEF_LINE)
             if reply is None:
                 return None
             self.count(reply)
@@ -281,7 +262,9 @@ class Turn:
                 self.transcript.append(reply.message)
                 self.transcript.extend(await self.run_tools(calls))
                 continue
-            _, _, text = guard.read_brief(reply.text)  # a model that still writes the old hidden line: dropped, never shown
+            # The first line is the agent's decision about the page and the booking card ("BRIEF: … | SHOW: <path|stay|book>"):
+            # kept for graph.check, which turns it into the page move or the card; the visitor never sees the line.
+            self.brief, self.show, text = guard.read_brief(reply.text)
             return text
         return ""
 
@@ -316,7 +299,7 @@ async def respond(state: dict) -> dict:
 
     ms = round((time.perf_counter() - started) * 1000)
     return {"messages": [AIMessage(answer)], "intent": intent, "model": turn.model, "level": turn.level, "docs": turn.read,
-            "read": len(turn.read), "points": turn.points, "actions": turn.actions, "show": show,
+            "read": len(turn.read), "points": turn.points, "actions": turn.actions, "show": show or turn.show, "brief": turn.brief,
             **({"why": why} if why else {}), **({"rescued": True} if state.get("rescued") else {}),
             "usage": {**turn.used, "latency_ms": ms, "switches": 0, "trims": 0, f"level_{turn.level}": 1},
             "trace": _step("respond", started, level=turn.level, model=turn.model, rounds=turn.rounds, searches=turn.searches,

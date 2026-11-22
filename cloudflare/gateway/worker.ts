@@ -12,10 +12,11 @@
  * A 429 pauses that model for everyone (for as long as the provider says).
  *
  * Contracts, checked before the visitor sees a byte:
+ *   - x-exclude-model: provider/model   not this one (a second opinion asks a different model).
  *   - x-contract-first-line: <regex>   the reply's first line must match (the agent's action header). The stream is
  *     held until that line has arrived; a model that skips it is dropped for the next one.
  *   - tools in the request: a tool call written out as text instead of made is a broken reply, and the next model is
- *     asked. (Tool rounds are not streamed: the agent reads them whole.)
+ *     asked. A stream with tools is held until its first line of text or its first real tool call arrives.
  *
  * CPU (free plan: 10 ms a request): the gateway parses the request once, reads the first line of a stream and the
  * chunk carrying the token count, and passes every other byte through untouched. Waiting on a model costs no CPU.
@@ -155,12 +156,12 @@ function providerUrl(env: Env, provider: Provider): string {
   return provider.url.replace("{CF_ACCOUNT_ID}", env.CF_ACCOUNT_ID ?? "").replace(/\/$/, "") + "/chat/completions";
 }
 
-async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contract: RegExp | null): Promise<Response> {
+async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contract: RegExp | null, exclude: string): Promise<Response> {
   const roleName = req.model?.startsWith(ROLE_PREFIX) ? req.model.slice(ROLE_PREFIX.length) : "";
   const role = R.roles[roleName];
   if (!role) return error(400, `Unknown role "${req.model}". Ask for one of: ${Object.keys(R.roles).map((r) => ROLE_PREFIX + r).join(", ")}`);
   const tools = Array.isArray(req.tools) && req.tools.length ? req.tools : null;
-  const stream = Boolean(req.stream) && !tools; // tool rounds are read whole
+  const stream = Boolean(req.stream);
   const promptTokens = Math.ceil(JSON.stringify(req.messages).length / 4);
   const tried: string[] = [];
 
@@ -169,6 +170,7 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
     const provider = m && R.providers[m.provider];
     const key = provider && env[provider.key];
     if (!m || !provider || !key) continue; // no key for this provider here
+    if (exclude && `${m.provider}/${m.model}` === exclude) continue; // a second opinion: a different model
     if (promptTokens + role.max_tokens > m.context) continue; // the prompt would not fit this model
     const booked = await book(env, name, m, promptTokens + role.max_tokens, role.max_tokens);
     if (!booked.ok) continue;
@@ -216,8 +218,9 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
     const held: Uint8Array[] = [];
     let text = "";
     let content = "";
+    let calling = false; // a real tool call has started: there is no text to check
     let done = false;
-    while (!content.includes("\n") && content.length < 400) {
+    while (!calling && !content.includes("\n") && content.length < 400) {
       const chunk = await reader.read().catch(() => ({ done: true, value: undefined }));
       if (chunk.done || !chunk.value) { done = true; break; }
       held.push(chunk.value);
@@ -227,13 +230,19 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
       for (const line of lines) {
         if (!line.startsWith("data:") || line.includes("[DONE]")) continue;
         try {
-          const delta = (JSON.parse(line.slice(5)) as { choices?: { delta?: { content?: string } }[] }).choices?.[0]?.delta?.content;
-          if (delta) content += delta;
+          const delta = (JSON.parse(line.slice(5)) as { choices?: { delta?: { content?: string; tool_calls?: unknown[] } }[] }).choices?.[0]?.delta;
+          if (delta?.content) content += delta.content;
+          if (Array.isArray(delta?.tool_calls) && delta.tool_calls.length) calling = true;
         } catch { /* a partial or provider-specific line: not content */ }
       }
     }
-    if (!content.trim() && done) { await failed("empty stream"); continue; }
-    if (contract && !contract.test(content.split("\n", 1)[0] ?? "")) {
+    if (!calling && !content.trim() && done) { await failed("empty stream"); continue; }
+    if (!calling && tools && toolCallAsText(content, tools)) {
+      reader.cancel().catch(() => {});
+      await failed("tool call written as text");
+      continue;
+    }
+    if (!calling && contract && !contract.test(content.split("\n", 1)[0] ?? "")) {
       reader.cancel().catch(() => {});
       await failed("first line broke the contract");
       continue;
@@ -286,6 +295,6 @@ export default {
     if (firstLine) {
       try { contract = new RegExp(firstLine); } catch { return error(400, "x-contract-first-line is not a valid regex"); }
     }
-    return handle(body, env, ctx, contract);
+    return handle(body, env, ctx, contract, request.headers.get("x-exclude-model") ?? "");
   },
 } satisfies ExportedHandler<Env>;

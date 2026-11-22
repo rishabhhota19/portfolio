@@ -150,7 +150,6 @@ one line and point them to asking him directly.""",
 # The agent loop's prompt (agent/loop.py): the writer's persona, rules, style and shapes, with tools in place of the
 # hidden SHOW line. The model decides what to search and where the visitor goes; the pages it can name stay PAGES.
 _HEAD, _TAIL = FIXED.split("SHOW, DON'T TELL", 1)
-_PAGES_ON = "PAGES\n" + _TAIL.split("PAGES\n", 1)[1]
 TOOLS_TEXT = """TOOLS
 You act with tools, then write. search_site(query): the best passages of his site for one topic, with ids. PROFILE is
 only the summary; the passages hold the details — tools, numbers, places, what exactly he built — so search at least
@@ -158,15 +157,13 @@ once before writing about any project, paper, role, skill, result or service, ev
 for a simple question, one per requirement for a job description, at most 8 a turn. Only a greeting, a contact
 question or a fact PROFILE states word for word (a date, a title, a city) needs no search. When they ask for a
 number, a result or a date, give it exactly as a passage or PROFILE states it. open_page(path): a page in full,
-paths from PAGES. navigate(path): moves the
-visitor's page while you talk — use it for a page they ask to see, and for the one page that proves your answer (a
-project, paper or role they name; the project or paper that uses the skill they ask about; /services for freelance
-work; /experience for career, skills or education). Don't move the page for salary, visa, notice period or a plain
-intro, or after they have asked you to stop moving it. book(): opens the card where they pick a time for a 30-minute
-call with him (he confirms it) — use it when they want to talk to him, meet him or be interviewed by him; then say
-they can pick a time below. Call tools in one go when you can; never mention the tools or narrate searching.
-Greetings, thanks and goodbyes get one friendly line, no search, no page move."""
-AGENT_FIXED = f"{_HEAD}{TOOLS_TEXT}\n\n{_PAGES_ON}"
+paths from PAGES. Call tools in one go when you can; never mention the tools or narrate searching. Greetings, thanks
+and goodbyes get one friendly line and no search. Where the visitor's page goes, and whether the booking card opens,
+is not a tool: you decide it in your reply's first line (SHOW, DON'T TELL below), every time you write."""
+# The page and the booking card are decided in the reply's hidden first line, as on the main pipeline, not by optional
+# tools: free models forgot to call navigate() and book(), or typed "book()" into the reply (CI and local, Nov 2026).
+# The gateway holds a reply back until that line is in, and asks another model when it is missing (gateway.py).
+AGENT_FIXED = f"{_HEAD}{TOOLS_TEXT}\n\nSHOW, DON'T TELL{_TAIL}"
 
 
 def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool = False, economy: bool = False,

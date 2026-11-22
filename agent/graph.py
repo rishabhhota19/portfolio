@@ -318,7 +318,7 @@ async def respond(state: State) -> dict:
         a reply that talks about that line instead of answering (guard.HIDDEN_WORDS)."""
         return not guard.clean(reply.text).strip() or guard.check(reply.text) == "hidden_line"
 
-    answers = [await router.run(llm.candidates(level), tier, prompt_for)]
+    answers = [await router.run(llm.candidates(level), tier, prompt_for, role=f"writer-{level}")]
     brief, show = "", ""
     if answers[0]:
         brief, show, answers[0].text = guard.read_brief(answers[0].text)
@@ -331,7 +331,8 @@ async def respond(state: State) -> dict:
         # "Has he used LangGraph in production?" with an empty reply in CI (14 Nov 2026).
         stronger = {"L1": "L2", "L2": "L3"}.get(level, level)
         others = [m for m in llm.candidates(stronger) if m.name != answers[0].model]
-        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look)):
+        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look), role=f"writer-{stronger}",
+                                     exclude=answers[0].model):
             brief, show, retry.text = guard.read_brief(retry.text)
             answers.append(retry)
     answer = answers[-1]
