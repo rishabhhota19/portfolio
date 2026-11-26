@@ -26,6 +26,6 @@ jobs:
       - if: env.CLOUDFLARE_API_TOKEN == ''
         run: echo "::notice::CLOUDFLARE_API_TOKEN isn't set, so the analytics Worker wasn't deployed. Run npm run analytics:deploy."
       - if: env.CLOUDFLARE_API_TOKEN != ''
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - if: env.CLOUDFLARE_API_TOKEN != ''
         run: npx --yes wrangler@4 deploy --config cloudflare/analytics/wrangler.jsonc
