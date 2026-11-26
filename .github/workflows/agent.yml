@@ -34,6 +34,12 @@ jobs:
       # Optional: with the site's Redis, CI's calls are booked in the same per-minute pool the visitors use.
       UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
       UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+      # The model gateway (cloudflare/gateway): CI asks for the same roles the site does, so the evals measure the
+      # models visitors get, not a CI-only pool. GATEWAY_SHARE caps CI at 40% of every model's free minute and daily
+      # limits (counted in the site's own budget), so a CI run never empties a quota the visitors need.
+      GATEWAY_URL: ${{ secrets.GATEWAY_URL }}
+      GATEWAY_KEY: ${{ secrets.GATEWAY_KEY }}
+      GATEWAY_SHARE: "0.4"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

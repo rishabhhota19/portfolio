@@ -24,6 +24,8 @@ def enabled() -> bool:
 def client(role: str, max_tokens: int, timeout: float, contract: str | None = None, exclude: str = "") -> ChatOpenAI:
     """exclude: a model (as "provider/model") the gateway must not use for this call: a second opinion asks a different one."""
     headers = {**({"x-contract-first-line": contract} if contract else {}), **({"x-exclude-model": exclude} if exclude else {})}
+    if env("GATEWAY_SHARE"):  # CI: may fill only this share of each model's free limits; the visitors keep the rest
+        headers["x-budget-share"] = env("GATEWAY_SHARE")
     return ChatOpenAI(
         base_url=env("GATEWAY_URL"),
         api_key=env("GATEWAY_KEY"),
