@@ -13,6 +13,7 @@
  *
  * Contracts, checked before the visitor sees a byte:
  *   - x-exclude-model: provider/model   not this one (a second opinion asks a different model).
+ *   - x-only-model: <name>   this registry model alone (the contract eval measures each model on its own).
  *   - x-contract-first-line: <regex>   the reply's first line must match (the agent's action header). The stream is
  *     held until that line has arrived; a model that skips it is dropped for the next one.
  *   - tools in the request: a tool call written out as text instead of made is a broken reply, and the next model is
@@ -23,6 +24,7 @@
  */
 
 import routes from "./routes.json";
+import capabilities from "./capabilities.json";
 
 type Model = {
   provider: string; model: string; rpm: number; rpd: number; tpm: number; tpd: number;
@@ -34,6 +36,10 @@ type Routes = { providers: Record<string, Provider>; models: Record<string, Mode
 type Env = Record<string, string | undefined> & { GATEWAY_KEY?: string; UPSTASH_REDIS_REST_URL?: string; UPSTASH_REDIS_REST_TOKEN?: string };
 
 const R = routes as unknown as Routes;
+// What each model was measured to do (npm run gateway:contracts, evals/gateway_contract_eval.py): a model that failed
+// to make a real tool call, or to write the reply's required first line, is not asked for that again. A model not
+// measured yet is asked (the gateway still checks every reply itself).
+const CAN = capabilities as unknown as Record<string, { tools?: boolean; first_line?: boolean }>;
 const ROLE_PREFIX = "dumbledore/";
 const REASONING_HEADROOM = 250; // hidden reasoning tokens on gpt-oss models (as llm.py)
 const DAY = 90_000; // seconds a day counter lives (a little over a day: it is named by the UTC date anyway)
@@ -156,7 +162,7 @@ function providerUrl(env: Env, provider: Provider): string {
   return provider.url.replace("{CF_ACCOUNT_ID}", env.CF_ACCOUNT_ID ?? "").replace(/\/$/, "") + "/chat/completions";
 }
 
-async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contract: RegExp | null, exclude: string): Promise<Response> {
+async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contract: RegExp | null, exclude: string, only: string): Promise<Response> {
   const roleName = req.model?.startsWith(ROLE_PREFIX) ? req.model.slice(ROLE_PREFIX.length) : "";
   const role = R.roles[roleName];
   if (!role) return error(400, `Unknown role "${req.model}". Ask for one of: ${Object.keys(R.roles).map((r) => ROLE_PREFIX + r).join(", ")}`);
@@ -165,12 +171,15 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
   const promptTokens = Math.ceil(JSON.stringify(req.messages).length / 4);
   const tried: string[] = [];
 
-  for (const name of role.pool) {
+  const pool = only ? (R.models[only] ? [only] : []) : role.pool; // only: the contract eval measures one model
+  for (const name of pool) {
     const m = R.models[name];
     const provider = m && R.providers[m.provider];
     const key = provider && env[provider.key];
     if (!m || !provider || !key) continue; // no key for this provider here
     if (exclude && `${m.provider}/${m.model}` === exclude) continue; // a second opinion: a different model
+    if (!only && tools && CAN[name]?.tools === false) continue; // measured: it does not make real tool calls
+    if (!only && contract && CAN[name]?.first_line === false) continue; // measured: it skips the required first line
     if (promptTokens + role.max_tokens > m.context) continue; // the prompt would not fit this model
     const booked = await book(env, name, m, promptTokens + role.max_tokens, role.max_tokens);
     if (!booked.ok) continue;
@@ -295,6 +304,6 @@ export default {
     if (firstLine) {
       try { contract = new RegExp(firstLine); } catch { return error(400, "x-contract-first-line is not a valid regex"); }
     }
-    return handle(body, env, ctx, contract, request.headers.get("x-exclude-model") ?? "");
+    return handle(body, env, ctx, contract, request.headers.get("x-exclude-model") ?? "", request.headers.get("x-only-model") ?? "");
   },
 } satisfies ExportedHandler<Env>;

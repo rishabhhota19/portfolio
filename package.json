@@ -25,7 +25,8 @@
     "warm:deploy": "npx --yes wrangler@4 deploy --config cloudflare/warm/wrangler.jsonc",
     "gateway:routes": "python -m agent.export_routes",
     "gateway:dev": "npx --yes wrangler@4 dev --config cloudflare/gateway/wrangler.jsonc --port 8787",
-    "gateway:deploy": "python -m agent.export_routes && npx --yes wrangler@4 deploy --config cloudflare/gateway/wrangler.jsonc"
+    "gateway:deploy": "python -m agent.export_routes && npx --yes wrangler@4 deploy --config cloudflare/gateway/wrangler.jsonc",
+    "gateway:contracts": "python -m evals.gateway_contract_eval"
   },
   "dependencies": {
     "@sentry/nextjs": "^11.10.0",
