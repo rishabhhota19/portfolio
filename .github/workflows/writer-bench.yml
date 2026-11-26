@@ -27,7 +27,7 @@ jobs:
       NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }} # the research planner's lead model, as in production
       MODELS: ${{ inputs.models || 'groq-qwen groq-120b' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
