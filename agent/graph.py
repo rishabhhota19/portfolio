@@ -1,10 +1,8 @@
 """Dumbledore, the agent, as a LangGraph graph. One conversation is one agent session (a thread): its memory is
 loaded at the start of every turn and saved at the end, whichever model or server answers.
 
-    START ─► route ─(question)─► retrieve ─► scope ─(in scope)─► rerank ─► recall ─► plan ─► respond ─► check ─► remember ─► END
-               │                               ├──(off topic: refusal)──► END          ▲      │
-               │                               └──(answer bank hit)─────► END          └─ act ◄┘  (the research loop)
-               └──(refused / canned / "take me to …" / repeated question)───────────────────► END
+    START ─► recall ─► respond (loop.py: the judge gates and picks the pool; one model calls tools and writes) ─► check ─► remember ─► END
+                           └──(judge's decline / exact cache / answer bank: no writer)────────────────────────────────────────► END
 
 The refusal pipeline (guard.py) runs through it: route = Gate 1 (rules), scope = Gate 2 (meaning), respond = Gate 3
 (the prompt), check = Gate 4 (output) and Gate 5 (what gets cached). Questions answered before respond cost no tokens.
@@ -34,7 +32,7 @@ from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph, add_messages
 
-from . import cache, embeddings, grounding, guard, judge, llm, memory as session, pages, research, router, scope as gate2, usage
+from . import cache, embeddings, grounding, guard, judge, llm, loop, memory as session, pages, research, router, scope as gate2, usage
 from .difficulty import difficulty
 from .prompts import system_prompt
 from .rag import rerank, search
@@ -56,6 +54,7 @@ class State(TypedDict, total=False):
     rescued: bool  # the old rules refused this turn and the judge set that aside (JUDGE=rescue)
     brief: str  # what the agent worked out this visitor is deciding (its hidden first line, never logged)
     show: str  # the page it chose to take them to, or "stay" ("" = it didn't say)
+    read: int  # how many chunks the writer read this turn (the agent loop sets it; check and the evals use it)
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
     # The agent session (memory.py, research.py)
     memory: Any  # this conversation's memory: points researched so far, a summary of the earlier turns, its spend
@@ -319,7 +318,7 @@ async def respond(state: State) -> dict:
         a reply that talks about that line instead of answering (guard.HIDDEN_WORDS)."""
         return not guard.clean(reply.text).strip() or guard.check(reply.text) == "hidden_line"
 
-    answers = [await router.run(llm.candidates(level), tier, prompt_for)]
+    answers = [await router.run(llm.candidates(level), tier, prompt_for, role=f"writer-{level}")]
     brief, show = "", ""
     if answers[0]:
         brief, show, answers[0].text = guard.read_brief(answers[0].text)
@@ -332,7 +331,8 @@ async def respond(state: State) -> dict:
         # "Has he used LangGraph in production?" with an empty reply in CI (14 Nov 2026).
         stronger = {"L1": "L2", "L2": "L3"}.get(level, level)
         others = [m for m in llm.candidates(stronger) if m.name != answers[0].model]
-        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look)):
+        if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look), role=f"writer-{stronger}",
+                                     exclude=answers[0].model):
             brief, show, retry.text = guard.read_brief(retry.text)
             answers.append(retry)
     answer = answers[-1]
@@ -399,7 +399,8 @@ async def check(state: State) -> dict:
     grounded = None
     if state.get("model") not in UNANSWERED and state.get("why") != "judge:not_on_site":
         tier = llm.TIERS.get(state.get("level") or "", llm.TIERS["L2"])
-        read = min(tier.chunks, 4) if state.get("economy") else tier.chunks  # the chunks as respond cut them
+        # the chunks the writer read: what the agent loop fetched (state["read"]), else as the old respond cut them
+        read = state.get("read") or (min(tier.chunks, 4) if state.get("economy") else tier.chunks)
         sources = research.evidence(state, read)
         # … plus the pages the answer or the question names: the checker has to know what a named thing is. Live
         # (19 Nov 2026) "What did LCSNet achieve on osteoarthritis X-rays?" got the OA project's results under
@@ -481,19 +482,15 @@ def alert_exhausted() -> None:
 
 # ── wiring ──────────────────────────────────────────────────────────────────
 
+# The agent loop (loop.py) is the turn: the judge's verdict gates it and picks its pool, the model calls tools and
+# writes, check and remember follow. The nodes above it (route, retrieve, scope, rerank, plan, act, the old respond)
+# are no longer wired; they stay until the branch's gate passes, as the reference for what the loop replaced.
 builder = StateGraph(State)
-for name, node in [("route", route), ("retrieve", retrieve), ("scope", scope), ("rerank", rerank_docs), ("recall", recall),
-                   ("plan", research.plan), ("act", research.act), ("respond", respond), ("check", check), ("remember", remember)]:
+for name, node in [("recall", recall), ("respond", loop.respond), ("check", check), ("remember", remember)]:
     builder.add_node(name, node)
-builder.add_edge(START, "route")
-builder.add_conditional_edges("route", lambda s: "retrieve" if s["intent"] == "question" else END)
-builder.add_edge("retrieve", "scope")
-builder.add_conditional_edges("scope", lambda s: "rerank" if s["intent"] == "question" else END)
-builder.add_edge("rerank", "recall")
-builder.add_edge("recall", "plan")
-builder.add_conditional_edges("plan", lambda s: "act" if s.get("calls") else "respond")  # the research loop
-builder.add_edge("act", "plan")
-builder.add_edge("respond", "check")
+builder.add_edge(START, "recall")
+builder.add_edge("recall", "respond")
+builder.add_conditional_edges("respond", lambda s: "check" if s.get("intent") in ("question", "not_on_site") else END)  # a reply without a writer is final
 builder.add_edge("check", "remember")
 builder.add_edge("remember", END)
 agent = builder.compile()

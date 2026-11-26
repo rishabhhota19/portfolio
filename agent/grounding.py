@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from . import guard, llm, router
+from . import gateway, guard, llm, router
 from .config import env
 from .prompts import GROUNDING_PROMPT, KNOWLEDGE
 
@@ -153,6 +153,8 @@ async def hedged(models: list, fit) -> "router.Answer | None":
     asked too and whichever replies first is used (both caught 5/5 planted mistakes, 22 Nov 2026). The slower call is
     not cancelled (that would skip the router's quota bookkeeping); it finishes in the background. When neither has a
     reply (no budget, errors), the rest of the pool is tried in order."""
+    if gateway.enabled():  # the gateway walks the checker pool itself
+        return await router.run(models, TIER, fit, role="checker")
     ask = lambda pool: asyncio.ensure_future(router.run(pool, TIER, fit))  # noqa: E731
     first, second, rest = models[:1], models[1:2], models[2:]
     pending = {ask(first)} if first else set()

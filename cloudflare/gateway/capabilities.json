@@ -1,0 +1,186 @@
+{
+ "cf-120b": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 1892,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "cf-20b": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 979,
+  "tools": false,
+  "tools_passed": "0/2"
+ },
+ "cf-gemma": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 1419,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "cf-glm": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 1297,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "cf-llama70b": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 2033,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "cf-mistral": {
+  "first_line": true,
+  "first_line_passed": "1/2",
+  "measured": "2026-11-23",
+  "median_ms": 1346,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "cf-nemotron": {
+  "median_ms": 45,
+  "unmeasured": "no answer (no key here, or the model is not served)"
+ },
+ "cf-qwen3-a3b": {
+  "median_ms": 41,
+  "unmeasured": "no answer (no key here, or the model is not served)"
+ },
+ "cf-scout": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 11816,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "gemini-flash-3": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 2559,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "gemini-flash-3.6": {
+  "first_line": true,
+  "first_line_passed": "1/2",
+  "measured": "2026-11-23",
+  "median_ms": 15074,
+  "tools": false,
+  "tools_passed": "0/2"
+ },
+ "gemini-flash-3.8": {
+  "first_line": true,
+  "first_line_passed": "1/2",
+  "measured": "2026-11-23",
+  "median_ms": 15076,
+  "tools": false,
+  "tools_passed": "0/2"
+ },
+ "gemini-gemma-26b": {
+  "first_line": false,
+  "first_line_passed": "0/2",
+  "measured": "2026-11-23",
+  "median_ms": 849,
+  "tools": true,
+  "tools_passed": "1/2"
+ },
+ "gemini-lite-3.1": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 1915,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "gemini-lite-3.5": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 5328,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "groq-120b": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 687,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "groq-20b": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 528,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "groq-qwen": {
+  "first_line": false,
+  "first_line_passed": "0/2",
+  "measured": "2026-11-23",
+  "median_ms": 251,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "nv-nemotron-lightning": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 634,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "nv-nemotron-super": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 543,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "nv-nemotron-ultra": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 3261,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "or-lightning": {
+  "first_line": false,
+  "first_line_passed": "0/2",
+  "measured": "2026-11-23",
+  "median_ms": 677,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "or-ultra": {
+  "first_line": true,
+  "first_line_passed": "2/2",
+  "measured": "2026-11-23",
+  "median_ms": 1781,
+  "tools": true,
+  "tools_passed": "2/2"
+ },
+ "sn-120b": {
+  "median_ms": 14,
+  "unmeasured": "no answer (no key here, or the model is not served)"
+ },
+ "sn-deepseek": {
+  "median_ms": 16,
+  "unmeasured": "no answer (no key here, or the model is not served)"
+ }
+}

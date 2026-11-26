@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Callable
 
-from . import llm, usage
+from . import gateway, llm, usage
 from .llm import FreeModel, Tier
 
 MAX_WAIT = 20  # seconds we'll wait for per-minute limits to reset before giving up
@@ -87,9 +87,16 @@ async def on_error(m: FreeModel, err: Exception) -> None:
 
 
 async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeModel], tuple[list, bool] | None],
-              tools: list | None = None) -> Answer | None:
+              tools: list | None = None, role: str | None = None, contract: str | None = None,
+              exclude: str = "") -> Answer | None:
     """Tries `models` in order; returns the first real answer, or None if every free model is out of budget.
-    With `tools`, the models may call them: a reply of tool calls and no text counts as an answer too."""
+    With `tools`, the models may call them: a reply of tool calls and no text counts as an answer too.
+    With a `role` and the gateway on (gateway.py), the gateway picks the model instead; `contract` is a regex the
+    reply's first line must match (the gateway drops a model whose reply doesn't)."""
+    if role and gateway.enabled():
+        answer = await via_gateway(models, tier, prompt_for, tools, role, contract, exclude)
+        if answer is not False:
+            return answer  # an answer, or None: the gateway's pool is busy (asking the same models directly won't help)
     pool = (tuple(m.name for m in models), usage.CALLER.get())  # per caller: one visitor's request never blocks others
     if _none_left.get(pool, 0) > time.time():
         return None  # everything was used up a moment ago: don't spend ~2 Redis commands per model finding that out again
@@ -160,3 +167,37 @@ async def run(models: list[FreeModel], tier: Tier, prompt_for: Callable[[FreeMod
             _none_left.clear()
         _none_left[pool] = time.time() + NONE_LEFT_FOR
     return None
+
+
+async def via_gateway(models, tier, prompt_for, tools, role: str, contract: str | None, exclude: str = "") -> "Answer | None | bool":
+    """One call through the gateway. The prompt is built for the pool's first model that can take it (the gateway
+    skips any model it does not fit). False when the gateway itself could not be reached: the caller goes direct."""
+    built = next((b for b in (prompt_for(m) for m in models) if b is not None), None)
+    if built is None:
+        return None
+    prompt, trimmed = built
+    left = usage.time_left()
+    timeout = tier.timeout * 2 if left is None else max(MIN_CALL, min(tier.timeout * 2, left - 2))
+    client = gateway.client(role, tier.max_tokens, timeout, contract, exclude)
+    reply = None
+    tokens_in = tokens_out = 0
+    try:
+        async for chunk in (client.bind_tools(tools) if tools else client).astream(prompt):
+            reply = chunk if reply is None else reply + chunk
+            chunk_in, chunk_out, _ = llm.tokens_used(chunk)
+            tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
+    except Exception as err:
+        status = getattr(err, "status_code", None)
+        if status == 503:  # every model of the role is busy or out of budget
+            print(f"[router] gateway: {role} busy")
+            return None
+        print(f"[router] gateway unreachable ({status or type(err).__name__}): going direct for a minute")
+        gateway.unreachable()
+        return False
+    if reply is None or not (reply.text.strip() or (tools and reply.tool_calls)):
+        return None
+    headers = (reply.response_metadata or {}).get("headers") or {}
+    model = headers.get("x-dumbledore-model", f"gateway/{role}")
+    tried = [t for t in headers.get("x-dumbledore-tried", "").split(",") if t]
+    return Answer(reply.text, model, tokens_in, tokens_out, 0, max(0, len(tried) - 1), trimmed, tried, reply)
+

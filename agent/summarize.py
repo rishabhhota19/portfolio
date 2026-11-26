@@ -32,7 +32,7 @@ async def summarize(messages: list[dict], session_id: str = "", shared_details: 
 
     models = [llm.M[n] for n in TIER.pool if llm.M[n].available]
     fit = lambda m: (prompt, False) if llm.fits(m, llm.estimate_tokens(prompt), TIER.max_tokens) else None  # noqa: E731
-    answer = await router.run(models, TIER, fit)
+    answer = await router.run(models, TIER, fit, role="summary")
     if not answer:
         return NO_SUMMARY
     await usage.add_to_session(session_id, {"summary_tokens": answer.tokens_in + answer.tokens_out})

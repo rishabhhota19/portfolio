@@ -52,7 +52,9 @@ def check(case: dict, state: dict) -> dict:
     # The chunks the writer read, cut as graph.respond cuts them (2 / 4 / 6 by level, 4 in economy mode): a page found
     # at rank 5 is not found for an L2 answer. Before 19 Nov 2026 this counted the 6 kept, and showed 14/14 while
     # questions about a whole section found nothing the writer saw.
-    if level in llm.TIERS:
+    if state.get("read"):  # the agent loop says how many chunks it read
+        seen = research.evidence(state, state["read"])
+    elif level in llm.TIERS:
         seen = research.evidence(state, min(llm.TIERS[level].chunks, 4) if state.get("economy") else llm.TIERS[level].chunks)
     else:
         seen = docs
@@ -71,6 +73,9 @@ def check(case: dict, state: dict) -> dict:
         "passed": bool(answer) and not missing and not forbidden,
         "retrieval_hit": case["url"] in [d["url"] for d in seen] if "url" in case else None,
         "why": [f"missing /{p}/" for p in missing] + [f"contains /{p}/" for p in forbidden],
+        # what the writer's step did (the agent loop: rounds, searches, chunks read), for the notice on a failure
+        "respond": {k: v for k, v in next((t for t in state.get("trace", []) if t.get("step") == "respond"), {}).items()
+                    if k in ("rounds", "searches", "read", "level", "tried")},
     }
 
 
@@ -98,6 +103,9 @@ async def main() -> int:
         results.append(result)
         rag = {True: "rag✓", False: "rag✗", None: "    "}[result["retrieval_hit"]]
         print(f"{'PASS' if result['passed'] else 'FAIL'}  {case['kind']:<9} {case['id']:<20} {rag}  {result['model']}  {' '.join(result['why'])}")
+        if not result["passed"] and result["model"] not in UNANSWERED:  # a notice: the run page shows the answer without a sign-in
+            print(f"::notice::eval FAIL {case['id']}: {' '.join(result['why'])} — {result['model']} {result.get('respond')}: "
+                  f"{' '.join(result['answer'].split())[:200]!r}")
         await asyncio.sleep(DELAY_SECONDS)
 
     with open(HERE / "results.jsonl", "w", encoding="utf-8") as f:

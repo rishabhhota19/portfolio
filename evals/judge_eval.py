@@ -67,8 +67,7 @@ def writer(*replies: str):
     queue = list(replies)
 
     async def run(models, tier, prompt_for, tools=None):
-        if tools:  # the planner: nothing to research in these checks
-            return router.Answer("done", "scripted", 1, 1, 0, 0, False, [])
+        # The agent loop's rounds carry tools; a scripted reply is text, which the loop takes as the reply.
         prompt, _ = prompt_for(models[0])
         note = next((k for k, text in prompts.SECOND_OPINION.items() if text in prompt[0].content), "")
         seen.append({"first": models[0].name, "note": note})

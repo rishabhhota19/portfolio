@@ -197,7 +197,7 @@ async def plan(state: dict) -> dict:
         return (planner, False) if llm.fits(m, llm.estimate_tokens(planner), llm.RESEARCH.max_tokens) else None
 
     models = [llm.M[n] for n in llm.RESEARCH.pool if llm.M[n].available]
-    answer = await router.run(models, llm.RESEARCH, prompt_for, tools=TOOLS)
+    answer = await router.run(models, llm.RESEARCH, prompt_for, tools=TOOLS, role="planner")
     used = dict(state.get("research_usage") or {})  # every planner round counts towards the turn
     if answer:
         for key, amount in (("calls", 1), ("tokens_in", answer.tokens_in), ("tokens_out", answer.tokens_out), ("tokens_counted", answer.counted)):

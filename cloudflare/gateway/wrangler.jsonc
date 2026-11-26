@@ -1,0 +1,12 @@
+// The model gateway: Dumbledore's one door to the free models (see worker.ts). Free plan: 100,000 requests a day,
+// 10 ms of CPU each (waiting on a model costs none). Local: npm run gateway:dev (secrets in .dev.vars, never committed).
+// Deploy: npm run gateway:deploy, then set each secret once with `npx wrangler secret put NAME --config cloudflare/gateway/wrangler.jsonc`.
+{
+  "name": "rishabh-gateway",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  // No prompt or answer is ever logged (the site's privacy page promises it): only the gateway's own one-line notes.
+  "observability": { "enabled": false }
+}
