@@ -14,7 +14,7 @@
  * Contracts, checked before the visitor sees a byte:
  *   - x-exclude-model: provider/model   not this one (a second opinion asks a different model).
  *   - x-only-model: <name>   this registry model alone (the contract eval measures each model on its own).
- *   - x-budget-share: 0.05–1   fill only this share of each model's free limits (CI sends 0.4: visitors keep the rest).
+ *   - x-budget-share: 0.05–1   fill only this share of each model's free DAILY limits (CI sends 0.4: visitors keep the rest).
  *   - x-contract-first-line: <regex>   the reply's first line must match (the agent's action header). The stream is
  *     held until that line has arrived; a model that skips it is dropped for the next one.
  *   - tools in the request: a tool call written out as text instead of made is a broken reply, and the next model is
@@ -76,9 +76,12 @@ async function redis(env: Env, command: unknown[]): Promise<unknown> {
 
 async function book(env: Env, name: string, m: Model, tokens: number, maxOut: number, share = 1): Promise<{ ok: boolean; why: string; booking: Booking }> {
   const p = R.providers[m.provider].limits;
-  // share < 1 (x-budget-share, sent by CI): this call may fill only that share of each limit. The counters are the
-  // visitors' own, so CI stops at its share while visitors can still use all of it.
+  // share < 1 (x-budget-share, sent by CI): this call may fill only that share of each DAILY limit. The counters are
+  // the visitors' own, so CI stops at its share of the day while visitors can still use all of it. Minute limits are
+  // not shared out: they refill each minute, and capping them starved CI (NVIDIA's 30 a minute became 12, and two CI
+  // runs got "busy" on most calls, 27 Nov run 45901335771).
   const cap = (limit: number | undefined) => (limit ? Math.max(1, Math.floor(limit * share)) : 0);
+  const all = (limit: number | undefined) => limit ?? 0;
   const minute = Math.floor(Date.now() / 60_000);
   const day = new Date().toISOString().slice(0, 10);
   const neurons = Math.round((tokens * (m.neurons[0] ?? 0) + maxOut * (m.neurons[1] ?? 0)) / 1e6);
@@ -86,7 +89,7 @@ async function book(env: Env, name: string, m: Model, tokens: number, maxOut: nu
     `gw:paused:${name}`, `gw:rpm:${name}:${minute}`, `gw:rpd:${name}:${day}`, `gw:tpm:${name}:${minute}`, `gw:tpd:${name}:${day}`,
     `gw:prpm:${m.provider}:${minute}`, `gw:prpd:${m.provider}:${day}`, `gw:neurons:${m.provider}:${day}`,
   ];
-  const args = [cap(m.rpm), cap(m.rpd), cap(m.tpm), cap(m.tpd), tokens, cap(p.rpm), cap(p.rpd), cap(p.neurons_day), neurons];
+  const args = [all(m.rpm), cap(m.rpd), all(m.tpm), cap(m.tpd), tokens, all(p.rpm), cap(p.rpd), cap(p.neurons_day), neurons];
   const result = await redis(env, ["EVAL", BOOK, keys.length, ...keys, ...args]);
   if (result === null) return { ok: true, why: "unbooked", booking: null }; // no Redis (local dev): call, uncounted
   return { ok: result === "ok", why: String(result), booking: result === "ok" ? { keys, tokens, neurons } : null };
