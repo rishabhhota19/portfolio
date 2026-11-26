@@ -66,7 +66,8 @@ def writer(*replies: str):
     Records which pool and note it was given."""
     queue = list(replies)
 
-    async def run(models, tier, prompt_for, tools=None):
+    async def run(models, tier, prompt_for, tools=None, role=None, contract=None, exclude=""):
+        # role / contract / exclude: router.run's gateway arguments (a scripted writer ignores them, as the direct path does)
         # The agent loop's rounds carry tools; a scripted reply is text, which the loop takes as the reply.
         prompt, _ = prompt_for(models[0])
         note = next((k for k, text in prompts.SECOND_OPINION.items() if text in prompt[0].content), "")

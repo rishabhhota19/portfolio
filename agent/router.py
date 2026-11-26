@@ -188,7 +188,12 @@ async def via_gateway(models, tier, prompt_for, tools, role: str, contract: str 
             tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
     except Exception as err:
         status = getattr(err, "status_code", None)
-        if status == 503:  # every model of the role is busy or out of budget
+        body = getattr(err, "body", None)
+        said = (body.get("error", body) if isinstance(body, dict) else None) or {}
+        # Busy only when the gateway itself says so (its JSON error, type "gateway"): every model of the role is busy
+        # or out of budget. Any other 503 (Cloudflare refusing the Worker, e.g. over its CPU limit) is the gateway
+        # failing, and the call goes direct.
+        if status == 503 and isinstance(said, dict) and said.get("type") == "gateway":
             print(f"[router] gateway: {role} busy")
             return None
         print(f"[router] gateway unreachable ({status or type(err).__name__}): going direct for a minute")

@@ -166,11 +166,6 @@ is not a tool: you decide it in your reply's first line (SHOW, DON'T TELL below)
 AGENT_FIXED = f"{_HEAD}{TOOLS_TEXT}\n\nSHOW, DON'T TELL{_TAIL}"
 
 
-# Sent after the tool results (loop.py), where the model writes: the reply's shape, next to it.
-WRITE_NOTE = """(A note from the site, not from the visitor.) Write the reply from these passages{more}. First line: "BRIEF: … | SHOW: …" (SHOW stay if they have asked you to stop moving
-the page). Then, unless it's one fact or a bio: the bold one-line claim and at most 3 short bullets, under 90 words."""
-
-
 def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool = False, economy: bool = False,
                  context: str = "") -> str:
     """notes: what this chat already researched (memory). note: a second opinion's note (SECOND_OPINION). final: the

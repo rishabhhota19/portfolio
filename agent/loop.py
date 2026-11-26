@@ -30,12 +30,12 @@ import asyncio
 import re
 import time
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import tool
 
 from . import cache, embeddings, guard, judge, llm, pages, rag, router, scope as gate2, usage
 from .memory import MAX_NOTE, Memory
-from .prompts import SECOND_OPINION, WRITE_NOTE, agent_prompt
+from .prompts import SECOND_OPINION, agent_prompt
 from .research import docs_by_id, open_page, search_site
 
 MAX_ROUNDS = 3  # tool rounds before the model must write
@@ -198,14 +198,10 @@ class Turn:
             system = SystemMessage(agent_prompt(self.level, self.memory.notes(), note, final=final, economy=self.economy,
                                                 context=passages(self.preread) if self.preread else ""))
             turns = list(self.history)
-            # After tool results the passages, not the rules, sit next to where the model writes: the system prompt's
-            # length and first-line rules were thousands of tokens back, and Nemotron wrote 136–176 words where main's
-            # pipeline (passages inside the system prompt) stayed under 125 (local evals, 23 Nov 2026). A short note
-            # repeats them at the end. A user-role note: Gemini refuses a system message after tool results.
-            more = "; no more tools" if final else ", or search once more if a point they asked about is missing"
-            tail = [HumanMessage(WRITE_NOTE.format(more=more))] if self.transcript else []
+            # No reminder note after the tool results: one that repeated the first line and the length rule cut the
+            # page moves from 94% to 87%, and 84% once it listed when to stay (showing eval through the gateway, 27 Nov).
             while turns:
-                prompt = [system, *turns, *self.transcript, *tail]
+                prompt = [system, *turns, *self.transcript]
                 if llm.fits(m, llm.estimate_tokens(prompt), self.tier.max_tokens):
                     return prompt, len(turns) < len(self.history)
                 turns = turns[1:]

@@ -242,6 +242,9 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
       text = lines.pop() ?? "";
       for (const line of lines) {
         if (!line.startsWith("data:") || line.includes("[DONE]")) continue;
+        // Most chunks before the first line are hidden reasoning (no text, no tool call): skip them unparsed. CPU is
+        // the free plan's limit (10 ms), and parsing every reasoning chunk cost more than everything else together.
+        if (!/"content"\s*:\s*"[^"]/.test(line) && !line.includes('"tool_calls"')) continue;
         try {
           const delta = (JSON.parse(line.slice(5)) as { choices?: { delta?: { content?: string; tool_calls?: unknown[] } }[] }).choices?.[0]?.delta;
           if (delta?.content) content += delta.content;
@@ -261,28 +264,20 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
       continue;
     }
 
-    // Through: what was held, then the rest untouched. Only a chunk naming "usage" is read, for the token count.
-    let used: number | null = null;
-    const body = new ReadableStream<Uint8Array>({
-      async start(controller) {
-        for (const c of held) controller.enqueue(c);
-        try {
-          while (!done) {
-            const { done: end, value } = await reader.read();
-            if (end || !value) break;
-            controller.enqueue(value);
-            const piece = decoder.decode(value, { stream: true });
-            if (piece.includes('"usage"')) {
-              const total = /"total_tokens"\s*:\s*(\d+)/.exec(piece);
-              if (total) used = Number(total[1]);
-            }
-          }
-        } catch { /* the provider broke off: the agent sees the stream end */ }
-        controller.close();
-        ctx.waitUntil(settle(env, booked.booking, used));
-      },
-    });
-    return new Response(body, { headers: { "content-type": "text/event-stream", "cache-control": "no-store", ...meta } });
+    // Through: what was held, then the rest piped natively. A JavaScript loop over every chunk (reasoning models
+    // send hundreds) was most of the CPU: median 11 ms against the free plan's 10 (27 Nov). Piped, the copy costs the
+    // Worker no CPU; the price is that a stream's real token count is not read, so its booking stays at the estimate
+    // made up front (prompt + max_tokens): it can only over-count, never overspend a free quota.
+    const { readable, writable } = new IdentityTransformStream();
+    ctx.waitUntil((async () => {
+      const writer = writable.getWriter();
+      for (const c of held) await writer.write(c);
+      writer.releaseLock();
+      reader.releaseLock();
+      if (done) await writable.close();
+      else await res.body!.pipeTo(writable).catch(() => { /* the provider broke off: the agent sees the stream end */ });
+    })());
+    return new Response(readable, { headers: { "content-type": "text/event-stream", "cache-control": "no-store", ...meta } });
   }
   return error(503, `Every model for ${roleName} is busy or out of free budget right now.${tried.length ? ` Tried: ${tried.join(", ")}` : ""}`);
 }
