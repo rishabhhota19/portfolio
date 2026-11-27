@@ -31,14 +31,17 @@ os.environ["ANSWER_CACHE"] = "off"
 
 from langchain_core.messages import AIMessage, HumanMessage  # noqa: E402
 
-from agent import graph  # noqa: E402
+from agent import graph, prompts  # noqa: E402
 from agent.config import KNOWLEDGE  # noqa: E402
 from evals import again, baseline  # noqa: E402
 
 HERE = Path(__file__).parent
 WORD_LIMIT = 125  # the prompt asks for under 110: this catches a model ignoring it
 DELAY_SECONDS = 20  # hard questions are ~5k tokens and Groq allows 8k a minute per model: don't spill to paid-for quotas
-SITE_TEXT = "\n".join([KNOWLEDGE["core"], *(f"{d['title']}\n{d['text']}" for d in KNOWLEDGE["docs"])])
+# What the agent may state: the site's content and its own instructions. The prompt states the booking card's
+# "30-minute Google Meet" (also on the site's header, home page and footer, which knowledge.json doesn't hold), and
+# "pick a time below for a 30-minute call" was flagged as a made-up 30 (CI run 45914946237, 27 Nov).
+SITE_TEXT = "\n".join([KNOWLEDGE["core"], *(f"{d['title']}\n{d['text']}" for d in KNOWLEDGE["docs"]), prompts.FIXED])
 SMART_QUOTES = str.maketrans("‘’“”", "''\"\"")
 
 TRIVIA = {  # what a neutral reviewer writes and an agent doesn't; a case may allow one by name
