@@ -176,29 +176,38 @@ async def via_gateway(models, tier, prompt_for, tools, role: str, contract: str 
     if built is None:
         return None
     prompt, trimmed = built
-    left = usage.time_left()
-    timeout = tier.timeout * 2 if left is None else max(MIN_CALL, min(tier.timeout * 2, left - 2))
-    client = gateway.client(role, tier.max_tokens, timeout, contract, exclude)
-    reply = None
-    tokens_in = tokens_out = 0
-    try:
-        async for chunk in (client.bind_tools(tools) if tools else client).astream(prompt):
-            reply = chunk if reply is None else reply + chunk
-            chunk_in, chunk_out, _ = llm.tokens_used(chunk)
-            tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
-    except Exception as err:
-        status = getattr(err, "status_code", None)
-        body = getattr(err, "body", None)
-        said = (body.get("error", body) if isinstance(body, dict) else None) or {}
-        # Busy only when the gateway itself says so (its JSON error, type "gateway"): every model of the role is busy
-        # or out of budget. Any other 503 (Cloudflare refusing the Worker, e.g. over its CPU limit) is the gateway
-        # failing, and the call goes direct.
-        if status == 503 and isinstance(said, dict) and said.get("type") == "gateway":
-            print(f"[router] gateway: {role} busy")
-            return None
-        print(f"[router] gateway unreachable ({status or type(err).__name__}): going direct for a minute")
-        gateway.unreachable()
-        return False
+    for attempt in range(2):
+        left = usage.time_left()
+        timeout = tier.timeout * 2 if left is None else max(MIN_CALL, min(tier.timeout * 2, left - 2))
+        client = gateway.client(role, tier.max_tokens, timeout, contract, exclude)
+        reply = None
+        tokens_in = tokens_out = 0
+        try:
+            async for chunk in (client.bind_tools(tools) if tools else client).astream(prompt):
+                reply = chunk if reply is None else reply + chunk
+                chunk_in, chunk_out, _ = llm.tokens_used(chunk)
+                tokens_in, tokens_out = max(tokens_in, chunk_in), max(tokens_out, chunk_out)
+            break
+        except Exception as err:
+            status = getattr(err, "status_code", None)
+            body = getattr(err, "body", None)
+            said = (body.get("error", body) if isinstance(body, dict) else None) or {}
+            # Busy only when the gateway itself says so (its JSON error, type "gateway"): every model of the role is
+            # busy or out of budget. Any other 503 (Cloudflare refusing the Worker, e.g. over its CPU limit) is the
+            # gateway failing, and the call goes direct.
+            if not (status == 503 and isinstance(said, dict) and said.get("type") == "gateway"):
+                print(f"[router] gateway unreachable ({status or type(err).__name__}): going direct for a minute")
+                gateway.unreachable()
+                return False
+            # code "minute": a model was only at its per-minute limit. Wait for the minute to turn and ask once more,
+            # as the direct path's third pass does (without it, 10 of CI's scope questions got no model, 27 Nov).
+            wait = 60 - time.time() % 60 + 0.5
+            longest = MAX_WAIT if left is not None else 61  # a visitor waits at most MAX_WAIT; a run with no deadline, a minute
+            if attempt or said.get("code") != "minute" or wait > longest or (left is not None and wait > left - MIN_CALL):
+                print(f"[router] gateway: {role} busy")
+                return None
+            print(f"[router] gateway: {role} at its per-minute limits — waiting {wait:.0f}s")
+            await asyncio.sleep(wait)
     if reply is None or not (reply.text.strip() or (tools and reply.tool_calls)):
         return None
     headers = (reply.response_metadata or {}).get("headers") or {}

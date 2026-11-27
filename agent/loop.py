@@ -39,8 +39,13 @@ from .prompts import SECOND_OPINION, agent_prompt
 from .research import docs_by_id, open_page, search_site
 
 MAX_ROUNDS = 3  # tool rounds before the model must write
-# The reply's first line, as the gateway checks it: a reply without it is dropped for another model's (gateway.py).
+# The reply's hidden first line (what the contract eval measures each model on).
 BRIEF_LINE = r"^[\s*_]*BRIEF:.*\|[\s*_]*SHOW:"
+# How a reply may start, as the gateway checks it (a reply that starts otherwise is dropped for another model's): the
+# BRIEF line, or — rules 7 and 10 of the prompt — the refusal sentence alone or the care mark alone, which carry no
+# BRIEF line. Requiring BRIEF on every reply dropped the models that refused off-topic questions correctly and let
+# through the ones that wrote a BRIEF line and answered them (CI scope eval, 27 Nov: 10 "no model", 2 leaks).
+REPLY_START = (rf"{BRIEF_LINE}|^[\s*_\"]*{re.escape(guard.REFUSAL[:40])}|^[\s*_]*{re.escape(guard.CARE_MARK)}[\s*_.]*$")
 MAX_SEARCHES = 8  # searches a turn
 MIN_TIME = 8  # seconds left before the deadline below which no new round starts
 LEVELS = {"fact": "L1", "usual": "L2", "reasoning": "L3"}  # the judge's reading of what the answer needs → the pool
@@ -254,7 +259,7 @@ class Turn:
         for round_no in range(rounds_allowed + 2):
             final = round_no >= rounds_allowed or (usage.time_left() or 99) < MIN_TIME
             reply = await router.run(models, self.tier, self.prompt_for(note, final), tools=TOOLS, role=f"writer-{level}",
-                                     exclude=exclude, contract=BRIEF_LINE)
+                                     exclude=exclude, contract=REPLY_START)
             if reply is None:
                 return None
             self.count(reply)

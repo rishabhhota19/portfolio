@@ -152,8 +152,10 @@ type ChatRequest = {
 };
 
 function upstreamBody(req: ChatRequest, m: Model, role: Role, stream: boolean): Record<string, unknown> {
-  const { model: _role, ...rest } = req;
-  const maxTokens = Math.min(req.max_tokens ?? role.max_tokens, role.max_tokens) + (m.reasoning ? REASONING_HEADROOM : 0);
+  // LangChain sends max_completion_tokens, older clients max_tokens: one limit goes upstream, as max_tokens. Sending
+  // both made Gemini refuse every call with HTTP 400 ("cannot both be set", 27 Nov).
+  const { model: _role, max_completion_tokens: asked, ...rest } = req as ChatRequest & { max_completion_tokens?: number };
+  const maxTokens = Math.min(req.max_tokens ?? asked ?? role.max_tokens, role.max_tokens) + (m.reasoning ? REASONING_HEADROOM : 0);
   return {
     ...rest,
     ...m.extra,
@@ -177,6 +179,7 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
   const stream = Boolean(req.stream);
   const promptTokens = Math.ceil(JSON.stringify(req.messages).length / 4);
   const tried: string[] = [];
+  let minuteLimited = false; // some model was only out of this minute's budget: worth asking again next minute
 
   const pool = only ? (R.models[only] ? [only] : []) : role.pool; // only: the contract eval measures one model
   for (const name of pool) {
@@ -189,7 +192,10 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
     if (!only && contract && CAN[name]?.first_line === false) continue; // measured: it skips the required first line
     if (promptTokens + role.max_tokens > m.context) continue; // the prompt would not fit this model
     const booked = await book(env, name, m, promptTokens + role.max_tokens, role.max_tokens, share);
-    if (!booked.ok) continue;
+    if (!booked.ok) {
+      minuteLimited ||= booked.why === "minute";
+      continue;
+    }
     tried.push(name);
     const failed = async (why: string, pauseSeconds = 0) => {
       ctx.waitUntil(settle(env, booked.booking, null, true));
@@ -211,7 +217,7 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
     }
     if (!res.ok) {
       const text = (await res.text()).slice(0, 400);
-      await failed(`HTTP ${res.status}`, pauseFor(res.status, text, res.headers.get("retry-after")));
+      await failed(`HTTP ${res.status} ${text.slice(0, 160).replace(/\s+/g, " ")}`, pauseFor(res.status, text, res.headers.get("retry-after")));
       continue;
     }
     const meta = { "x-dumbledore-model": `${m.provider}/${m.model}`, "x-dumbledore-tried": tried.join(","), "x-dumbledore-role": roleName };
@@ -282,7 +288,13 @@ async function handle(req: ChatRequest, env: Env, ctx: ExecutionContext, contrac
     })());
     return new Response(readable, { headers: { "content-type": "text/event-stream", "cache-control": "no-store", ...meta } });
   }
-  return error(503, `Every model for ${roleName} is busy or out of free budget right now.${tried.length ? ` Tried: ${tried.join(", ")}` : ""}`);
+  // code "minute": a model's per-minute budget was full, so asking again when the minute turns can succeed (the agent
+  // waits for it, as its direct path does); "busy": nothing will free up within a minute.
+  const wait = Math.ceil(60 - (Date.now() / 1000) % 60);
+  return json({ error: {
+    message: `Every model for ${roleName} is busy or out of free budget right now.${tried.length ? ` Tried: ${tried.join(", ")}` : ""}`,
+    type: "gateway", code: minuteLimited ? "minute" : "busy",
+  } }, 503, minuteLimited ? { "retry-after": String(wait) } : {});
 }
 
 export default {
