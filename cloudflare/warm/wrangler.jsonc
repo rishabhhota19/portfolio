@@ -1,11 +1,18 @@
-// Keeps Dumbledore awake: a cron-only Worker (free plan) that wakes the agent on Vercel every 4 minutes. See worker.ts.
-// No routes and no URL: nothing can call it from outside. Deploy: npm run warm:deploy
+// Two cron jobs on one Worker (free plan): the agent warm-up every 4 minutes, and the quota watchdog daily at
+// 03:37 UTC (09:07 IST). See worker.ts and watchdog.ts. No routes and no URL: nothing can call it from outside.
+// Secrets (wrangler secret put <NAME> --config cloudflare/warm/wrangler.jsonc): WARM_KEY, and for the watchdog
+// VERCEL_TOKEN, UPSTASH_EMAIL, UPSTASH_API_KEY, UPSTASH_ENDPOINT, CF_ANALYTICS_TOKEN, SHEETS_WEBHOOK_URL, SHEETS_SECRET.
+// Deploy: npm run warm:deploy
 {
   "name": "rishabh-warm",
   "main": "worker.ts",
   "compatibility_date": "2026-10-01",
-  "triggers": { "crons": ["*/4 * * * *"] },
-  "vars": { "SITE_ORIGIN": "https://rishabh-hota.vercel.app" },
+  "triggers": { "crons": ["*/4 * * * *", "37 3 * * *"] },
+  "vars": {
+    "SITE_ORIGIN": "https://rishabh-hota.vercel.app",
+    "CF_ACCOUNT_ID": "5750197ac3d62573e5d2b4fb2cae1053",
+    "VERCEL_TEAM_ID": "team_Euw7glu1Z6i7XsLJZhiNLo1F"
+  },
   "workers_dev": false,
   "preview_urls": false,
   "observability": { "enabled": false }
