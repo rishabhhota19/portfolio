@@ -54,6 +54,7 @@ class State(TypedDict, total=False):
     rescued: bool  # the old rules refused this turn and the judge set that aside (JUDGE=rescue)
     brief: str  # what the agent worked out this visitor is deciding (its hidden first line, never logged)
     show: str  # the page it chose to take them to, or "stay" ("" = it didn't say)
+    scope: str  # what it decided the question points at: "one" thing or "all" of a kind ("" = it didn't say)
     read: int  # how many chunks the writer read this turn (the agent loop sets it; check and the evals use it)
     trace: Annotated[list[dict], operator.add]  # one entry per step, for logs
     # The agent session (memory.py, research.py)
@@ -319,8 +320,9 @@ async def respond(state: State) -> dict:
         return not guard.clean(reply.text).strip() or guard.check(reply.text) == "hidden_line"
 
     answers = [await router.run(llm.candidates(level), tier, prompt_for, role=f"writer-{level}")]
-    brief, show = "", ""
+    brief, show, aim = "", "", ""
     if answers[0]:
+        aim = guard.read_scope(answers[0].text)
         brief, show, answers[0].text = guard.read_brief(answers[0].text)
     if answers[0] and ((look := await second_look(state, answers[0].text)) or empty(answers[0])):
         # Second opinion: smaller models sometimes refuse real questions about him ("does he have a US visa?"), or
@@ -333,6 +335,7 @@ async def respond(state: State) -> dict:
         others = [m for m in llm.candidates(stronger) if m.name != answers[0].model]
         if retry := await router.run(others, tier, lambda m: prompt_for(m, second_opinion=look), role=f"writer-{stronger}",
                                      exclude=answers[0].model):
+            aim = guard.read_scope(retry.text)
             brief, show, retry.text = guard.read_brief(retry.text)
             answers.append(retry)
     answer = answers[-1]
@@ -366,7 +369,7 @@ async def respond(state: State) -> dict:
             "tokens_counted": sum(a.counted for a in answers) + planner.get("tokens_counted", 0),
             "latency_ms": ms, "switches": answer.depth,
             "trims": int(answer.trimmed), f"level_{level}": 1}
-    return {"messages": [AIMessage(answer.text)], "model": model, "usage": used, "brief": brief, "show": show,
+    return {"messages": [AIMessage(answer.text)], "model": model, "usage": used, "brief": brief, "show": show, "scope": aim,
             **({"why": why, "intent": "not_on_site"} if why else {}),  # counted apart from a model's answers
             "trace": step("respond", started, level=level, model=model, show=show, tried=answer.tried, depth=answer.depth,
                           chunks=len(docs), history=len(history), economy=bool(state.get("economy")))}

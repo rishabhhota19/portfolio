@@ -197,6 +197,7 @@ class Turn:
         self.rounds = 0
         self.brief = ""
         self.show = ""  # the page (or "book", or "stay") the reply's first line chose
+        self.scope = ""  # "one" thing or "all" of a kind: what it decided the question points at
 
     def prompt_for(self, note: str, final: bool):
         def build(m: llm.FreeModel):
@@ -271,6 +272,7 @@ class Turn:
                 continue
             # The first line is the agent's decision about the page and the booking card ("BRIEF: … | SHOW: <path|stay|book>"):
             # kept for graph.check, which turns it into the page move or the card; the visitor never sees the line.
+            self.scope = guard.read_scope(reply.text)
             self.brief, self.show, text = guard.read_brief(reply.text)
             return text
         return ""
@@ -306,7 +308,7 @@ async def respond(state: dict) -> dict:
 
     ms = round((time.perf_counter() - started) * 1000)
     return {"messages": [AIMessage(answer)], "intent": intent, "model": turn.model, "level": turn.level, "docs": turn.read,
-            "read": len(turn.read), "points": turn.points, "actions": turn.actions, "show": show or turn.show, "brief": turn.brief,
+            "read": len(turn.read), "points": turn.points, "actions": turn.actions, "show": show or turn.show, "brief": turn.brief, "scope": turn.scope,
             **({"why": why} if why else {}), **({"rescued": True} if state.get("rescued") else {}),
             "usage": {**turn.used, "latency_ms": ms, "switches": 0, "trims": 0, f"level_{turn.level}": 1},
             "trace": _step("respond", started, level=turn.level, model=turn.model, rounds=turn.rounds, searches=turn.searches,

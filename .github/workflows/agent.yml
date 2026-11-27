@@ -104,6 +104,10 @@ jobs:
         continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.showing_eval
 
+      - name: One thing or all of a kind (a singular ask lands on that item, an open-ended one on its section; ~1 minute)
+        continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
+        run: python -m evals.referent_eval
+
       - name: Recruiter cases (he is sold, honestly — proof, links, a next step, no invented gaps)
         continue-on-error: ${{ github.ref != 'refs/heads/main' }}  # a branch run reports every eval; main stops at the first failure
         run: python -m evals.advocacy_eval

@@ -28,6 +28,7 @@ from evals import again  # noqa: E402
 
 HERE = Path(__file__).parent
 DELAY_SECONDS = 4
+PARALLEL = 4  # cases at once (was one at a time, ~25 minutes for 37 cases)
 MOVED_TARGET = 0.85  # real answers vary run to run: this is what it reliably does, so a bad prompt fails and a bad day doesn't
 STAY_MISSES = 1
 WORD_LIMIT = 125  # the prompt asks for under 80 (under 110 for a role fit): this catches a model ignoring it
@@ -76,19 +77,21 @@ async def main() -> int:
         return {"id": case["id"], "stay": want == "stay", "right": right, "no_model": no_model, "wrote": wrote_it,
                 "leak": leak, "long": long, "words": words(answer), "level": state.get("level", ""), "model": state.get("model", "")}
 
-    rows = []
-    for i, case in enumerate(cases):
-        if i:
-            await asyncio.sleep(DELAY_SECONDS)
-        row = await shown(case)
-        if not row["no_model"] and not row["leak"] and (row["long"] or not row["right"]):
-            # One reply is one sample: a long one or a wrong page is asked for once more and counts only if it happens
-            # twice (the same five cases failed one CI run and passed ten local runs, 15 Nov 2026). A leak of the
-            # hidden line counts at once.
-            print(f"again {case['id']:<17} first reply: {'too long' if row['long'] else 'wrong page'}")
-            await again.wait(row["level"], row["model"], DELAY_SECONDS)
+    gate = asyncio.Semaphore(PARALLEL)
+
+    async def one(case: dict) -> dict:
+        async with gate:  # a few at a time: the gateway books every call against the free limits and waits out a full minute
             row = await shown(case)
-        rows.append(row)
+            if not row["no_model"] and not row["leak"] and (row["long"] or not row["right"]):
+                # One reply is one sample: a long one or a wrong page is asked for once more and counts only if it
+                # happens twice (the same five cases failed one CI run and passed ten local runs, 15 Nov 2026). A leak
+                # of the hidden line counts at once.
+                print(f"again {case['id']:<17} first reply: {'too long' if row['long'] else 'wrong page'}")
+                await again.wait(row["level"], row["model"], DELAY_SECONDS)
+                row = await shown(case)
+            return row
+
+    rows = list(await asyncio.gather(*(one(c) for c in cases)))
     rows = [r for r in rows if not r["no_model"]]
     moving, staying = [r for r in rows if not r["stay"]], [r for r in rows if r["stay"]]
     moved = sum(r["right"] for r in moving) / max(1, len(moving))

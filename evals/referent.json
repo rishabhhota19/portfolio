@@ -1,0 +1,26 @@
+[
+  { "id": "best-project",       "q": "What's his best project?",                              "scope": "one", "path": "^/projects/[a-z0-9-]+$" },
+  { "id": "best-projects-cmd",  "q": "show me his best projects",                             "scope": "one", "path": "^/projects/[a-z0-9-]+$" },
+  { "id": "strongest-built",    "q": "What's the most impressive thing he has built?",        "scope": "one", "path": "^/projects/[a-z0-9-]+$" },
+  { "id": "all-projects",       "q": "What projects has he built?",                           "scope": "all", "path": "^/projects$" },
+  { "id": "all-projects-cmd",   "q": "show me his projects",                                  "scope": "all", "path": "^/projects$" },
+  { "id": "named-project",      "q": "Tell me about TurboTrade",                              "scope": "one", "path": "^/projects/turbotrade$" },
+
+  { "id": "best-paper",         "q": "What's his best paper?",                                "scope": "one", "path": "^/publications#[a-z0-9-]+$" },
+  { "id": "best-research",      "q": "tell me his best research",                             "scope": "one", "path": "^/publications#[a-z0-9-]+$" },
+  { "id": "all-papers",         "q": "What papers has he written?",                           "scope": "all", "path": "^/publications$" },
+  { "id": "described-paper",    "q": "Show me his paper on quantum attention",                "scope": "one", "path": "^/publications#(qfpvit|quantum-feature-maps)$" },
+
+  { "id": "current-role",       "q": "Where does he work now?",                               "scope": "one", "path": "^/experience#01-" },
+  { "id": "first-job",          "q": "What was his first job?",                               "scope": "one", "path": "^/experience#05-" },
+  { "id": "osteos-engineer",    "q": "What did he do as an AI Engineer at OsteosConnect?",    "scope": "one", "path": "^/experience#03-" },
+  { "id": "all-experience",     "q": "Walk me through his work history",                      "scope": "all", "path": "^/experience$" },
+
+  { "id": "one-service",        "q": "Does he run AI training for teams?",                    "scope": "one", "path": "^/services#training$" },
+  { "id": "all-services",       "q": "What services does he offer?",                          "scope": "all", "path": "^/services$" },
+
+  { "id": "one-post",           "q": "Has he written about how this chat works?",             "scope": "one", "path": "^/(blog/how-my-portfolio-agent-works|projects/portfolio-agent)$" },
+  { "id": "all-writing",        "q": "Show me his writing",                                   "scope": "all", "path": "^/blog$" },
+
+  { "id": "best-healthcare",    "q": "What's his most impressive healthcare AI work?",        "scope": "one", "path": "^/(projects/[a-z0-9-]+|publications#[a-z0-9-]+)$" }
+]

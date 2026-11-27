@@ -101,9 +101,29 @@ def find_page(text: str) -> dict | None:
         (base, n), *rest = bases.most_common()
         if not rest or n > rest[0][1]:  # e.g. both OsteosConnect roles (and one paper) → the Experience page
             return {"path": base, "label": SECTIONS.get(base, (_label(top[0]["label"]),))[0]}
-    if section:
+    # Only a section with items can have one picked out of it: /3d, /privacy, /resume take any wording.
+    if section and (section not in KIND_OF_SECTION or not leftover(t, section)):
         return {"path": section, "label": SECTIONS[section][0]}
-    return None
+    return None  # a section word plus more ("his BEST projects", "his CURRENT role"): which one is the model's call
+
+
+# Words that carry no choice of their own (a closed class: articles, pronouns, auxiliaries, prepositions, politeness).
+_FUNCTION = re.compile(
+    r"\b(a|an|the|his|her|their|rishabh'?s?|hota'?s?|he|him|me|my|i|you|your|we|us|it|its|this|that|these|those|to|of|"
+    r"on|in|at|for|from|with|about|all|any|every|and|or|please|pls|plz|can|could|would|will|may|do|does|did|is|are|was|"
+    r"were|be|has|have|had|what|where|there|here|page|pages|section|tab|now|ok|okay|just|up|over|out|so|like|want|"
+    r"wanna|see|let|lets|let's|go|get|take|bring|show|open|view|visit|look|check|browse|explore|read)\b", re.I)
+
+
+def leftover(text: str, section: str) -> str:
+    """What a message says beyond asking for this section: its navigation verb, the section's own words and function
+    words removed. Empty means the message is just "take me to <section>"; anything else ("best", "current", "the one
+    about quantum") picks something out of the section, which only the model can resolve. 15 Nov 2026 to 27 Nov 2026,
+    "show me his best projects" opened the Projects section here, before any model read it."""
+    rest = NAVIGATE.sub(" ", text.lower())
+    rest = re.sub(rf"\b({SECTIONS[section][1]})\b", " ", rest)
+    rest = _FUNCTION.sub(" ", re.sub(r"[^\w\s']", " ", rest))
+    return " ".join(rest.split())
 
 
 _FILLER = re.compile(r"\b(please|pls|plz|the|his|rishabh'?s|page|pages|section|tab|now|ok|okay)\b")
@@ -202,6 +222,17 @@ def shown_page(path: str) -> dict | None:
 def site_map() -> str:
     """The page list in the system prompt, so answers link real pages: path and name only (~490 tokens). Every chunk in
     CONTEXT already names its page, so the summaries (another ~170 tokens on every call) aren't needed here."""
-    lines = [f"{path} — {label}" for path, (label, _) in SECTIONS.items() if path != "/privacy"]
-    lines += [f"{p['path']} — {p['label']}{' — [read the paper](' + p['paper'] + ')' if p['paper'] else ''}" for p in PAGES]  # copied as a link
+    lines = []
+    for path, (label, _) in SECTIONS.items():
+        if path == "/privacy":
+            continue
+        items = [p for p in PAGES if p["kind"] == KIND_OF_SECTION.get(path)]
+        lines.append(f"{path} — {label}" + (f": the whole section, all {len(items)}; its items, {ORDER.get(KIND_OF_SECTION[path], 'in his order')}:" if items else ""))
+        lines += [f"  {p['path']} — {p['label']}{' — [read the paper](' + p['paper'] + ')' if p['paper'] else ''}" for p in items]  # copied as a link
     return "\n".join(lines)
+
+
+# The order content/ keeps each kind in (its "order" front matter, or the numbered file names), said in words so the
+# model can pick one out of a section ("his best project" is the first project; "his current role" the first role).
+ORDER = {"project": "in his own ranking, strongest first", "publication": "in his own ranking, strongest first",
+         "experience": "newest first (the first is his current role)", "service": "in his own order"}

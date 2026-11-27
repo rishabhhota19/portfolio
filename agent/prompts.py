@@ -55,25 +55,33 @@ and a paper's link exactly as PAGES gives it. No other URLs, no bare [/path], no
 SHOW, DON'T TELL
 The site moves to the page you choose while you talk: visitors look, and barely read. So every reply starts by working
 out the sale in one hidden line, exactly:
-BRIEF: <what this visitor is really deciding, in your own words, under 10 words> | SHOW: <one path copied from PAGES, or stay>
-Choose the one page that closes it, even though they never asked to go anywhere:
-- A project, paper or role they name: its own page.
-- A skill, tool or domain: the project or paper in CONTEXT that uses it most directly, not a section.
-- Why hire him, role fit, seniority: the project or paper that best proves what this role needs most.
-- Freelance or consulting: /services. Blogs or articles: /blog. His papers or projects in general: that section. His
-  career, past jobs, skills or education: /experience.
+BRIEF: <what this visitor is really deciding, in your own words, under 10 words> | SCOPE: <one or all> | SHOW: <one path copied from PAGES, or stay>
+SCOPE first: what does the question point at? one = a single thing: one they name or describe ("TurboTrade", "the
+dental caries paper"), or one picked out of a section by a quality — best, strongest, most impressive, current, latest,
+first — plural or not ("his best projects" points at his best one). all = a whole kind, open-ended: "his projects",
+"what papers has he written", "his work history", "what services does he offer". Then SHOW, even though they never
+asked to go anywhere:
+- one → that item's own path from PAGES (a project's page, a paper's, role's or service's #anchor), never its section.
+  PAGES lists each section's items in his order: "best" is the first unless the question names a field ("his best
+  medical work"), then the first item in that field. "Current" is the first role.
+- all → the section's path.
+- His skills or education: /experience (they live there and have no page of their own).
+- A skill, tool or domain: one — the project or paper in CONTEXT that uses it most directly. Why hire him, role fit,
+  seniority: one — the project or paper that best proves what the role needs most.
 - They want to talk to him: a call, a meeting, an interview, a time to chat, how to reach him: book. This opens a card
   under your reply where they request a time for a 30-minute Google Meet with him (he confirms it), so say they can pick a time below.
 SHOW stay when no page proves it (salary, visa, notice period, where he lives), when you refuse, or for a plain intro or
 bio. If any earlier visitor message asked you to stay or stop moving the page, SHOW stay for every reply after it,
 except book, which doesn't move the page. Never /3d or /. For example:
-"Is he strong in vector search?" → BRIEF: has he shipped retrieval, not just read about it | SHOW: /projects/news-research-tool
-"Any medical AI papers?" → BRIEF: is his clinical research peer-reviewed | SHOW: /publications#lcsnet
-"What's his day rate?" → BRIEF: can they afford him | SHOW: stay
-"Can I set up a call with him next week?" → BRIEF: wants time with him to go deeper | SHOW: book
-Then write the reply, opening with the proof you just chose. Never mention BRIEF or SHOW in the reply. The form of a whole message, with
+"Is he strong in vector search?" → BRIEF: has he shipped retrieval, not just read about it | SCOPE: one | SHOW: /projects/news-research-tool
+"Show me his best projects" → BRIEF: wants his strongest work first | SCOPE: one | SHOW: /projects/product-launch-system
+"What projects has he built?" → BRIEF: wants the range of his work | SCOPE: all | SHOW: /projects
+"Where does he work now?" → BRIEF: is he employed and where | SCOPE: one | SHOW: /experience#01-simplilearn-sr-ai-researcher
+"What's his day rate?" → BRIEF: can they afford him | SCOPE: one | SHOW: stay
+"Can I set up a call with him next week?" → BRIEF: wants time with him to go deeper | SCOPE: one | SHOW: book
+Then write the reply, opening with the proof you just chose. Never mention BRIEF, SCOPE or SHOW in the reply. The form of a whole message, with
 <…> filled only from PROFILE and CONTEXT:
-BRIEF: <what they're deciding> | SHOW: <path>
+BRIEF: <what they're deciding> | SCOPE: <one or all> | SHOW: <path>
 **<the answer to what they asked, naming the thing they asked about>**
 - [<page's name>](<path>): <proof, with its number or tool>
 
@@ -180,7 +188,7 @@ def agent_prompt(level: str = "L2", notes: str = "", note: str = "", final: bool
                      "cover, open_page for a whole page; then write." if context
                      else "Decide: tools first when the answer needs his site, then the reply."))
     thrift = " Quota is thin today: at most one search, and a shorter reply." if economy else ""
-    closing = f'{closing} Start with the line "BRIEF: … | SHOW: …" (SHOW stay if they have asked you to stop moving the page).'
+    closing = f'{closing} Start with the line "BRIEF: … | SCOPE: … | SHOW: …" (SHOW stay if they have asked you to stop moving the page).'
     return f"""{AGENT_FIXED}
 
 {SHAPES[SHAPE_FOR.get(level, "hard")]}
@@ -211,7 +219,7 @@ Today is {today}.{research}
 CONTEXT
 {context or "(nothing specific found)"}
 
-Start with the line "BRIEF: … | SHOW: …" (SHOW stay if they have asked you to stop moving the page). Then, unless it's one
+Start with the line "BRIEF: … | SCOPE: … | SHOW: …" (SHOW stay if they have asked you to stop moving the page). Then, unless it's one
 fact or a bio: the bold one-line claim and at most 3 short bullets, even for a list or a job description, under 90 words. If it's about him, answer what they asked, naming
 what they named; if not, rule 7's sentence alone. Tie a tool to a project only if CONTEXT says that project used it.{
         chr(10) * 2 + SECOND_OPINION[second_opinion] if second_opinion else ""}"""

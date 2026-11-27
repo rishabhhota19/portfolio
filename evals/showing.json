@@ -4,7 +4,7 @@
   { "id": "named-oa", "q": "How accurate was his osteoarthritis model?", "show": "^(/projects/oa-classification|/publications#(oa-agentic|.*))$" },
   { "id": "named-turbo", "q": "What is TurboTrade?", "show": "^/projects/turbotrade$" },
   { "id": "named-role", "q": "What did he do at OsteosConnect?", "show": "^(/experience(#0[34].*)?|/projects/oa-classification)$" },
-  { "id": "current-job", "q": "Where does he work now?", "show": "^/experience(#01.*)?$" },
+  { "id": "current-job", "q": "Where does he work now?", "show": "^/experience#01" },
   { "id": "built-at", "q": "What did he build at Simplilearn?", "show": "^(/projects/(product-launch-system|sales-training-chatbot)|/experience(#0[12].*)?)$" },
   { "id": "topic-langgraph", "q": "Does he know LangGraph?", "show": "^/projects/(product-launch-system|portfolio-agent|oa-classification)$" },
   { "id": "topic-aws", "q": "Has he worked with AWS?", "show": "^/(projects/|experience)" },
@@ -37,5 +37,5 @@
   { "id": "book-call", "q": "Can I set up a quick call with him this week?", "show": "^#book$" },
   { "id": "book-interview", "q": "We'd like to interview him for our GenAI lead role. How do we get time with him?", "show": "^#book$" },
   { "id": "starter-research", "q": "Tell me about his research", "show": "^/publications(#.*)?$" },
-  { "id": "best-research", "q": "tell me his best research", "show": "^/publications(#.*)?$" }
+  { "id": "best-research", "q": "tell me his best research", "show": "^/publications#" }
 ]

@@ -193,7 +193,7 @@ EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
 # The hidden first line's own words in the reply itself, once a stray hidden line has been cleaned away: the model is
 # describing its instructions. The small fallback writer once answered a follow-up with a plan that began
 # "- BRIEF line first" (CI, 15 Nov 2026). Capitals only: "a brief intro" is an ordinary answer.
-HIDDEN_WORDS = re.compile(r"\bBRIEF\b|\bSHOW:")
+HIDDEN_WORDS = re.compile(r"\bBRIEF\b|\bSHOW:|\bSCOPE:\s*(?:one|all)\b")
 
 
 def check(answer: str) -> str | None:
@@ -238,7 +238,7 @@ def linkify(answer: str) -> str:
 
 
 # The agent's hidden line (read_brief takes the first one) if a model writes it again further down, or a piece of it.
-_HIDDEN_LINE = re.compile(r"^[^\w\n]*(?:BRIEF:|SHOW:\s*(?:/|stay\b)).*(?:\n|$)|\s*\|\s*SHOW:\s*(?:/\S*|stay\b)", re.M)
+_HIDDEN_LINE = re.compile(r"^[^\w\n]*(?:BRIEF:|SHOW:\s*(?:/|stay\b)).*(?:\n|$)|\s*\|\s*SHOW:\s*(?:/\S*|stay\b)|\s*\|\s*SCOPE:\s*(?:one|all)\b", re.M)
 
 
 def clean(answer: str) -> str:
@@ -270,10 +270,21 @@ def _redact(text: str) -> str:
 _BRIEF = re.compile(r"^[\s*_]*BRIEF:[\s*_]*(.*?)\|[\s*_]*SHOW:[\s*_]*([^\s*_]\S*)[^\n]*(?:\n+|$)")
 
 
+_SCOPE = re.compile(r"\|?[\s*_]*SCOPE:[\s*_]*(one|all)\b[\s*_]*", re.I)
+
+
 def read_brief(text: str) -> tuple[str, str, str]:
-    """The agent's hidden first line (prompts.py): what it worked out, the page it chose, and the reply without it."""
+    """The agent's hidden first line (prompts.py): what it worked out, the page it chose, and the reply without it.
+    The SCOPE it decided (one thing or all of a kind) is read separately by read_scope."""
     m = _BRIEF.match(text)
-    return (m[1].strip(), m[2].strip("`[]()"), text[m.end():]) if m else ("", "", text)
+    return (_SCOPE.sub(" ", m[1]).strip(" |"), m[2].strip("`[]()"), text[m.end():]) if m else ("", "", text)
+
+
+def read_scope(text: str) -> str:
+    """"one" or "all" from the hidden first line, "" if the model didn't say."""
+    m = _BRIEF.match(text)
+    s = _SCOPE.search(m[1]) if m else None
+    return s[1].lower() if s else ""
 
 
 class BriefReader:
